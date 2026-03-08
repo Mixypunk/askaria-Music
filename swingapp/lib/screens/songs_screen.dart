@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../widgets/song_tile.dart';
-import 'settings_screen.dart';
 
 class SongsScreen extends StatefulWidget {
   const SongsScreen({super.key});
@@ -32,6 +31,11 @@ class _SongsScreenState extends State<SongsScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
+  Future<void> _logout() async {
+    await SwingApiService().logout();
+    if (mounted) Navigator.of(context).pushReplacementNamed('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,10 +43,18 @@ class _SongsScreenState extends State<SongsScreen> {
         title: const Text('Ma Musique'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_rounded),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Déconnexion',
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('Déconnexion'),
+                content: const Text('Tu veux te déconnecter ?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+                  FilledButton(onPressed: _logout, child: const Text('Déconnexion')),
+                ],
+              ),
             ),
           ),
         ],
