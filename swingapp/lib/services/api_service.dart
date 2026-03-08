@@ -86,9 +86,9 @@ class SwingApiService {
     }
   }
 
-  Future<List<Song>> getSongs({int start = 0, int limit = 100}) async {
+  Future<List<Song>> getSongs({int page = 1, int limit = 50}) async {
     final uri = Uri.parse('$_baseUrl/api/tracks').replace(
-      queryParameters: {'start': '$start', 'limit': '$limit', 'sortby': 'title', 'reverse': '0'},
+      queryParameters: {'page': '$page', 'limit': '$limit'},
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load songs');
@@ -108,9 +108,9 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
-  Future<List<Album>> getAlbums({int start = 0, int limit = 100}) async {
+  Future<List<Album>> getAlbums({int page = 1, int limit = 50}) async {
     final uri = Uri.parse('$_baseUrl/api/albums').replace(
-      queryParameters: {'start': '$start', 'limit': '$limit', 'sortby': 'title', 'reverse': '0'},
+      queryParameters: {'page': '$page', 'limit': '$limit'},
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load albums');
@@ -188,4 +188,61 @@ class SwingApiService {
   String getStreamUrl(String trackHash) => '$_baseUrl/api/stream/$trackHash';
   String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/api/img/$type/$hash';
   String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/api/img/$type/$hash/thumbnail';
+}
+
+// Extension pour le pairing QR
+extension SwingApiPairing on SwingApiService {
+  Future<bool> pairWithCode(String serverUrl, String code) async {
+    await saveUrl(serverUrl);
+    
+    // Essai 1 : POST /auth/pair
+    try {
+      final r = await http.post(
+        Uri.parse('$serverUrl/auth/pair'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'code': code}),
+      ).timeout(const Duration(seconds: 10));
+      if (r.statusCode == 200) return _extractCookie(r);
+    } catch (_) {}
+
+    // Essai 2 : GET /auth/pair/<code>
+    try {
+      final r = await http.get(
+        Uri.parse('$serverUrl/auth/pair/$code'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+      if (r.statusCode == 200) return _extractCookie(r);
+    } catch (_) {}
+
+    // Essai 3 : POST /auth/confirmpairing
+    try {
+      final r = await http.post(
+        Uri.parse('$serverUrl/auth/confirmpairing'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'code': code}),
+      ).timeout(const Duration(seconds: 10));
+      if (r.statusCode == 200) return _extractCookie(r);
+    } catch (_) {}
+
+    return false;
+  }
+
+  bool _extractCookie(http.Response response) {
+    final setCookie = response.headers['set-cookie'] ?? '';
+    final match = RegExp(r'access_token_cookie=[^;]+').firstMatch(setCookie);
+    if (match != null) {
+      _cookie = match.group(0);
+      SharedPreferences.getInstance().then((p) => p.setString('auth_cookie', _cookie!));
+      return true;
+    }
+    try {
+      final data = json.decode(response.body);
+      if (data['access_token'] != null) {
+        _cookie = 'access_token_cookie=${data['access_token']}';
+        SharedPreferences.getInstance().then((p) => p.setString('auth_cookie', _cookie!));
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
 }
