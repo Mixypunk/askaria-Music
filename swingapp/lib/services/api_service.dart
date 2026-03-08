@@ -86,9 +86,9 @@ class SwingApiService {
     }
   }
 
-  Future<List<Song>> getSongs({int page = 1, int limit = 50}) async {
+  Future<List<Song>> getSongs({int start = 0, int limit = 100}) async {
     final uri = Uri.parse('$_baseUrl/api/tracks').replace(
-      queryParameters: {'page': '$page', 'limit': '$limit'},
+      queryParameters: {'start': '$start', 'limit': '$limit', 'sortby': 'title', 'reverse': '0'},
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load songs');
@@ -108,9 +108,9 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
-  Future<List<Album>> getAlbums({int page = 1, int limit = 50}) async {
+  Future<List<Album>> getAlbums({int start = 0, int limit = 100}) async {
     final uri = Uri.parse('$_baseUrl/api/albums').replace(
-      queryParameters: {'page': '$page', 'limit': '$limit'},
+      queryParameters: {'start': '$start', 'limit': '$limit', 'sortby': 'title', 'reverse': '0'},
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load albums');
