@@ -6,16 +6,18 @@ import 'artwork_widget.dart';
 
 class SongTile extends StatelessWidget {
   final Song song;
-  final List<Song> queue;
-  final int index;
+  final List<Song>? queue;
+  final int? index;
   final bool showNumber;
+  final VoidCallback? onTap;
 
   const SongTile({
     super.key,
     required this.song,
-    required this.queue,
-    required this.index,
+    this.queue,
+    this.index,
     this.showNumber = false,
+    this.onTap,
   });
 
   @override
@@ -85,7 +87,11 @@ class SongTile extends StatelessWidget {
           ),
         ],
       ),
-      onTap: () => context.read<PlayerProvider>().playSong(song, queue: queue, index: index),
+      onTap: onTap ?? () => context.read<PlayerProvider>().playSong(
+        song,
+        queue: queue ?? [song],
+        index: index ?? 0,
+      ),
     );
   }
 }
