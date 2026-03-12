@@ -35,7 +35,7 @@ class SongTile extends StatelessWidget {
                     ? Icon(Icons.equalizer_rounded,
                         color: Theme.of(context).colorScheme.primary, size: 20)
                     : Text(
-                        '${song.trackNumber > 0 ? song.trackNumber : index + 1}',
+                        '${song.trackNumber > 0 ? song.trackNumber : (index ?? 0) + 1}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
