@@ -19,6 +19,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _shuffle = false;
   String? _lyrics;
   bool _lyricsLoading = false;
+  String? _error;
 
   List<Song> get queue => _queue;
   int get currentIndex => _currentIndex;
@@ -33,6 +34,7 @@ class PlayerProvider extends ChangeNotifier {
   bool get shuffle => _shuffle;
   String? get lyrics => _lyrics;
   bool get lyricsLoading => _lyricsLoading;
+  String? get error => _error;
 
   double get progress =>
       _duration.inMilliseconds > 0
@@ -44,18 +46,15 @@ class PlayerProvider extends ChangeNotifier {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering;
-
       if (state.processingState == ProcessingState.completed) {
         _onTrackComplete();
       }
       notifyListeners();
     });
-
     _player.positionStream.listen((pos) {
       _position = pos;
       notifyListeners();
     });
-
     _player.durationStream.listen((dur) {
       _duration = dur ?? Duration.zero;
       notifyListeners();
@@ -72,17 +71,25 @@ class PlayerProvider extends ChangeNotifier {
     } else {
       _currentIndex = _queue.indexOf(song);
     }
-
     await _loadAndPlay();
     _fetchLyrics();
   }
 
   Future<void> _loadAndPlay() async {
     if (currentSong == null) return;
-    final url = _api.getStreamUrl(currentSong!.hash);
-    await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
-    await _player.play();
-    notifyListeners();
+    _error = null;
+    try {
+      // Token est inclus dans l'URL pour éviter les problèmes de cookie avec just_audio
+      final url = _api.getStreamUrl(currentSong!.hash);
+      debugPrint('🎵 Stream URL: $url');
+      await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
+      await _player.play();
+      notifyListeners();
+    } catch (e) {
+      _error = 'Erreur lecture: $e';
+      debugPrint('Stream error: $e');
+      notifyListeners();
+    }
   }
 
   void _onTrackComplete() {
@@ -97,9 +104,7 @@ class PlayerProvider extends ChangeNotifier {
         _fetchLyrics();
         break;
       case RepeatMode.off:
-        if (_currentIndex < _queue.length - 1) {
-          next();
-        }
+        if (_currentIndex < _queue.length - 1) next();
         break;
     }
   }
@@ -115,7 +120,7 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> next() async {
     if (_queue.isEmpty) return;
     if (_shuffle) {
-      _currentIndex = (DateTime.now().millisecondsSinceEpoch % _queue.length);
+      _currentIndex = DateTime.now().millisecondsSinceEpoch % _queue.length;
     } else {
       _currentIndex = (_currentIndex + 1) % _queue.length;
     }

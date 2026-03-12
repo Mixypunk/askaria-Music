@@ -13,14 +13,17 @@ class SwingApiService {
 
   String _baseUrl = 'https://askaria-music.duckdns.org';
   String? _cookie;
+  String? _token; // JWT token seul (sans "access_token_cookie=")
 
   String get baseUrl => _baseUrl;
   bool get isLoggedIn => _cookie != null;
+  String? get cookie => _cookie;
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _baseUrl = prefs.getString('server_url') ?? 'https://askaria-music.duckdns.org';
     _cookie = prefs.getString('auth_cookie');
+    _token = prefs.getString('auth_token');
   }
 
   Future<void> saveUrl(String url) async {
@@ -34,6 +37,20 @@ class SwingApiService {
     if (_cookie != null) 'Cookie': _cookie!,
   };
 
+  void _storeCookieAndToken(String setCookieHeader) {
+    final match = RegExp(r'access_token_cookie=([^;]+)').firstMatch(setCookieHeader);
+    if (match != null) {
+      _token = match.group(1);
+      _cookie = 'access_token_cookie=${_token!}';
+    }
+  }
+
+  Future<void> _persistAuth() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_cookie != null) await prefs.setString('auth_cookie', _cookie!);
+    if (_token != null) await prefs.setString('auth_token', _token!);
+  }
+
   // ── AUTH ───────────────────────────────────────────────────────────────
   Future<bool> login(String username, String password) async {
     try {
@@ -45,19 +62,17 @@ class SwingApiService {
 
       if (response.statusCode == 200) {
         final setCookie = response.headers['set-cookie'] ?? '';
-        final match = RegExp(r'access_token_cookie=[^;]+').firstMatch(setCookie);
-        if (match != null) {
-          _cookie = match.group(0);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_cookie', _cookie!);
-          return true;
+        if (setCookie.isNotEmpty) {
+          _storeCookieAndToken(setCookie);
+          await _persistAuth();
+          return _cookie != null;
         }
         try {
           final data = json.decode(response.body);
           if (data['access_token'] != null) {
-            _cookie = 'access_token_cookie=${data['access_token']}';
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('auth_cookie', _cookie!);
+            _token = data['access_token'].toString();
+            _cookie = 'access_token_cookie=$_token';
+            await _persistAuth();
             return true;
           }
         } catch (_) {}
@@ -70,7 +85,7 @@ class SwingApiService {
 
   Future<bool> pairWithCode(String serverUrl, String code) async {
     await saveUrl(serverUrl);
-    for (final endpoint in ['/auth/pair', '/auth/confirmpairing']) {
+    for (final endpoint in ['/auth/pair', '/auth/confirmpairing', '/auth/login/pair']) {
       try {
         final r = await http.post(
           Uri.parse('$serverUrl$endpoint'),
@@ -79,12 +94,10 @@ class SwingApiService {
         ).timeout(const Duration(seconds: 10));
         if (r.statusCode == 200) {
           final setCookie = r.headers['set-cookie'] ?? '';
-          final match = RegExp(r'access_token_cookie=[^;]+').firstMatch(setCookie);
-          if (match != null) {
-            _cookie = match.group(0);
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('auth_cookie', _cookie!);
-            return true;
+          if (setCookie.isNotEmpty) {
+            _storeCookieAndToken(setCookie);
+            await _persistAuth();
+            return _cookie != null;
           }
         }
       } catch (_) {}
@@ -94,8 +107,10 @@ class SwingApiService {
 
   Future<void> logout() async {
     _cookie = null;
+    _token = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_cookie');
+    await prefs.remove('auth_token');
   }
 
   Future<bool> checkAuth() async {
@@ -127,21 +142,30 @@ class SwingApiService {
         'sortfoldersby': 'lastmod',
       }),
     );
-    if (response.statusCode != 200) throw Exception('Failed to load songs');
+    if (response.statusCode != 200) {
+      throw Exception('getSongs HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+    }
     final data = json.decode(response.body);
     final items = data['tracks'] ?? [];
     return (items as List).map((e) => Song.fromJson(e)).toList();
   }
 
   Future<List<Song>> searchSongs(String query) async {
-    final uri = Uri.parse('$_baseUrl/search').replace(
-      queryParameters: {'q': query},
-    );
-    final response = await http.get(uri, headers: _headers);
-    if (response.statusCode != 200) throw Exception('Search failed');
-    final data = json.decode(response.body);
-    final tracks = data['tracks'] ?? data['results'] ?? [];
-    return (tracks as List).map((e) => Song.fromJson(e)).toList();
+    // Swing Music search endpoint
+    for (final path in ['/search', '/search/tracks']) {
+      try {
+        final uri = Uri.parse('$_baseUrl$path').replace(
+          queryParameters: {'q': query},
+        );
+        final response = await http.get(uri, headers: _headers);
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final tracks = data['tracks'] ?? data['results'] ?? (data is List ? data : []);
+          return (tracks as List).map((e) => Song.fromJson(e)).toList();
+        }
+      } catch (_) {}
+    }
+    return [];
   }
 
   // ── ALBUMS ─────────────────────────────────────────────────────────────
@@ -155,9 +179,11 @@ class SwingApiService {
       },
     );
     final response = await http.get(uri, headers: _headers);
-    if (response.statusCode != 200) throw Exception('Failed to load albums');
+    if (response.statusCode != 200) {
+      throw Exception('getAlbums HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+    }
     final data = json.decode(response.body);
-    final items = data['albums'] ?? (data is List ? data : []);
+    final items = data['albums'] ?? data['items'] ?? (data is List ? data : []);
     return (items as List).map((e) => Album.fromJson(e)).toList();
   }
 
@@ -166,7 +192,7 @@ class SwingApiService {
       Uri.parse('$_baseUrl/getall/album/tracks/$albumHash'),
       headers: _headers,
     );
-    if (response.statusCode != 200) throw Exception('Failed to load album tracks');
+    if (response.statusCode != 200) throw Exception('Album tracks HTTP ${response.statusCode}');
     final data = json.decode(response.body);
     final tracks = data['tracks'] ?? (data is List ? data : []);
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
@@ -178,14 +204,16 @@ class SwingApiService {
       queryParameters: {
         'start': '$start',
         'limit': '$limit',
-        'sortby': 'created_date',
-        'reverse': '1',
+        'sortby': 'name',
+        'reverse': '0',
       },
     );
     final response = await http.get(uri, headers: _headers);
-    if (response.statusCode != 200) throw Exception('Failed to load artists');
+    if (response.statusCode != 200) {
+      throw Exception('getArtists HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+    }
     final data = json.decode(response.body);
-    final items = data['artists'] ?? (data is List ? data : []);
+    final items = data['artists'] ?? data['items'] ?? (data is List ? data : []);
     return (items as List).map((e) => Artist.fromJson(e)).toList();
   }
 
@@ -195,9 +223,11 @@ class SwingApiService {
       Uri.parse('$_baseUrl/getall/playlists'),
       headers: _headers,
     );
-    if (response.statusCode != 200) throw Exception('Failed to load playlists');
+    if (response.statusCode != 200) {
+      throw Exception('getPlaylists HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+    }
     final data = json.decode(response.body);
-    final items = data['playlists'] ?? (data is List ? data : []);
+    final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
     return (items as List).map((e) => Playlist.fromJson(e)).toList();
   }
 
@@ -206,7 +236,7 @@ class SwingApiService {
       Uri.parse('$_baseUrl/getall/playlist/tracks/$playlistId'),
       headers: _headers,
     );
-    if (response.statusCode != 200) throw Exception('Failed to load playlist tracks');
+    if (response.statusCode != 200) throw Exception('Playlist tracks HTTP ${response.statusCode}');
     final data = json.decode(response.body);
     final tracks = data['tracks'] ?? (data is List ? data : []);
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
@@ -228,7 +258,25 @@ class SwingApiService {
   }
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
-  String getStreamUrl(String trackHash) => '$_baseUrl/stream/track/$trackHash';
-  String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash';
-  String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash/thumbnail';
+  // Le token est passé en query param pour que just_audio puisse streamer
+  String getStreamUrl(String trackHash) {
+    if (_token != null) {
+      return '$_baseUrl/stream/track/$trackHash?token=$_token';
+    }
+    return '$_baseUrl/stream/track/$trackHash';
+  }
+
+  String getArtworkUrl(String hash, {String type = 'track'}) {
+    if (_token != null) {
+      return '$_baseUrl/img/$type/$hash?token=$_token';
+    }
+    return '$_baseUrl/img/$type/$hash';
+  }
+
+  String getThumbnailUrl(String hash, {String type = 'track'}) {
+    if (_token != null) {
+      return '$_baseUrl/img/$type/$hash/thumbnail?token=$_token';
+    }
+    return '$_baseUrl/img/$type/$hash/thumbnail';
+  }
 }

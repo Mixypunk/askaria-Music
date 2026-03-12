@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/album.dart';
+import '../models/artist.dart';
 import '../services/api_service.dart';
-import '../widgets/artwork_widget.dart';
 
 class ArtistsScreen extends StatefulWidget {
   const ArtistsScreen({super.key});
-
   @override
   State<ArtistsScreen> createState() => _ArtistsScreenState();
 }
@@ -13,18 +11,18 @@ class ArtistsScreen extends StatefulWidget {
 class _ArtistsScreenState extends State<ArtistsScreen> {
   List<Artist> _artists = [];
   bool _loading = true;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       _artists = await SwingApiService().getArtists(limit: 200);
-    } catch (_) {}
+    } catch (e) {
+      _error = e.toString();
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -34,28 +32,38 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
       appBar: AppBar(title: const Text('Artistes')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView.builder(
-                itemCount: _artists.length,
-                itemBuilder: (ctx, i) {
-                  final a = _artists[i];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 26,
-                      child: ArtworkWidget(
-                        hash: a.hash,
-                        size: 52,
-                        borderRadius: 26,
-                        type: 'artist',
+          : _error != null
+              ? Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
+                  ]),
+                ))
+              : _artists.isEmpty
+                  ? const Center(child: Text('Aucun artiste'))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.builder(
+                        itemCount: _artists.length,
+                        itemBuilder: (ctx, i) {
+                          final a = _artists[i];
+                          final thumb = SwingApiService().getThumbnailUrl(a.hash, type: 'artist');
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: NetworkImage(thumb),
+                              onBackgroundImageError: (_, __) {},
+                              child: const Icon(Icons.person),
+                            ),
+                            title: Text(a.name),
+                            subtitle: Text('${a.albumCount} albums · ${a.trackCount} titres'),
+                          );
+                        },
                       ),
                     ),
-                    title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    subtitle: Text('${a.albumCount} albums · ${a.trackCount} titres'),
-                  );
-                },
-              ),
-            ),
     );
   }
 }

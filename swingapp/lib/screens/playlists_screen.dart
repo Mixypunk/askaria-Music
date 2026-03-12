@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../models/album.dart';
+import 'package:provider/provider.dart';
+import '../models/playlist.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
-import '../widgets/artwork_widget.dart';
+import '../providers/player_provider.dart';
 import '../widgets/song_tile.dart';
 
 class PlaylistsScreen extends StatefulWidget {
   const PlaylistsScreen({super.key});
-
   @override
   State<PlaylistsScreen> createState() => _PlaylistsScreenState();
 }
@@ -15,18 +15,18 @@ class PlaylistsScreen extends StatefulWidget {
 class _PlaylistsScreenState extends State<PlaylistsScreen> {
   List<Playlist> _playlists = [];
   bool _loading = true;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       _playlists = await SwingApiService().getPlaylists();
-    } catch (_) {}
+    } catch (e) {
+      _error = e.toString();
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -36,42 +36,43 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       appBar: AppBar(title: const Text('Playlists')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _playlists.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.queue_music_rounded, size: 64,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          const SizedBox(height: 16),
-                          const Text('Aucune playlist trouvée'),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _playlists.length,
-                      itemBuilder: (ctx, i) {
-                        final p = _playlists[i];
-                        return ListTile(
-                          leading: ArtworkWidget(
-                            hash: p.imageHash,
-                            size: 52,
-                            type: 'track',
-                          ),
-                          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                          subtitle: Text('${p.trackCount} titres'),
-                          onTap: () => Navigator.push(
-                            ctx,
-                            MaterialPageRoute(
-                              builder: (_) => PlaylistDetailScreen(playlist: p),
+          : _error != null
+              ? Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
+                  ]),
+                ))
+              : _playlists.isEmpty
+                  ? const Center(child: Text('Aucune playlist trouvée'))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.builder(
+                        itemCount: _playlists.length,
+                        itemBuilder: (ctx, i) {
+                          final p = _playlists[i];
+                          return ListTile(
+                            leading: Container(
+                              width: 48, height: 48,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceVariant,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.queue_music_rounded),
                             ),
-                          ),
-                        );
-                      },
+                            title: Text(p.name),
+                            subtitle: Text('${p.trackCount} titres'),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => PlaylistDetailScreen(playlist: p),
+                            )),
+                          );
+                        },
+                      ),
                     ),
-            ),
     );
   }
 }
@@ -79,7 +80,6 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
   const PlaylistDetailScreen({super.key, required this.playlist});
-
   @override
   State<PlaylistDetailScreen> createState() => _PlaylistDetailScreenState();
 }
@@ -87,13 +87,19 @@ class PlaylistDetailScreen extends StatefulWidget {
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   List<Song> _tracks = [];
   bool _loading = true;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    SwingApiService().getPlaylistTracks(widget.playlist.id).then((tracks) {
-      if (mounted) setState(() { _tracks = tracks; _loading = false; });
-    });
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      _tracks = await SwingApiService().getPlaylistTracks(widget.playlist.id);
+    } catch (e) {
+      _error = e.toString();
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -102,14 +108,16 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       appBar: AppBar(title: Text(widget.playlist.name)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _tracks.length,
-              itemBuilder: (ctx, i) => SongTile(
-                song: _tracks[i],
-                queue: _tracks,
-                index: i,
-              ),
-            ),
+          : _error != null
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              : ListView(children: [
+                  ..._tracks.asMap().entries.map((e) => SongTile(
+                    song: e.value,
+                    onTap: () => context.read<PlayerProvider>().playSong(
+                      e.value, queue: _tracks, index: e.key,
+                    ),
+                  )),
+                ]),
     );
   }
 }

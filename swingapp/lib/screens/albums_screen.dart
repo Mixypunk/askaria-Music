@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../models/album.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
+import '../providers/player_provider.dart';
 import '../widgets/song_tile.dart';
-import '../widgets/artwork_widget.dart';
 
 class AlbumsScreen extends StatefulWidget {
   const AlbumsScreen({super.key});
-
   @override
   State<AlbumsScreen> createState() => _AlbumsScreenState();
 }
@@ -16,18 +16,18 @@ class AlbumsScreen extends StatefulWidget {
 class _AlbumsScreenState extends State<AlbumsScreen> {
   List<Album> _albums = [];
   bool _loading = true;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       _albums = await SwingApiService().getAlbums(limit: 200);
-    } catch (_) {}
+    } catch (e) {
+      _error = e.toString();
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -37,20 +37,31 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
       appBar: AppBar(title: const Text('Albums')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: GridView.builder(
-                padding: const EdgeInsets.all(12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: _albums.length,
-                itemBuilder: (ctx, i) => _AlbumCard(album: _albums[i]),
-              ),
-            ),
+          : _error != null
+              ? Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
+                  ]),
+                ))
+              : _albums.isEmpty
+                  ? const Center(child: Text('Aucun album'))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2, childAspectRatio: 0.75,
+                          crossAxisSpacing: 12, mainAxisSpacing: 12,
+                        ),
+                        itemCount: _albums.length,
+                        itemBuilder: (ctx, i) => _AlbumCard(album: _albums[i]),
+                      ),
+                    ),
     );
   }
 }
@@ -61,34 +72,37 @@ class _AlbumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final api = SwingApiService();
+    final thumb = api.getThumbnailUrl(album.hash, type: 'album');
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => AlbumDetailScreen(album: album)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ArtworkWidget(
-              hash: album.hash,
-              size: double.infinity,
-              borderRadius: 12,
-              type: 'album',
+      onTap: () => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => AlbumDetailScreen(album: album),
+      )),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: CachedNetworkImage(
+              imageUrl: thumb,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                child: const Icon(Icons.album, size: 48),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                child: const Icon(Icons.album, size: 48),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(album.title,
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(album.artist,
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              )),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
+      ]),
     );
   }
 }
@@ -96,7 +110,6 @@ class _AlbumCard extends StatelessWidget {
 class AlbumDetailScreen extends StatefulWidget {
   final Album album;
   const AlbumDetailScreen({super.key, required this.album});
-
   @override
   State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
 }
@@ -104,44 +117,61 @@ class AlbumDetailScreen extends StatefulWidget {
 class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
   List<Song> _tracks = [];
   bool _loading = true;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    SwingApiService().getAlbumTracks(widget.album.hash).then((tracks) {
-      if (mounted) setState(() { _tracks = tracks; _loading = false; });
-    });
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      _tracks = await SwingApiService().getAlbumTracks(widget.album.hash);
+    } catch (e) {
+      _error = e.toString();
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final api = SwingApiService();
+    final artwork = api.getArtworkUrl(widget.album.hash, type: 'album');
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 280,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(widget.album.title),
-              background: ArtworkWidget(
-                hash: widget.album.hash,
-                size: double.infinity,
-                borderRadius: 0,
-                type: 'album',
-              ),
-            ),
-          ),
-          if (_loading)
-            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) => SongTile(song: _tracks[i], queue: _tracks, index: i, showNumber: true),
-                childCount: _tracks.length,
-              ),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.album.title)),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              : ListView(children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: artwork, width: 100, height: 100, fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => Container(
+                            width: 100, height: 100,
+                            color: Theme.of(context).colorScheme.surfaceVariant,
+                            child: const Icon(Icons.album, size: 48),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(widget.album.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
+                        if (widget.album.year != null) Text('${widget.album.year}'),
+                      ])),
+                    ]),
+                  ),
+                  ..._tracks.asMap().entries.map((e) => SongTile(
+                    song: e.value,
+                    onTap: () => context.read<PlayerProvider>().playSong(
+                      e.value, queue: _tracks, index: e.key,
+                    ),
+                  )),
+                ]),
     );
   }
 }
