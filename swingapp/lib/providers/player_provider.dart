@@ -79,10 +79,16 @@ class PlayerProvider extends ChangeNotifier {
     if (currentSong == null) return;
     _error = null;
     try {
-      // Token est inclus dans l'URL pour éviter les problèmes de cookie avec just_audio
       final url = _api.getStreamUrl(currentSong!.hash);
+      final cookie = _api.cookie;
       debugPrint('🎵 Stream URL: $url');
-      await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
+      debugPrint('🍪 Cookie: $cookie');
+      await _player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(url),
+          headers: cookie != null ? {'Cookie': cookie} : {},
+        ),
+      );
       await _player.play();
       notifyListeners();
     } catch (e) {

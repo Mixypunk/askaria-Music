@@ -188,14 +188,23 @@ class SwingApiService {
   }
 
   Future<List<Song>> getAlbumTracks(String albumHash) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/getall/album/tracks/$albumHash'),
-      headers: _headers,
-    );
-    if (response.statusCode != 200) throw Exception('Album tracks HTTP ${response.statusCode}');
-    final data = json.decode(response.body);
-    final tracks = data['tracks'] ?? (data is List ? data : []);
-    return (tracks as List).map((e) => Song.fromJson(e)).toList();
+    // Try multiple possible endpoints
+    for (final path in [
+      '/album/$albumHash/tracks',
+      '/album/tracks/$albumHash',
+      '/getall/album/tracks/$albumHash',
+      '/getall/albums/$albumHash/tracks',
+    ]) {
+      try {
+        final r = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
+        if (r.statusCode == 200) {
+          final data = json.decode(r.body);
+          final tracks = data['tracks'] ?? (data is List ? data : []);
+          return (tracks as List).map((e) => Song.fromJson(e)).toList();
+        }
+      } catch (_) {}
+    }
+    throw Exception('Album tracks: endpoint not found');
   }
 
   // ── ARTISTS ────────────────────────────────────────────────────────────
@@ -219,27 +228,40 @@ class SwingApiService {
 
   // ── PLAYLISTS ──────────────────────────────────────────────────────────
   Future<List<Playlist>> getPlaylists() async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/getall/playlists'),
-      headers: _headers,
-    );
-    if (response.statusCode != 200) {
-      throw Exception('getPlaylists HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+    for (final path in [
+      '/playlist/all',
+      '/playlists',
+      '/getall/playlists',
+      '/playlist',
+    ]) {
+      try {
+        final r = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
+        if (r.statusCode == 200) {
+          final data = json.decode(r.body);
+          final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
+          return (items as List).map((e) => Playlist.fromJson(e)).toList();
+        }
+      } catch (_) {}
     }
-    final data = json.decode(response.body);
-    final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
-    return (items as List).map((e) => Playlist.fromJson(e)).toList();
+    throw Exception('Playlists: endpoint not found');
   }
 
   Future<List<Song>> getPlaylistTracks(String playlistId) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/getall/playlist/tracks/$playlistId'),
-      headers: _headers,
-    );
-    if (response.statusCode != 200) throw Exception('Playlist tracks HTTP ${response.statusCode}');
-    final data = json.decode(response.body);
-    final tracks = data['tracks'] ?? (data is List ? data : []);
-    return (tracks as List).map((e) => Song.fromJson(e)).toList();
+    for (final path in [
+      '/playlist/$playlistId/tracks',
+      '/playlist/tracks/$playlistId',
+      '/getall/playlist/tracks/$playlistId',
+    ]) {
+      try {
+        final r = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
+        if (r.statusCode == 200) {
+          final data = json.decode(r.body);
+          final tracks = data['tracks'] ?? (data is List ? data : []);
+          return (tracks as List).map((e) => Song.fromJson(e)).toList();
+        }
+      } catch (_) {}
+    }
+    throw Exception('Playlist tracks: endpoint not found');
   }
 
   // ── LYRICS ─────────────────────────────────────────────────────────────
@@ -258,25 +280,7 @@ class SwingApiService {
   }
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
-  // Le token est passé en query param pour que just_audio puisse streamer
-  String getStreamUrl(String trackHash) {
-    if (_token != null) {
-      return '$_baseUrl/stream/track/$trackHash?token=$_token';
-    }
-    return '$_baseUrl/stream/track/$trackHash';
-  }
-
-  String getArtworkUrl(String hash, {String type = 'track'}) {
-    if (_token != null) {
-      return '$_baseUrl/img/$type/$hash?token=$_token';
-    }
-    return '$_baseUrl/img/$type/$hash';
-  }
-
-  String getThumbnailUrl(String hash, {String type = 'track'}) {
-    if (_token != null) {
-      return '$_baseUrl/img/$type/$hash/thumbnail?token=$_token';
-    }
-    return '$_baseUrl/img/$type/$hash/thumbnail';
-  }
+  String getStreamUrl(String trackHash) => '$_baseUrl/stream/track/$trackHash';
+  String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash';
+  String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash/thumbnail';
 }
