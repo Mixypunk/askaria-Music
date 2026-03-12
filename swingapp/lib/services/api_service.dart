@@ -34,6 +34,7 @@ class SwingApiService {
     if (_cookie != null) 'Cookie': _cookie!,
   };
 
+  // ── AUTH ───────────────────────────────────────────────────────────────
   Future<bool> login(String username, String password) async {
     try {
       final response = await http.post(
@@ -67,6 +68,30 @@ class SwingApiService {
     }
   }
 
+  Future<bool> pairWithCode(String serverUrl, String code) async {
+    await saveUrl(serverUrl);
+    for (final endpoint in ['/auth/pair', '/auth/confirmpairing']) {
+      try {
+        final r = await http.post(
+          Uri.parse('$serverUrl$endpoint'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'code': code}),
+        ).timeout(const Duration(seconds: 10));
+        if (r.statusCode == 200) {
+          final setCookie = r.headers['set-cookie'] ?? '';
+          final match = RegExp(r'access_token_cookie=[^;]+').firstMatch(setCookie);
+          if (match != null) {
+            _cookie = match.group(0);
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('auth_cookie', _cookie!);
+            return true;
+          }
+        }
+      } catch (_) {}
+    }
+    return false;
+  }
+
   Future<void> logout() async {
     _cookie = null;
     final prefs = await SharedPreferences.getInstance();
@@ -86,31 +111,48 @@ class SwingApiService {
     }
   }
 
-  Future<List<Song>> getSongs({int page = 1, int limit = 50}) async {
-    final uri = Uri.parse('$_baseUrl/api/tracks').replace(
-      queryParameters: {'page': '$page', 'limit': '$limit'},
+  // ── SONGS ──────────────────────────────────────────────────────────────
+  Future<List<Song>> getSongs({int start = 0, int limit = 200}) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/folder'),
+      headers: _headers,
+      body: json.encode({
+        'folder': '/music/',
+        'start': start,
+        'limit': limit,
+        'tracks_only': true,
+        'sorttracksby': 'default',
+        'tracksort_reverse': false,
+        'foldersort_reverse': false,
+        'sortfoldersby': 'lastmod',
+      }),
     );
-    final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load songs');
     final data = json.decode(response.body);
-    final items = data['tracks'] ?? data['songs'] ?? (data is List ? data : []);
+    final items = data['tracks'] ?? [];
     return (items as List).map((e) => Song.fromJson(e)).toList();
   }
 
   Future<List<Song>> searchSongs(String query) async {
-    final uri = Uri.parse('$_baseUrl/api/search').replace(
+    final uri = Uri.parse('$_baseUrl/search').replace(
       queryParameters: {'q': query},
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Search failed');
     final data = json.decode(response.body);
-    final tracks = data['tracks'] ?? data['songs'] ?? [];
+    final tracks = data['tracks'] ?? data['results'] ?? [];
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
-  Future<List<Album>> getAlbums({int page = 1, int limit = 50}) async {
-    final uri = Uri.parse('$_baseUrl/api/albums').replace(
-      queryParameters: {'page': '$page', 'limit': '$limit'},
+  // ── ALBUMS ─────────────────────────────────────────────────────────────
+  Future<List<Album>> getAlbums({int start = 0, int limit = 200}) async {
+    final uri = Uri.parse('$_baseUrl/getall/albums').replace(
+      queryParameters: {
+        'start': '$start',
+        'limit': '$limit',
+        'sortby': 'created_date',
+        'reverse': '1',
+      },
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load albums');
@@ -121,7 +163,7 @@ class SwingApiService {
 
   Future<List<Song>> getAlbumTracks(String albumHash) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/api/albums/$albumHash/tracks'),
+      Uri.parse('$_baseUrl/getall/album/tracks/$albumHash'),
       headers: _headers,
     );
     if (response.statusCode != 200) throw Exception('Failed to load album tracks');
@@ -130,9 +172,15 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
-  Future<List<Artist>> getArtists({int page = 1, int limit = 50}) async {
-    final uri = Uri.parse('$_baseUrl/api/artists').replace(
-      queryParameters: {'page': '$page', 'limit': '$limit'},
+  // ── ARTISTS ────────────────────────────────────────────────────────────
+  Future<List<Artist>> getArtists({int start = 0, int limit = 200}) async {
+    final uri = Uri.parse('$_baseUrl/getall/artists').replace(
+      queryParameters: {
+        'start': '$start',
+        'limit': '$limit',
+        'sortby': 'created_date',
+        'reverse': '1',
+      },
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) throw Exception('Failed to load artists');
@@ -141,9 +189,10 @@ class SwingApiService {
     return (items as List).map((e) => Artist.fromJson(e)).toList();
   }
 
+  // ── PLAYLISTS ──────────────────────────────────────────────────────────
   Future<List<Playlist>> getPlaylists() async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/api/playlists'),
+      Uri.parse('$_baseUrl/getall/playlists'),
       headers: _headers,
     );
     if (response.statusCode != 200) throw Exception('Failed to load playlists');
@@ -154,7 +203,7 @@ class SwingApiService {
 
   Future<List<Song>> getPlaylistTracks(String playlistId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/api/playlists/$playlistId/tracks'),
+      Uri.parse('$_baseUrl/getall/playlist/tracks/$playlistId'),
       headers: _headers,
     );
     if (response.statusCode != 200) throw Exception('Failed to load playlist tracks');
@@ -163,18 +212,11 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
-  Future<void> addToPlaylist(String playlistId, String trackHash) async {
-    await http.post(
-      Uri.parse('$_baseUrl/api/playlists/$playlistId/tracks'),
-      headers: _headers,
-      body: json.encode({'trackhash': trackHash}),
-    );
-  }
-
+  // ── LYRICS ─────────────────────────────────────────────────────────────
   Future<String?> getLyrics(String trackHash) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/lyrics/$trackHash'),
+        Uri.parse('$_baseUrl/lyrics/track/$trackHash'),
         headers: _headers,
       );
       if (response.statusCode != 200) return null;
@@ -185,64 +227,8 @@ class SwingApiService {
     }
   }
 
-  String getStreamUrl(String trackHash) => '$_baseUrl/api/stream/$trackHash';
-  String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/api/img/$type/$hash';
-  String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/api/img/$type/$hash/thumbnail';
-}
-
-// Extension pour le pairing QR
-extension SwingApiPairing on SwingApiService {
-  Future<bool> pairWithCode(String serverUrl, String code) async {
-    await saveUrl(serverUrl);
-    
-    // Essai 1 : POST /auth/pair
-    try {
-      final r = await http.post(
-        Uri.parse('$serverUrl/auth/pair'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'code': code}),
-      ).timeout(const Duration(seconds: 10));
-      if (r.statusCode == 200) return _extractCookie(r);
-    } catch (_) {}
-
-    // Essai 2 : GET /auth/pair/<code>
-    try {
-      final r = await http.get(
-        Uri.parse('$serverUrl/auth/pair/$code'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
-      if (r.statusCode == 200) return _extractCookie(r);
-    } catch (_) {}
-
-    // Essai 3 : POST /auth/confirmpairing
-    try {
-      final r = await http.post(
-        Uri.parse('$serverUrl/auth/confirmpairing'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'code': code}),
-      ).timeout(const Duration(seconds: 10));
-      if (r.statusCode == 200) return _extractCookie(r);
-    } catch (_) {}
-
-    return false;
-  }
-
-  bool _extractCookie(http.Response response) {
-    final setCookie = response.headers['set-cookie'] ?? '';
-    final match = RegExp(r'access_token_cookie=[^;]+').firstMatch(setCookie);
-    if (match != null) {
-      _cookie = match.group(0);
-      SharedPreferences.getInstance().then((p) => p.setString('auth_cookie', _cookie!));
-      return true;
-    }
-    try {
-      final data = json.decode(response.body);
-      if (data['access_token'] != null) {
-        _cookie = 'access_token_cookie=${data['access_token']}';
-        SharedPreferences.getInstance().then((p) => p.setString('auth_cookie', _cookie!));
-        return true;
-      }
-    } catch (_) {}
-    return false;
-  }
+  // ── STREAM / IMAGES ────────────────────────────────────────────────────
+  String getStreamUrl(String trackHash) => '$_baseUrl/stream/track/$trackHash';
+  String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash';
+  String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash/thumbnail';
 }
