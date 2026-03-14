@@ -24,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: const Icon(Icons.music_note_rounded, size: 80, color: Colors.white),
         ),
         const SizedBox(height: 24),
-        const Text('Millions de titres.\nGratuit sur SwingApp.',
+        const Text('Millions de titres.\nGratuit sur AskaSoud.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Sp.white, fontSize: 24,
               fontWeight: FontWeight.bold, height: 1.3)),

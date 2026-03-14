@@ -96,7 +96,7 @@ class _App extends StatelessWidget {
   const _App(this.logged);
   @override
   Widget build(BuildContext ctx) => MaterialApp(
-    title: 'SwingApp',
+    title: 'AskaSoud',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: false,
