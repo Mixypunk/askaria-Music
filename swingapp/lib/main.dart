@@ -69,7 +69,7 @@ class GBtn extends StatelessWidget {
       decoration: BoxDecoration(gradient: kGrad, borderRadius: BorderRadius.circular(24)),
       alignment: Alignment.center,
       child: loading
-          ? const SizedBox(w: 22, h: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           : Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
     ),
   );
