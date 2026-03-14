@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
+import '../main.dart';
 import 'artwork_widget.dart';
 
 class SongTile extends StatelessWidget {
@@ -12,12 +13,8 @@ class SongTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   const SongTile({
-    super.key,
-    required this.song,
-    this.queue,
-    this.index,
-    this.showNumber = false,
-    this.onTap,
+    super.key, required this.song,
+    this.queue, this.index, this.showNumber = false, this.onTap,
   });
 
   @override
@@ -25,72 +22,77 @@ class SongTile extends StatelessWidget {
     final player = context.watch<PlayerProvider>();
     final isCurrent = player.currentSong == song;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: showNumber
-          ? SizedBox(
-              width: 40,
-              child: Center(
-                child: isCurrent
-                    ? Icon(Icons.equalizer_rounded,
-                        color: Theme.of(context).colorScheme.primary, size: 20)
-                    : Text(
-                        '${song.trackNumber > 0 ? song.trackNumber : (index ?? 0) + 1}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-              ),
-            )
-          : ArtworkWidget(key: ValueKey(song.hash), hash: song.image ?? song.hash, size: 48),
-      title: Text(
-        song.title,
-        style: TextStyle(
-          color: isCurrent ? Theme.of(context).colorScheme.primary : null,
-          fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        song.artist,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            song.formattedDuration,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return InkWell(
+      onTap: onTap ?? () => context.read<PlayerProvider>().playSong(
+        song, queue: queue ?? [song], index: index ?? 0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(children: [
+          // Artwork / number
+          if (showNumber)
+            SizedBox(width: 40, child: Center(
+              child: isCurrent
+                  ? const GradientIcon(Icons.equalizer_rounded, size: 18)
+                  : Text('${(index ?? 0) + 1}',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            ))
+          else
+            ArtworkWidget(
+              key: ValueKey(song.hash),
+              hash: song.image ?? song.hash,
+              size: 46,
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
+          const SizedBox(width: 12),
+          // Text
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(song.title,
+                style: TextStyle(
+                  color: isCurrent ? AppColors.grad2 : Colors.white,
+                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14,
+                ),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(song.artist,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          )),
+          // Duration + menu
+          Text(song.formattedDuration,
+            style: const TextStyle(color: AppColors.textDisabled, fontSize: 12)),
           const SizedBox(width: 4),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 20),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'queue', child: Text('Add to queue')),
+            icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textDisabled),
+            color: AppColors.cardHigh,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'next',  child: Text('Lire ensuite')),
+              PopupMenuItem(value: 'queue', child: Text('Ajouter à la file')),
             ],
-            onSelected: (value) {
-              if (value == 'queue') {
-                context.read<PlayerProvider>().addToQueue(song);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${song.title} added to queue'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+            onSelected: (v) {
+              final p = context.read<PlayerProvider>();
+              if (v == 'next') {
+                p.addNextInQueue(song);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('${song.title} → lire ensuite'),
+                  backgroundColor: AppColors.card,
+                  duration: const Duration(seconds: 2),
+                ));
+              } else {
+                p.addToQueue(song);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('${song.title} ajouté'),
+                  backgroundColor: AppColors.card,
+                  duration: const Duration(seconds: 2),
+                ));
               }
             },
           ),
-        ],
-      ),
-      onTap: onTap ?? () => context.read<PlayerProvider>().playSong(
-        song,
-        queue: queue ?? [song],
-        index: index ?? 0,
+        ]),
       ),
     );
   }

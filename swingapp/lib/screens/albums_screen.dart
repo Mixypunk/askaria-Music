@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/album.dart';
 import '../models/song.dart';
@@ -33,22 +34,29 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Albums')),
+      appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          title: GradientText('Albums', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const GradientIcon(Icons.error_outline, size: 48),
                     const SizedBox(height: 12),
                     Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
                     const SizedBox(height: 16),
-                    ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
+                    GestureDetector(onTap: _load, child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(gradient: kGradient, borderRadius: BorderRadius.circular(20)),
+                    child: const Text('Réessayer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  )),
                   ]),
                 ))
               : _albums.isEmpty
-                  ? const Center(child: Text('Aucun album'))
+                  ? const Center(child: Text('Aucun album', style: TextStyle(color: AppColors.textSecondary)))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: GridView.builder(
@@ -95,7 +103,7 @@ class _AlbumCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
         Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
       ]),

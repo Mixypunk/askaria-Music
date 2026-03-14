@@ -2,88 +2,77 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
+import '../main.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
-
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  int _tab = 0; // 0=player, 1=lyrics, 2=queue
+  int _tab = 0; // 0=player 1=lyrics 2=queue
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Consumer<PlayerProvider>(
-        builder: (context, player, _) {
-          final song = player.currentSong;
-          if (song == null) {
-            return const Center(child: Text('Aucune musique en cours'));
-          }
+      backgroundColor: AppColors.bg,
+      body: Consumer<PlayerProvider>(builder: (context, player, _) {
+        final song = player.currentSong;
+        if (song == null) return const Center(child: Text('Aucune musique'));
 
-          return SafeArea(
-            child: Column(
-              children: [
-                // Top bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text('En cours de lecture',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                )),
-                          ],
-                        ),
-                      ),
-                      // Tab switcher
-                      Row(
-                        children: [
-                          _tabBtn(Icons.music_note_rounded, 0),
-                          _tabBtn(Icons.lyrics_rounded, 1),
-                          _tabBtn(Icons.queue_music_rounded, 2),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Content
-                Expanded(
-                  child: IndexedStack(
-                    index: _tab,
-                    children: [
-                      _PlayerTab(player: player, song: song),
-                      _LyricsTab(player: player),
-                      _QueueTab(player: player),
-                    ],
-                  ),
-                ),
-              ],
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.grad1.withOpacity(0.25), AppColors.bg, AppColors.bg],
+              begin: Alignment.topCenter, end: Alignment.bottomCenter,
             ),
-          );
-        },
-      ),
+          ),
+          child: SafeArea(
+            child: Column(children: [
+              // Top bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 30,
+                        color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(child: Column(children: [
+                    const Text('EN COURS DE LECTURE',
+                      style: TextStyle(color: AppColors.textSecondary,
+                          fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text(song.album,
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 13, fontWeight: FontWeight.w500),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ])),
+                  // Tab icons
+                  _tabIcon(Icons.music_note_rounded, 0),
+                  _tabIcon(Icons.lyrics_rounded, 1),
+                  _tabIcon(Icons.queue_music_rounded, 2),
+                ]),
+              ),
+
+              // Content
+              Expanded(child: IndexedStack(index: _tab, children: [
+                _PlayerTab(player: player, song: song),
+                _LyricsTab(player: player),
+                _QueueTab(player: player),
+              ])),
+            ]),
+          ),
+        );
+      }),
     );
   }
 
-  Widget _tabBtn(IconData icon, int idx) {
+  Widget _tabIcon(IconData icon, int idx) {
+    final active = _tab == idx;
     return IconButton(
-      icon: Icon(icon),
-      color: _tab == idx
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.onSurfaceVariant,
+      icon: active ? GradientIcon(icon, size: 22) : Icon(icon, size: 22, color: AppColors.textDisabled),
       onPressed: () => setState(() => _tab = idx),
     );
   }
@@ -98,125 +87,139 @@ class _PlayerTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          // Big artwork
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: ArtworkWidget(
-                  key: ValueKey(song.hash), // force rebuild on song change
-                  hash: song.image ?? song.hash,
-                  size: double.infinity,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(children: [
+        const SizedBox(height: 16),
+        // Big artwork with glow
+        Expanded(child: Center(child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(
+              color: AppColors.grad2.withOpacity(0.35),
+              blurRadius: 50, spreadRadius: 5,
+            )],
+          ),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: ArtworkWidget(
+              key: ValueKey(song.hash),
+              hash: song.image ?? song.hash,
+              size: double.infinity,
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+        ))),
+        const SizedBox(height: 28),
+        // Title & Artist
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(song.title,
+              style: const TextStyle(color: Colors.white, fontSize: 20,
+                  fontWeight: FontWeight.bold, letterSpacing: -0.5),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Text(song.artist,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ])),
+        ]),
+        const SizedBox(height: 20),
+        // Progress bar
+        _GradientSlider(player: player),
+        const SizedBox(height: 4),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(_fmt(player.position),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+          Text(_fmt(player.duration),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        ]),
+        const SizedBox(height: 20),
+        // Controls
+        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+          _ctrlBtn(
+            player.shuffle ? const GradientIcon(Icons.shuffle_rounded, size: 22)
+                           : const Icon(Icons.shuffle_rounded, size: 22, color: AppColors.textDisabled),
+            player.toggleShuffle,
+          ),
+          _ctrlBtn(const Icon(Icons.skip_previous_rounded, size: 38, color: Colors.white),
+              player.previous),
+          // Play/Pause big button
+          GestureDetector(
+            onTap: player.playPause,
+            child: Container(
+              width: 68, height: 68,
+              decoration: const BoxDecoration(gradient: kGradient, shape: BoxShape.circle),
+              child: Center(
+                child: player.isLoading
+                    ? const SizedBox(width: 26, height: 26,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                    : Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: Colors.white, size: 36),
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          // Title & Artist
-          Text(song.title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(song.artist,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 24),
-          // Progress slider
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            ),
-            child: Slider(
-              value: player.progress.clamp(0.0, 1.0),
-              onChanged: (v) => player.seek(
-                Duration(milliseconds: (v * player.duration.inMilliseconds).round()),
-              ),
-            ),
+          _ctrlBtn(const Icon(Icons.skip_next_rounded, size: 38, color: Colors.white),
+              player.next),
+          _ctrlBtn(
+            player.repeatMode == RepeatMode.one
+                ? const GradientIcon(Icons.repeat_one_rounded, size: 22)
+                : player.repeatMode == RepeatMode.all
+                    ? const GradientIcon(Icons.repeat_rounded, size: 22)
+                    : const Icon(Icons.repeat_rounded, size: 22, color: AppColors.textDisabled),
+            player.toggleRepeat,
           ),
-          // Time
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_fmt(player.position), style: const TextStyle(fontSize: 12)),
-              Text(_fmt(player.duration), style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Shuffle
-              IconButton(
-                icon: Icon(Icons.shuffle_rounded,
-                    color: player.shuffle
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant),
-                onPressed: player.toggleShuffle,
-              ),
-              IconButton(
-                icon: const Icon(Icons.skip_previous_rounded),
-                iconSize: 40,
-                onPressed: player.previous,
-              ),
-              // Play/Pause
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: player.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      : Icon(
-                          player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                        ),
-                  iconSize: 40,
-                  onPressed: player.playPause,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.skip_next_rounded),
-                iconSize: 40,
-                onPressed: player.next,
-              ),
-              // Repeat
-              IconButton(
-                icon: Icon(
-                  player.repeatMode == RepeatMode.one
-                      ? Icons.repeat_one_rounded
-                      : Icons.repeat_rounded,
-                  color: player.repeatMode != RepeatMode.off
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                onPressed: player.toggleRepeat,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
+        ]),
+        const SizedBox(height: 28),
+      ]),
     );
   }
+
+  Widget _ctrlBtn(Widget icon, VoidCallback cb) =>
+    GestureDetector(onTap: cb, child: Padding(padding: const EdgeInsets.all(8), child: icon));
 
   String _fmt(Duration d) {
     final m = d.inMinutes;
     final s = d.inSeconds % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
+  }
+}
+
+class _GradientSlider extends StatelessWidget {
+  final PlayerProvider player;
+  const _GradientSlider({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = player.progress.clamp(0.0, 1.0);
+    return GestureDetector(
+      onHorizontalDragUpdate: (d) {
+        final box = context.findRenderObject() as RenderBox?;
+        if (box == null) return;
+        final frac = ((d.localPosition.dx) / box.size.width).clamp(0.0, 1.0);
+        player.seek(Duration(milliseconds: (frac * player.duration.inMilliseconds).round()));
+      },
+      child: SizedBox(
+        height: 28,
+        child: Stack(alignment: Alignment.centerLeft, children: [
+          // Track
+          Container(height: 3, decoration: BoxDecoration(
+            color: Colors.white12, borderRadius: BorderRadius.circular(3))),
+          // Filled
+          FractionallySizedBox(
+            widthFactor: progress,
+            child: Container(height: 3, decoration: BoxDecoration(
+              gradient: kGradient, borderRadius: BorderRadius.circular(3))),
+          ),
+          // Thumb
+          Positioned(
+            left: (MediaQuery.of(context).size.width - 56) * progress - 7,
+            child: Container(width: 14, height: 14, decoration: const BoxDecoration(
+              color: Colors.white, shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)])),
+          ),
+        ]),
+      ),
+    );
   }
 }
 
@@ -243,13 +246,9 @@ class _LyricsTabState extends State<_LyricsTab> {
     if (idx != _currentLine) {
       setState(() => _currentLine = idx);
       try {
-        const itemH = 56.0;
-        final offset = (idx * itemH) - 150;
-        _scroll.animateTo(
-          offset.clamp(0.0, _scroll.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        final offset = (idx * 56.0) - 150;
+        _scroll.animateTo(offset.clamp(0.0, _scroll.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       } catch (_) {}
     }
   }
@@ -257,67 +256,60 @@ class _LyricsTabState extends State<_LyricsTab> {
   @override
   Widget build(BuildContext context) {
     final p = widget.player;
+    if (p.lyricsLoading) return const Center(
+        child: CircularProgressIndicator(color: AppColors.grad2));
 
-    if (p.lyricsLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Synced lyrics
     if (p.lyricsSynced && p.syncedLines != null && p.syncedLines!.isNotEmpty) {
       _updateLine();
       return ListView.builder(
         controller: _scroll,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 60),
         itemCount: p.syncedLines!.length,
         itemBuilder: (ctx, i) {
           final active = i == _currentLine;
           final text = p.syncedLines![i]['text'] as String;
-          if (text.trim().isEmpty) return const SizedBox(height: 20);
+          if (text.trim().isEmpty) return const SizedBox(height: 16);
           return AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: Theme.of(ctx).textTheme.bodyLarge!.copyWith(
-              height: 1.8,
-              fontSize: active ? 20 : 16,
+            duration: const Duration(milliseconds: 250),
+            style: TextStyle(
+              height: 1.9,
+              fontSize: active ? 22 : 16,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              color: active
-                  ? Theme.of(ctx).colorScheme.primary
-                  : Theme.of(ctx).colorScheme.onSurface.withOpacity(0.45),
+              color: active ? Colors.white : Colors.white24,
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(text, textAlign: TextAlign.center),
+              child: active
+                  ? ShaderMask(
+                      shaderCallback: (b) => kGradient.createShader(b),
+                      child: Text(text, textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white)))
+                  : Text(text, textAlign: TextAlign.center),
             ),
           );
         },
       );
     }
 
-    // Unsynced lyrics
     if (p.unsyncedLines != null && p.unsyncedLines!.isNotEmpty) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          p.unsyncedLines!.join("\n"),
-          textAlign: TextAlign.center,
-        ),
+        padding: const EdgeInsets.all(28),
+        child: Text(p.unsyncedLines!.join("\n"),
+          style: const TextStyle(color: Colors.white70, height: 1.9, fontSize: 16),
+          textAlign: TextAlign.center),
       );
     }
 
-    // No lyrics
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.lyrics_outlined, size: 64,
-          color: Theme.of(context).colorScheme.onSurfaceVariant),
-      const SizedBox(height: 16),
-      const Text('Pas de paroles disponibles'),
+    return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      GradientIcon(Icons.lyrics_outlined, size: 56),
+      SizedBox(height: 16),
+      Text('Pas de paroles disponibles', style: TextStyle(color: AppColors.textSecondary)),
     ]));
   }
 
   @override
   void dispose() { _scroll.dispose(); super.dispose(); }
 }
-
-
-
 
 // ── QUEUE TAB ─────────────────────────────────────────────────────────────────
 class _QueueTab extends StatelessWidget {
@@ -327,41 +319,40 @@ class _QueueTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final queue = player.queue;
-    if (queue.isEmpty) {
-      return const Center(child: Text('File d\'attente vide'));
-    }
+    if (queue.isEmpty) return const Center(
+      child: Text('File vide', style: TextStyle(color: AppColors.textSecondary)));
 
     return ReorderableListView.builder(
+      padding: const EdgeInsets.only(bottom: 20),
       itemCount: queue.length,
       onReorder: player.reorderQueue,
+      proxyDecorator: (child, _, __) => Material(color: Colors.transparent, child: child),
       itemBuilder: (ctx, i) {
         final s = queue[i];
         final isCurrent = i == player.currentIndex;
         return ListTile(
           key: ValueKey(s.hash + i.toString()),
-          leading: Text(
-            '${i + 1}',
-            style: TextStyle(
-              color: isCurrent
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+          leading: isCurrent
+              ? const GradientIcon(Icons.equalizer_rounded, size: 20)
+              : Text('${i + 1}', style: const TextStyle(
+                  color: AppColors.textDisabled, fontSize: 13)),
           title: Text(s.title,
-              style: TextStyle(
-                color: isCurrent ? Theme.of(context).colorScheme.primary : null,
-                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          subtitle: Text(s.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
+            style: TextStyle(
+              color: isCurrent ? AppColors.grad2 : Colors.white,
+              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+              fontSize: 14,
+            ),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(s.artist,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: isCurrent
-              ? Icon(Icons.equalizer_rounded,
-                  color: Theme.of(context).colorScheme.primary)
+              ? null
               : IconButton(
-                  icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
-                  onPressed: () => player.removeFromQueue(i),
-                ),
+                  icon: const Icon(Icons.remove_circle_outline_rounded,
+                      size: 18, color: AppColors.textDisabled),
+                  onPressed: () => player.removeFromQueue(i)),
           onTap: () => player.playSong(s, queue: queue, index: i),
         );
       },
