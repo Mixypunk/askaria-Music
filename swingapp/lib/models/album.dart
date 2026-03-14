@@ -5,6 +5,7 @@ class Album {
   final String artistHash;
   final int? year;
   final int trackCount;
+  final String image; // "{albumhash}.webp?pathhash={pathhash}"
 
   const Album({
     required this.hash,
@@ -13,6 +14,7 @@ class Album {
     required this.artistHash,
     this.year,
     this.trackCount = 0,
+    this.image = '',
   });
 
   factory Album.fromJson(Map<String, dynamic> j) => Album(
@@ -22,6 +24,7 @@ class Album {
     artistHash: _extractArtistHash(j),
     year: j['date'] != null ? int.tryParse(j['date'].toString().substring(0, 4)) : null,
     trackCount: j['count'] ?? j['trackcount'] ?? 0,
+    image: j['image'] ?? '',
   );
 
   static String _extractArtist(Map<String, dynamic> j) {
@@ -44,20 +47,26 @@ class Artist {
   final String name;
   final int albumCount;
   final int trackCount;
+  final String image; // "{artisthash}.webp" → /img/artist/small/{artisthash}.webp
 
   const Artist({
     required this.hash,
     required this.name,
     this.albumCount = 0,
     this.trackCount = 0,
+    this.image = '',
   });
 
-  factory Artist.fromJson(Map<String, dynamic> j) => Artist(
-    hash: j['artisthash'] ?? j['hash'] ?? '',
-    name: j['name'] ?? 'Unknown Artist',
-    albumCount: j['albumcount'] ?? 0,
-    trackCount: j['trackcount'] ?? 0,
-  );
+  factory Artist.fromJson(Map<String, dynamic> j) {
+    final hash = j['artisthash'] ?? j['hash'] ?? '';
+    return Artist(
+      hash: hash,
+      name: j['name'] ?? 'Unknown Artist',
+      albumCount: j['albumcount'] ?? 0,
+      trackCount: j['trackcount'] ?? 0,
+      image: j['image'] ?? '$hash.webp',
+    );
+  }
 }
 
 class Playlist {

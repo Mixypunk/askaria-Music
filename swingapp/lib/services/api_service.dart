@@ -199,7 +199,7 @@ class SwingApiService {
       throw Exception('getAlbums HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
-    final items = data['albums'] ?? data['items'] ?? (data is List ? data : []);
+    final items = data['items'] ?? data['albums'] ?? (data is List ? data : []);
     return (items as List).map((e) => Album.fromJson(e)).toList();
   }
 
@@ -232,7 +232,7 @@ class SwingApiService {
       throw Exception('getArtists HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
-    final items = data['artists'] ?? data['items'] ?? (data is List ? data : []);
+    final items = data['items'] ?? data['artists'] ?? (data is List ? data : []);
     return (items as List).map((e) => Artist.fromJson(e)).toList();
   }
 

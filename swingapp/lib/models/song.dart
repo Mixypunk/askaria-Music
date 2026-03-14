@@ -33,7 +33,7 @@ class Song {
     duration: (j['duration'] ?? 0).toInt(),
     trackNumber: j['track'] ?? j['trackno'] ?? 0,
     filepath: j['filepath'] ?? j['path'] ?? j['file_path'],
-    image: j['image'] ?? j['trackhash'] ?? j['hash'] ?? '',
+    image: j['image'] ?? '',  // = '{albumhash}.webp?pathhash={pathhash}'
   );
 
   static String _extractArtist(Map<String, dynamic> j) {

@@ -39,7 +39,8 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
       return;
     }
     final api = SwingApiService();
-    final url = api.getThumbnailUrl(widget.hash);
+    // image field = "{albumhash}.webp?pathhash={pathhash}" — déjà formaté par le serveur
+    final url = '${api.baseUrl}/img/thumbnail/${widget.hash}';
 
     if (_imageCache.containsKey(url)) {
       if (mounted) setState(() { _bytes = _imageCache[url]; _loading = false; });

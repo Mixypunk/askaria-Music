@@ -42,7 +42,7 @@ class SongTile extends StatelessWidget {
                       ),
               ),
             )
-          : ArtworkWidget(hash: song.image ?? song.hash, size: 48),
+          : ArtworkWidget(key: ValueKey(song.hash), hash: song.image ?? song.hash, size: 48),
       title: Text(
         song.title,
         style: TextStyle(

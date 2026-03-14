@@ -108,6 +108,7 @@ class _PlayerTab extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: ArtworkWidget(
+                  key: ValueKey(song.hash), // force rebuild on song change
                   hash: song.image ?? song.hash,
                   size: double.infinity,
                   borderRadius: BorderRadius.circular(20),

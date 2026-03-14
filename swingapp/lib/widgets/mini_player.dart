@@ -51,7 +51,8 @@ class MiniPlayer extends StatelessWidget {
                     children: [
                       // Artwork
                       ArtworkWidget(
-                        hash: song.hash,
+                        key: ValueKey(song.hash),
+                        hash: song.image ?? song.hash,
                         size: 44,
                         borderRadius: BorderRadius.circular(8),
                       ),
