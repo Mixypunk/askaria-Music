@@ -151,16 +151,37 @@ class PlayerProvider extends ChangeNotifier {
 
   void toggleShuffle() { _shuffle = !_shuffle; notifyListeners(); }
 
+  List<Map<String,dynamic>>? _syncedLines; // [{time: ms, text: str}]
+  List<String>? _unsyncedLines;           // [str, str, ...]
+
+  List<Map<String,dynamic>>? get syncedLines => _syncedLines;
+  List<String>? get unsyncedLines => _unsyncedLines;
+
   Future<void> _fetchLyrics() async {
     if (currentSong == null) return;
-    _lyrics = null; _lyricsSynced = false; _lyricsLoading = true; notifyListeners();
+    _lyrics = null; _syncedLines = null; _unsyncedLines = null;
+    _lyricsSynced = false; _lyricsLoading = true; notifyListeners();
+
     final result = await _api.getLyrics(
       currentSong!.hash,
       filepath: currentSong!.filepath,
     );
     if (result != null) {
-      _lyrics = result['lyrics'] as String?;
       _lyricsSynced = result['synced'] == true;
+      final raw = result['lyrics'];
+      if (_lyricsSynced && raw is List) {
+        // [{time: double/int ms, text: str}, ...]
+        _syncedLines = List<Map<String,dynamic>>.from(
+          raw.map((e) => {'time': (e['time'] as num).toInt(), 'text': e['text'] as String})
+        );
+        _lyrics = 'synced';
+      } else if (raw is List) {
+        _unsyncedLines = List<String>.from(raw.map((e) => e.toString()));
+        _lyrics = _unsyncedLines!.join('
+');
+      } else if (raw is String) {
+        _lyrics = raw;
+      }
     }
     _lyricsLoading = false; notifyListeners();
   }

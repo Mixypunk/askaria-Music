@@ -230,39 +230,20 @@ class _LyricsTab extends StatefulWidget {
 
 class _LyricsTabState extends State<_LyricsTab> {
   final ScrollController _scroll = ScrollController();
-  List<_LrcLine>? _parsed;
-  String? _lastLyrics;
   int _currentLine = 0;
 
-  static List<_LrcLine>? _parseLrc(String text) {
-    final lines = <_LrcLine>[];
-    final re = RegExp(r'\[(\d+):(\d+\.\d+)\](.*)');
-    for (final line in text.split('\n')) {
-      final m = re.firstMatch(line);
-      if (m != null) {
-        final min = int.parse(m.group(1)!);
-        final sec = double.parse(m.group(2)!);
-        final ms = ((min * 60 + sec) * 1000).round();
-        lines.add(_LrcLine(ms, m.group(3)!.trim()));
-      }
-    }
-    if (lines.isEmpty) return null;
-    lines.sort((a, b) => a.ms.compareTo(b.ms));
-    return lines;
-  }
-
   void _updateLine() {
-    if (_parsed == null) return;
+    final lines = widget.player.syncedLines;
+    if (lines == null || lines.isEmpty) return;
     final pos = widget.player.position.inMilliseconds;
     int idx = 0;
-    for (int i = 0; i < _parsed!.length; i++) {
-      if (_parsed![i].ms <= pos) idx = i;
+    for (int i = 0; i < lines.length; i++) {
+      if (lines[i]['time'] <= pos) idx = i;
     }
     if (idx != _currentLine) {
       setState(() => _currentLine = idx);
-      // Auto-scroll
       try {
-        final itemH = 52.0;
+        const itemH = 56.0;
         final offset = (idx * itemH) - 150;
         _scroll.animateTo(
           offset.clamp(0.0, _scroll.position.maxScrollExtent),
@@ -276,33 +257,22 @@ class _LyricsTabState extends State<_LyricsTab> {
   @override
   Widget build(BuildContext context) {
     final p = widget.player;
-    if (p.lyrics != _lastLyrics) {
-      _lastLyrics = p.lyrics;
-      _parsed = p.lyrics != null ? _parseLrc(p.lyrics!) : null;
-      _currentLine = 0;
-    }
 
     if (p.lyricsLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (p.lyrics == null || p.lyrics!.isEmpty) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.lyrics_outlined, size: 64,
-            color: Theme.of(context).colorScheme.onSurfaceVariant),
-        const SizedBox(height: 16),
-        const Text('Pas de paroles disponibles'),
-      ]));
-    }
 
-    // Synced LRC lyrics
-    if (_parsed != null && p.lyricsSynced) {
+    // Synced lyrics
+    if (p.lyricsSynced && p.syncedLines != null && p.syncedLines!.isNotEmpty) {
       _updateLine();
       return ListView.builder(
         controller: _scroll,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
-        itemCount: _parsed!.length,
+        itemCount: p.syncedLines!.length,
         itemBuilder: (ctx, i) {
           final active = i == _currentLine;
+          final text = p.syncedLines![i]['text'] as String;
+          if (text.trim().isEmpty) return const SizedBox(height: 20);
           return AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 200),
             style: Theme.of(ctx).textTheme.bodyLarge!.copyWith(
@@ -311,37 +281,44 @@ class _LyricsTabState extends State<_LyricsTab> {
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
               color: active
                   ? Theme.of(ctx).colorScheme.primary
-                  : Theme.of(ctx).colorScheme.onSurface.withOpacity(0.5),
+                  : Theme.of(ctx).colorScheme.onSurface.withOpacity(0.45),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(_parsed![i].text, textAlign: TextAlign.center,
-                  maxLines: null),
+              child: Text(text, textAlign: TextAlign.center),
             ),
           );
         },
       );
     }
 
-    // Plain lyrics (non-synced)
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Text(p.lyrics!,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8),
-        textAlign: TextAlign.center,
-      ),
-    );
+    // Unsynced lyrics
+    if (p.unsyncedLines != null && p.unsyncedLines!.isNotEmpty) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          p.unsyncedLines!.join('
+'),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    // No lyrics
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.lyrics_outlined, size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant),
+      const SizedBox(height: 16),
+      const Text('Pas de paroles disponibles'),
+    ]));
   }
 
   @override
   void dispose() { _scroll.dispose(); super.dispose(); }
 }
 
-class _LrcLine {
-  final int ms;
-  final String text;
-  const _LrcLine(this.ms, this.text);
-}
+
 
 
 // ── QUEUE TAB ─────────────────────────────────────────────────────────────────

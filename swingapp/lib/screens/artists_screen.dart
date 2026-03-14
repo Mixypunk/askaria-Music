@@ -76,8 +76,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                             title: Text(a.name,
                                 style: const TextStyle(fontWeight: FontWeight.w500)),
                             subtitle: Text(
-                              '${a.albumCount} album${a.albumCount != 1 ? 's' : ''}'
-                              ' · ${a.trackCount} titre${a.trackCount != 1 ? 's' : ''}',
+                              a.helpText.isNotEmpty ? a.helpText : 'Artiste',
                             ),
                             onTap: () => Navigator.push(context, MaterialPageRoute(
                               builder: (_) => ArtistDetailScreen(artist: a),

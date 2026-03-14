@@ -55,7 +55,10 @@ class Artist {
     this.albumCount = 0,
     this.trackCount = 0,
     this.image = '',
+    this.helpText = '',
   });
+
+  final String helpText; // extra info from server (e.g. "5 tracks")
 
   factory Artist.fromJson(Map<String, dynamic> j) {
     final hash = j['artisthash'] ?? j['hash'] ?? '';
@@ -65,6 +68,7 @@ class Artist {
       albumCount: j['albumcount'] ?? 0,
       trackCount: j['trackcount'] ?? 0,
       image: j['image'] ?? '$hash.webp',
+      helpText: j['help_text']?.toString() ?? '',
     );
   }
 }
