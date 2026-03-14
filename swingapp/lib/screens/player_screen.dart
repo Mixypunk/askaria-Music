@@ -110,7 +110,7 @@ class _PlayerTab extends StatelessWidget {
                 child: ArtworkWidget(
                   hash: song.hash,
                   size: double.infinity,
-                  borderRadius: 20,
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),

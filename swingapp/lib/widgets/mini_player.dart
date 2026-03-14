@@ -53,7 +53,7 @@ class MiniPlayer extends StatelessWidget {
                       ArtworkWidget(
                         hash: song.hash,
                         size: 44,
-                        borderRadius: 8,
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       const SizedBox(width: 12),
                       // Title & Artist
