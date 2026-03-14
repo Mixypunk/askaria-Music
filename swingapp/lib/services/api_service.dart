@@ -321,9 +321,8 @@ class SwingApiService {
   };
 
   String? get accessToken => _accessToken;
-}
 
-  // ── FAVOURITES ─────────────────────────────────────────────────────────
+  // ── FAVOURITES ────────────────────────────────────────────────────────
   Future<bool> toggleFavourite(String trackHash) async {
     try {
       final r = await http.post(
@@ -344,3 +343,4 @@ class SwingApiService {
       return (list as List).map((e) => Song.fromJson(e)).toList();
     } catch (_) { return []; }
   }
+}

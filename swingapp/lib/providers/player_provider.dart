@@ -321,15 +321,9 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-}
-
-  // ── Favourites ─────────────────────────────────────────────────────────
+  // ── Favourites ────────────────────────────────────────────────────────
   final Set<String> _favourites = {};
+
   bool isFavourite(String hash) => _favourites.contains(hash);
 
   Future<void> toggleFavourite(String hash) async {
@@ -338,8 +332,14 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
     final ok = await _api.toggleFavourite(hash);
     if (!ok) {
-      // rollback si erreur réseau
       if (wasLiked) { _favourites.add(hash); } else { _favourites.remove(hash); }
       notifyListeners();
     }
   }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+}
