@@ -5,6 +5,7 @@ import '../models/song.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/song_tile.dart';
+import '../widgets/artwork_widget.dart';
 
 class PlaylistsScreen extends StatefulWidget {
   const PlaylistsScreen({super.key});
@@ -42,13 +43,22 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 12),
-                    Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    Text(_error!, textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red, fontSize: 12)),
                     const SizedBox(height: 16),
                     ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
                   ]),
                 ))
               : _playlists.isEmpty
-                  ? const Center(child: Text('Aucune playlist trouvée'))
+                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.queue_music_rounded, size: 64,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(height: 16),
+                      const Text('Aucune playlist'),
+                      const SizedBox(height: 8),
+                      Text('Crée des playlists dans Swing Music',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    ]))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.builder(
@@ -62,7 +72,10 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                                 color: Theme.of(context).colorScheme.surfaceVariant,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(Icons.queue_music_rounded),
+                              child: p.imageHash != null && p.imageHash!.isNotEmpty
+                                  ? ArtworkWidget(hash: p.imageHash!, size: 48,
+                                      borderRadius: BorderRadius.circular(6))
+                                  : const Icon(Icons.queue_music_rounded),
                             ),
                             title: Text(p.name),
                             subtitle: Text('${p.trackCount} titres'),
@@ -105,19 +118,33 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.playlist.name)),
+      appBar: AppBar(
+        title: Text(widget.playlist.name),
+        actions: [
+          if (_tracks.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.play_circle_rounded),
+              onPressed: () => context.read<PlayerProvider>().playSong(
+                _tracks.first, queue: _tracks, index: 0,
+              ),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-              : ListView(children: [
-                  ..._tracks.asMap().entries.map((e) => SongTile(
-                    song: e.value,
-                    onTap: () => context.read<PlayerProvider>().playSong(
-                      e.value, queue: _tracks, index: e.key,
+              : _tracks.isEmpty
+                  ? const Center(child: Text('Playlist vide'))
+                  : ListView.builder(
+                      itemCount: _tracks.length,
+                      itemBuilder: (ctx, i) => SongTile(
+                        song: _tracks[i],
+                        onTap: () => context.read<PlayerProvider>().playSong(
+                          _tracks[i], queue: _tracks, index: i,
+                        ),
+                      ),
                     ),
-                  )),
-                ]),
     );
   }
 }

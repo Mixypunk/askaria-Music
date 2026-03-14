@@ -108,7 +108,7 @@ class _PlayerTab extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: ArtworkWidget(
-                  hash: song.hash,
+                  hash: song.image ?? song.hash,
                   size: double.infinity,
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -219,43 +219,129 @@ class _PlayerTab extends StatelessWidget {
   }
 }
 
-// ── LYRICS TAB ───────────────────────────────────────────────────────────────
-class _LyricsTab extends StatelessWidget {
+// ── LYRICS TAB ────────────────────────────────────────────────────────────────
+class _LyricsTab extends StatefulWidget {
   final PlayerProvider player;
   const _LyricsTab({required this.player});
+  @override
+  State<_LyricsTab> createState() => _LyricsTabState();
+}
+
+class _LyricsTabState extends State<_LyricsTab> {
+  final ScrollController _scroll = ScrollController();
+  List<_LrcLine>? _parsed;
+  String? _lastLyrics;
+  int _currentLine = 0;
+
+  static List<_LrcLine>? _parseLrc(String text) {
+    final lines = <_LrcLine>[];
+    final re = RegExp(r'\[(\d+):(\d+\.\d+)\](.*)');
+    for (final line in text.split('\n')) {
+      final m = re.firstMatch(line);
+      if (m != null) {
+        final min = int.parse(m.group(1)!);
+        final sec = double.parse(m.group(2)!);
+        final ms = ((min * 60 + sec) * 1000).round();
+        lines.add(_LrcLine(ms, m.group(3)!.trim()));
+      }
+    }
+    if (lines.isEmpty) return null;
+    lines.sort((a, b) => a.ms.compareTo(b.ms));
+    return lines;
+  }
+
+  void _updateLine() {
+    if (_parsed == null) return;
+    final pos = widget.player.position.inMilliseconds;
+    int idx = 0;
+    for (int i = 0; i < _parsed!.length; i++) {
+      if (_parsed![i].ms <= pos) idx = i;
+    }
+    if (idx != _currentLine) {
+      setState(() => _currentLine = idx);
+      // Auto-scroll
+      try {
+        final itemH = 52.0;
+        final offset = (idx * itemH) - 150;
+        _scroll.animateTo(
+          offset.clamp(0.0, _scroll.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      } catch (_) {}
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (player.lyricsLoading) {
+    final p = widget.player;
+    if (p.lyrics != _lastLyrics) {
+      _lastLyrics = p.lyrics;
+      _parsed = p.lyrics != null ? _parseLrc(p.lyrics!) : null;
+      _currentLine = 0;
+    }
+
+    if (p.lyricsLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (player.lyrics == null || player.lyrics!.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.lyrics_outlined, size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            const Text('Pas de paroles disponibles'),
-          ],
-        ),
+    if (p.lyrics == null || p.lyrics!.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.lyrics_outlined, size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
+        const SizedBox(height: 16),
+        const Text('Pas de paroles disponibles'),
+      ]));
+    }
+
+    // Synced LRC lyrics
+    if (_parsed != null) {
+      _updateLine();
+      return ListView.builder(
+        controller: _scroll,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+        itemCount: _parsed!.length,
+        itemBuilder: (ctx, i) {
+          final active = i == _currentLine;
+          return AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            style: Theme.of(ctx).textTheme.bodyLarge!.copyWith(
+              height: 1.8,
+              fontSize: active ? 20 : 16,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              color: active
+                  ? Theme.of(ctx).colorScheme.primary
+                  : Theme.of(ctx).colorScheme.onSurface.withOpacity(0.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(_parsed![i].text, textAlign: TextAlign.center,
+                  maxLines: null),
+            ),
+          );
+        },
       );
     }
 
+    // Plain lyrics (non-synced)
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Text(
-        player.lyrics!,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          height: 1.8,
-          fontStyle: FontStyle.italic,
-        ),
+      child: Text(p.lyrics!,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8),
         textAlign: TextAlign.center,
       ),
     );
   }
+
+  @override
+  void dispose() { _scroll.dispose(); super.dispose(); }
 }
+
+class _LrcLine {
+  final int ms;
+  final String text;
+  const _LrcLine(this.ms, this.text);
+}
+
 
 // ── QUEUE TAB ─────────────────────────────────────────────────────────────────
 class _QueueTab extends StatelessWidget {
