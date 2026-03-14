@@ -14,6 +14,8 @@ class MiniPlayer extends StatelessWidget {
       final song = player.currentSong;
       if (song == null) return const SizedBox.shrink();
 
+      final accent = player.dynamicColors.accent;
+
       return GestureDetector(
         onTap: () => Navigator.push(ctx, PageRouteBuilder(
           pageBuilder: (_, a, __) => const PlayerScreen(),
@@ -29,9 +31,10 @@ class MiniPlayer extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF282828),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: accent.withOpacity(0.15), width: 0.5),
           ),
           child: Stack(children: [
-            // Progress bar — thin line at bottom
+            // Barre de progression colorée dynamiquement
             Positioned(bottom: 0, left: 0, right: 0,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
@@ -39,7 +42,9 @@ class MiniPlayer extends StatelessWidget {
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: player.progress.clamp(0.0, 1.0),
-                    child: Container(color: Colors.white),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      color: accent),
                   ),
                 ),
               ),
@@ -60,7 +65,7 @@ class MiniPlayer extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
 
-                // Title/Artist
+                // Titre / Artiste
                 Expanded(child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,19 +80,21 @@ class MiniPlayer extends StatelessWidget {
                   ],
                 )),
 
-                // Like icon (Spotify style)
-                ShaderMask(
-                  shaderCallback: (b) => kGrad.createShader(b),
-                  child: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 22),
+                // Like coloré dynamique
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Icon(Icons.favorite_border_rounded,
+                    key: ValueKey(accent.value),
+                    color: accent, size: 22),
                 ),
                 const SizedBox(width: 8),
 
-                // Play/Pause — blanc Spotify
+                // Play/Pause
                 GestureDetector(
                   onTap: player.playPause,
                   child: player.isLoading
-                      ? const SizedBox(width: 32, height: 32,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      ? SizedBox(width: 32, height: 32,
+                          child: CircularProgressIndicator(color: accent, strokeWidth: 2))
                       : Icon(
                           player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                           color: Colors.white, size: 32),
@@ -97,8 +104,7 @@ class MiniPlayer extends StatelessWidget {
                 // Next
                 GestureDetector(
                   onTap: player.next,
-                  child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28),
-                ),
+                  child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28)),
                 const SizedBox(width: 4),
               ]),
             ),

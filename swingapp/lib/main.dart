@@ -7,18 +7,16 @@ import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
 
-// ── Spotify-like palette avec gradient bleu/violet/rose ───────────────────────
+// ── Palette de base (fond sombre) ─────────────────────────────────────────────
 class Sp {
   static const bg       = Color(0xFF121212);
   static const surface  = Color(0xFF181818);
   static const card     = Color(0xFF282828);
   static const cardHi   = Color(0xFF3E3E3E);
-
   static const white    = Color(0xFFFFFFFF);
   static const white70  = Color(0xFFB3B3B3);
   static const white40  = Color(0xFF6A6A6A);
-
-  // Gradient signature bleu→violet→rose (remplace le vert Spotify)
+  // Couleur de fallback (avant que la couleur dynamique soit chargée)
   static const g1 = Color(0xFF4776E6);
   static const g2 = Color(0xFF8E54E9);
   static const g3 = Color(0xFFD63AF9);

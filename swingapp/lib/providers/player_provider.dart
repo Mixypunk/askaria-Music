@@ -1,8 +1,11 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../services/api_service.dart';
+import '../services/color_service.dart';
 
 enum RepeatMode { off, all, one }
 
@@ -28,6 +31,10 @@ class PlayerProvider extends ChangeNotifier {
   bool _lyricsSynced = false;
   List<Map<String, dynamic>>? _syncedLines;
   List<String>? _unsyncedLines;
+
+  // Dynamic color
+  DynamicColors _dynamicColors = DynamicColors._fallback();
+  DynamicColors get dynamicColors => _dynamicColors;
 
   // Getters
   List<Song> get queue => _queue;
@@ -102,6 +109,7 @@ class PlayerProvider extends ChangeNotifier {
     if (_shuffle) _buildShuffleOrder();
     await _loadAndPlay();
     _fetchLyrics();
+    _fetchColors();
   }
 
   Future<void> _loadAndPlay() async {
@@ -176,6 +184,7 @@ class PlayerProvider extends ChangeNotifier {
     }
     _loadAndPlay();
     _fetchLyrics();
+    _fetchColors();
   }
 
   void _prevTrack() {
@@ -188,6 +197,7 @@ class PlayerProvider extends ChangeNotifier {
     }
     _loadAndPlay();
     _fetchLyrics();
+    _fetchColors();
   }
 
   // ── Controls ───────────────────────────────────────────────────────────
@@ -260,6 +270,24 @@ class PlayerProvider extends ChangeNotifier {
     if (_shuffle) _buildShuffleOrder();
     notifyListeners();
   }
+
+  // ── Dynamic colors ─────────────────────────────────────────────────────
+  Future<void> _fetchColors() async {
+    if (currentSong == null) return;
+    final song = currentSong!;
+    final cacheKey = song.image ?? song.hash;
+    try {
+      final url = '${_api.baseUrl}/img/thumbnail/$cacheKey';
+      final r = await http.get(Uri.parse(url), headers: _api.authHeaders)
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
+        _dynamicColors = await ColorService.fromBytes(cacheKey, r.bodyBytes);
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  bool get mounted => true; // Provider est toujours actif tant qu'il n'est pas dispose
 
   // ── Lyrics ─────────────────────────────────────────────────────────────
   Future<void> _fetchLyrics() async {

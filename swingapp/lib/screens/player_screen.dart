@@ -14,23 +14,77 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
-  int _tab = 0; // 0=player 1=lyrics 2=queue
+class _PlayerScreenState extends State<PlayerScreen>
+    with TickerProviderStateMixin {
+
+  // PageView controller — swipe horizontal entre Player / Paroles / Queue
+  late PageController _pageController;
+  int _page = 0;
+
+  // Animation couleur
+  late AnimationController _colorAnim;
+  Color _prevAccent = const Color(0xFF4776E6);
+  Color _currAccent = const Color(0xFF4776E6);
+
+  // Fond flouté
   Uint8List? _bgImage;
   String? _bgHash;
 
-  Future<void> _loadBg(String hash, String imageField) async {
+  // Panneau paroles (DraggableScrollableSheet) — visible depuis page player
+  bool _lyricsSheetOpen = false;
+  late DraggableScrollableController _sheetController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _colorAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _sheetController = DraggableScrollableController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _colorAnim.dispose();
+    _sheetController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBg(String imageField) async {
     if (_bgHash == imageField) return;
     _bgHash = imageField;
     try {
       final api = SwingApiService();
-      final url = '${api.baseUrl}/img/thumbnail/$imageField';
-      final r = await http.get(Uri.parse(url), headers: api.authHeaders)
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode == 200 && mounted) {
-        setState(() => _bgImage = r.bodyBytes);
-      }
+      final r = await http.get(
+        Uri.parse('${api.baseUrl}/img/thumbnail/$imageField'),
+        headers: api.authHeaders,
+      ).timeout(const Duration(seconds: 6));
+      if (r.statusCode == 200 && mounted) setState(() => _bgImage = r.bodyBytes);
     } catch (_) {}
+  }
+
+  void _animateTo(Color newAccent) {
+    if (newAccent == _currAccent) return;
+    _prevAccent = _currAccent;
+    _currAccent = newAccent;
+    _colorAnim.forward(from: 0);
+  }
+
+  void _openLyricsSheet() {
+    setState(() => _lyricsSheetOpen = true);
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) _sheetController.animateTo(1.0,
+          duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
+    });
+  }
+
+  void _closeLyricsSheet() {
+    _sheetController.animateTo(0.0,
+        duration: const Duration(milliseconds: 350), curve: Curves.easeInCubic
+    ).then((_) {
+      if (mounted) setState(() => _lyricsSheetOpen = false);
+    });
   }
 
   @override
@@ -39,94 +93,205 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final song = player.currentSong;
       if (song == null) return const Scaffold(
         backgroundColor: Sp.bg,
-        body: Center(child: Text('Aucune musique', style: TextStyle(color: Colors.white))));
+        body: Center(child: Text('Aucune musique',
+            style: TextStyle(color: Colors.white))));
 
-      // Load background image when song changes
+      final dc = player.dynamicColors;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadBg(song.hash, song.image ?? song.hash);
+        _loadBg(song.image ?? song.hash);
+        _animateTo(dc.accent);
       });
 
-      return Scaffold(
-        backgroundColor: Sp.bg,
-        body: Stack(children: [
-          // ── Fond flouté (artwork en bg comme Spotify) ──────────────
-          if (_bgImage != null)
-            Positioned.fill(child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: Image.memory(_bgImage!, fit: BoxFit.cover,
-                color: Colors.black.withOpacity(0.55),
-                colorBlendMode: BlendMode.darken),
-            ))
-          else
-            Positioned.fill(child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Sp.g1.withOpacity(0.4), Sp.bg],
+      return AnimatedBuilder(
+        animation: _colorAnim,
+        builder: (ctx, _) {
+          final t = CurvedAnimation(parent: _colorAnim, curve: Curves.easeOut).value;
+          final accent = Color.lerp(_prevAccent, _currAccent, t) ?? _currAccent;
+          final dark = Color.lerp(
+            HSLColor.fromColor(_prevAccent).withLightness(0.15).toColor(),
+            dc.accentDark, t) ?? dc.accentDark;
+
+          return Scaffold(
+            backgroundColor: Sp.bg,
+            body: Stack(children: [
+              // ── Fond flouté ─────────────────────────────────────────
+              if (_bgImage != null)
+                Positioned.fill(child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                  child: Image.memory(_bgImage!, fit: BoxFit.cover,
+                    color: Colors.black.withOpacity(0.58),
+                    colorBlendMode: BlendMode.darken)))
+              else
+                Positioned.fill(child: Container(
+                  decoration: BoxDecoration(gradient: LinearGradient(
+                    colors: [dark, Sp.bg], begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
+              Positioned.fill(child: Container(
+                decoration: BoxDecoration(gradient: LinearGradient(
+                  colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
                   begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                ),
-              ),
-            )),
+                  stops: const [0.0, 0.4, 1.0])))),
 
-          // ── Contenu ────────────────────────────────────────────────
-          SafeArea(child: Column(children: [
-            // Top bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded, size: 32, color: Colors.white),
-                ),
-                Expanded(child: Column(children: [
-                  Text('PLAYING FROM YOUR LIBRARY'.toUpperCase(),
-                    style: const TextStyle(color: Colors.white70, fontSize: 10,
-                        letterSpacing: 1.5, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(song.album,
-                    style: const TextStyle(color: Colors.white,
-                        fontSize: 13, fontWeight: FontWeight.bold),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                ])),
-                // Tab icons
-                _tabIcon(Icons.music_note_rounded, 0),
-                _tabIcon(Icons.lyrics_rounded, 1),
-                _tabIcon(Icons.queue_music_rounded, 2),
-              ]),
-            ),
+              // ── Contenu principal ────────────────────────────────────
+              SafeArea(child: Column(children: [
 
-            Expanded(child: IndexedStack(index: _tab, children: [
-              _PlayerTab(player: player, song: song),
-              _LyricsTab(player: player),
-              _QueueTab(player: player),
-            ])),
-          ])),
-        ]),
+                // Top bar : flèche bas + titre album + indicateurs de page
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (_lyricsSheetOpen) { _closeLyricsSheet(); return; }
+                        Navigator.pop(context);
+                      },
+                      child: const Icon(Icons.keyboard_arrow_down_rounded,
+                          size: 32, color: Colors.white),
+                    ),
+                    Expanded(child: Column(children: [
+                      Text(
+                        _page == 0 ? 'EN LECTURE'
+                        : _page == 1 ? 'PAROLES'
+                        : 'FILE D\'ATTENTE',
+                        style: const TextStyle(color: Colors.white70, fontSize: 10,
+                            letterSpacing: 1.5, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(song.album, style: const TextStyle(
+                          color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ])),
+                    // Indicateur de page (3 petits points)
+                    _PageDots(current: _page, accent: accent),
+                  ]),
+                ),
+
+                // PageView horizontal : Player / Paroles / Queue
+                Expanded(child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (p) => setState(() => _page = p),
+                  children: [
+                    // ── Page 0 : Player ────────────────────────────────
+                    _PlayerPage(
+                      player: player,
+                      song: song,
+                      accent: accent,
+                      onLyricsTap: _openLyricsSheet,
+                    ),
+                    // ── Page 1 : Paroles ───────────────────────────────
+                    _LyricsPage(player: player, accent: accent),
+                    // ── Page 2 : File d'attente ────────────────────────
+                    _QueuePage(player: player, accent: accent),
+                  ],
+                )),
+              ])),
+
+              // ── Panneau paroles draggable (swipe up depuis player) ───
+              if (_lyricsSheetOpen)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _closeLyricsSheet,
+                    child: Container(color: Colors.black.withOpacity(0.3)),
+                  ),
+                ),
+              if (_lyricsSheetOpen)
+                DraggableScrollableSheet(
+                  controller: _sheetController,
+                  initialChildSize: 0.0,
+                  minChildSize: 0.0,
+                  maxChildSize: 1.0,
+                  snap: true,
+                  snapSizes: const [0.0, 1.0],
+                  builder: (ctx, scrollController) => Container(
+                    decoration: BoxDecoration(
+                      color: dark.withOpacity(0.97),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Column(children: [
+                      // Handle + bouton fermer
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Row(children: [
+                          // Mini artwork
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: ArtworkWidget(
+                              key: ValueKey(song.hash),
+                              hash: song.image ?? song.hash,
+                              size: 40, borderRadius: BorderRadius.circular(4)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(song.title, style: const TextStyle(
+                                  color: Colors.white, fontSize: 14,
+                                  fontWeight: FontWeight.bold),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(song.artist, style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6), fontSize: 12),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ],
+                          )),
+                          GestureDetector(
+                            onTap: _closeLyricsSheet,
+                            child: Container(
+                              width: 32, height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white12,
+                                shape: BoxShape.circle),
+                              child: const Icon(Icons.keyboard_arrow_down_rounded,
+                                  color: Colors.white, size: 22),
+                            ),
+                          ),
+                        ]),
+                      ),
+                      Divider(color: Colors.white.withOpacity(0.08), height: 1),
+                      // Paroles scrollables
+                      Expanded(child: _LyricsPage(
+                        player: player, accent: accent,
+                        scrollController: scrollController)),
+                    ]),
+                  ),
+                ),
+            ]),
+          );
+        },
       );
     });
   }
-
-  Widget _tabIcon(IconData icon, int idx) {
-    final active = _tab == idx;
-    return IconButton(
-      icon: active
-          ? GIcon(icon, size: 22)
-          : Icon(icon, size: 22, color: Colors.white54),
-      onPressed: () => setState(() => _tab = idx),
-    );
-  }
 }
 
-// ── Player tab ─────────────────────────────────────────────────────────────────
-class _PlayerTab extends StatelessWidget {
+// ── Indicateur de page (3 points) ─────────────────────────────────────────────
+class _PageDots extends StatelessWidget {
+  final int current;
+  final Color accent;
+  const _PageDots({required this.current, required this.accent});
+  @override
+  Widget build(BuildContext ctx) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: List.generate(3, (i) => AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(horizontal: 3),
+      width: i == current ? 16 : 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: i == current ? accent : Colors.white24,
+        borderRadius: BorderRadius.circular(3)),
+    )),
+  );
+}
+
+// ── Page Player ────────────────────────────────────────────────────────────────
+class _PlayerPage extends StatelessWidget {
   final PlayerProvider player;
   final song;
-  const _PlayerTab({required this.player, required this.song});
+  final Color accent;
+  final VoidCallback onLyricsTap;
+  const _PlayerPage({
+    required this.player, required this.song,
+    required this.accent, required this.onLyricsTap});
 
-  String _fmt(Duration d) {
-    final m = d.inMinutes;
-    final s = d.inSeconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
+  String _fmt(Duration d) =>
+      '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext ctx) {
@@ -135,27 +300,47 @@ class _PlayerTab extends StatelessWidget {
       child: Column(children: [
         const SizedBox(height: 8),
 
-        // ── Big artwork ───────────────────────────────────────────
-        Expanded(flex: 5, child: Center(child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 40, offset: const Offset(0, 12))],
-          ),
-          child: AspectRatio(aspectRatio: 1, child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: ArtworkWidget(
-              key: ValueKey(song.hash),
-              hash: song.image ?? song.hash,
-              size: double.infinity,
+        // Artwork avec halo + swipe up → paroles
+        Expanded(flex: 5, child: GestureDetector(
+          onVerticalDragEnd: (d) {
+            if (d.primaryVelocity != null && d.primaryVelocity! < -300) {
+              onLyricsTap();
+            }
+          },
+          child: Center(child: Container(
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
+              boxShadow: [BoxShadow(
+                color: accent.withOpacity(0.4), blurRadius: 50,
+                offset: const Offset(0, 16), spreadRadius: 4)],
             ),
+            child: AspectRatio(aspectRatio: 1, child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ArtworkWidget(
+                key: ValueKey(song.hash),
+                hash: song.image ?? song.hash,
+                size: double.infinity,
+                borderRadius: BorderRadius.circular(8)),
+            )),
           )),
-        ))),
-        const SizedBox(height: 28),
+        )),
+        const SizedBox(height: 6),
 
-        // ── Title + like ──────────────────────────────────────────
+        // Hint swipe paroles
+        GestureDetector(
+          onTap: onLyricsTap,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.lyrics_rounded, size: 14, color: accent.withOpacity(0.7)),
+            const SizedBox(width: 6),
+            Text('Voir les paroles', style: TextStyle(
+                color: accent.withOpacity(0.7), fontSize: 12)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_up_rounded, size: 14, color: accent.withOpacity(0.7)),
+          ]),
+        ),
+        const SizedBox(height: 14),
+
+        // Titre + like
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(song.title, style: const TextStyle(
@@ -168,15 +353,12 @@ class _PlayerTab extends StatelessWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
           const SizedBox(width: 16),
-          ShaderMask(
-            shaderCallback: (b) => kGrad.createShader(b),
-            child: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 28),
-          ),
+          Icon(Icons.favorite_border_rounded, color: accent, size: 28),
         ]),
         const SizedBox(height: 20),
 
-        // ── Progress bar ──────────────────────────────────────────
-        _ProgressBar(player: player),
+        // Progress bar dynamique
+        _ProgressBar(player: player, accent: accent),
         const SizedBox(height: 4),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(_fmt(player.position),
@@ -186,68 +368,58 @@ class _PlayerTab extends StatelessWidget {
         ]),
         const SizedBox(height: 20),
 
-        // ── Controls — exact Spotify layout ──────────────────────
+        // Contrôles
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center, children: [
-          // Shuffle
           GestureDetector(
             onTap: player.toggleShuffle,
             child: Stack(alignment: Alignment.bottomCenter, children: [
-              player.shuffle
-                  ? const GIcon(Icons.shuffle_rounded, size: 26)
-                  : Icon(Icons.shuffle_rounded, size: 26,
-                      color: Colors.white.withOpacity(0.6)),
+              Icon(Icons.shuffle_rounded, size: 26,
+                color: player.shuffle ? accent : Colors.white.withOpacity(0.6)),
               if (player.shuffle) Positioned(bottom: -4,
                 child: Container(width: 4, height: 4,
-                  decoration: BoxDecoration(gradient: kGrad, shape: BoxShape.circle))),
+                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
             ]),
           ),
-
-          // Prev
           GestureDetector(
             onTap: player.previous,
             child: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 46)),
-
-          // Play/Pause — grand cercle blanc Spotify
           GestureDetector(
             onTap: player.playPause,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
               width: 68, height: 68,
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: accent, shape: BoxShape.circle,
+                boxShadow: [BoxShadow(
+                  color: accent.withOpacity(0.5), blurRadius: 22, spreadRadius: 2)]),
               child: Center(child: player.isLoading
                   ? const SizedBox(width: 26, height: 26,
-                      child: CircularProgressIndicator(color: Sp.bg, strokeWidth: 2.5))
-                  : Icon(
-                      player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Sp.bg, size: 42)),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  : Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white, size: 42)),
             ),
           ),
-
-          // Next
           GestureDetector(
             onTap: player.next,
             child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 46)),
-
-          // Repeat
           GestureDetector(
             onTap: player.toggleRepeat,
             child: Stack(alignment: Alignment.bottomCenter, children: [
-              player.repeatMode == RepeatMode.off
-                  ? Icon(Icons.repeat_rounded, size: 26,
-                      color: Colors.white.withOpacity(0.6))
-                  : player.repeatMode == RepeatMode.one
-                      ? const GIcon(Icons.repeat_one_rounded, size: 26)
-                      : const GIcon(Icons.repeat_rounded, size: 26),
+              Icon(
+                player.repeatMode == RepeatMode.one
+                    ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+                size: 26,
+                color: player.repeatMode != RepeatMode.off
+                    ? accent : Colors.white.withOpacity(0.6)),
               if (player.repeatMode != RepeatMode.off) Positioned(bottom: -4,
                 child: Container(width: 4, height: 4,
-                  decoration: BoxDecoration(gradient: kGrad, shape: BoxShape.circle))),
+                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
             ]),
           ),
         ]),
+        const SizedBox(height: 20),
 
-        const SizedBox(height: 24),
-
-        // ── Share + device row (Spotify style) ────────────────────
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Icon(Icons.devices_rounded, size: 20, color: Colors.white.withOpacity(0.6)),
           Row(children: [
@@ -256,17 +428,17 @@ class _PlayerTab extends StatelessWidget {
             Icon(Icons.more_horiz_rounded, size: 24, color: Colors.white.withOpacity(0.6)),
           ]),
         ]),
-
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
       ]),
     );
   }
 }
 
-// ── Progress bar custom ────────────────────────────────────────────────────────
+// ── Progress bar ───────────────────────────────────────────────────────────────
 class _ProgressBar extends StatelessWidget {
   final PlayerProvider player;
-  const _ProgressBar({required this.player});
+  final Color accent;
+  const _ProgressBar({required this.player, required this.accent});
 
   @override
   Widget build(BuildContext ctx) {
@@ -276,34 +448,47 @@ class _ProgressBar extends StatelessWidget {
         final box = ctx.findRenderObject() as RenderBox?;
         if (box == null) return;
         final frac = (d.localPosition.dx / box.size.width).clamp(0.0, 1.0);
-        player.seek(Duration(milliseconds: (frac * player.duration.inMilliseconds).round()));
+        player.seek(Duration(milliseconds:
+            (frac * player.duration.inMilliseconds).round()));
       },
       child: SizedBox(height: 28, child: Stack(alignment: Alignment.center, children: [
         Container(height: 4, decoration: BoxDecoration(
           color: Colors.white24, borderRadius: BorderRadius.circular(2))),
         Align(alignment: Alignment.centerLeft,
           child: FractionallySizedBox(widthFactor: v,
-            child: Container(height: 4, decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(2))))),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: 4,
+              decoration: BoxDecoration(
+                color: accent, borderRadius: BorderRadius.circular(2))))),
         Align(alignment: Alignment(v * 2 - 1, 0),
-          child: Container(width: 14, height: 14,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 14, height: 14,
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: accent.withOpacity(0.7), blurRadius: 6)]))),
       ])),
     );
   }
 }
 
-// ── Lyrics tab ─────────────────────────────────────────────────────────────────
-class _LyricsTab extends StatefulWidget {
+// ── Page Paroles ───────────────────────────────────────────────────────────────
+class _LyricsPage extends StatefulWidget {
   final PlayerProvider player;
-  const _LyricsTab({required this.player});
+  final Color accent;
+  final ScrollController? scrollController;
+  const _LyricsPage({required this.player, required this.accent,
+      this.scrollController});
   @override
-  State<_LyricsTab> createState() => _LyricsTabState();
+  State<_LyricsPage> createState() => _LyricsPageState();
 }
 
-class _LyricsTabState extends State<_LyricsTab> {
-  final _scroll = ScrollController();
+class _LyricsPageState extends State<_LyricsPage> {
+  final _internalScroll = ScrollController();
   int _line = 0;
+
+  ScrollController get _scroll =>
+      widget.scrollController ?? _internalScroll;
 
   void _sync() {
     final lines = widget.player.syncedLines;
@@ -316,7 +501,8 @@ class _LyricsTabState extends State<_LyricsTab> {
     if (idx != _line) {
       setState(() => _line = idx);
       try {
-        _scroll.animateTo((idx * 56.0 - 150).clamp(0.0, _scroll.position.maxScrollExtent),
+        _scroll.animateTo(
+          (idx * 56.0 - 150).clamp(0.0, _scroll.position.maxScrollExtent),
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       } catch (_) {}
     }
@@ -325,8 +511,10 @@ class _LyricsTabState extends State<_LyricsTab> {
   @override
   Widget build(BuildContext ctx) {
     final p = widget.player;
-    if (p.lyricsLoading) return const Center(
-      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
+    final accent = widget.accent;
+
+    if (p.lyricsLoading) return Center(
+      child: CircularProgressIndicator(color: accent, strokeWidth: 2));
 
     if (p.lyricsSynced && p.syncedLines != null && p.syncedLines!.isNotEmpty) {
       _sync();
@@ -337,44 +525,50 @@ class _LyricsTabState extends State<_LyricsTab> {
         itemBuilder: (ctx, i) {
           final active = i == _line;
           final text = p.syncedLines![i]['text'] as String;
-          if (text.trim().isEmpty) return const SizedBox(height: 16);
-          if (active) return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: ShaderMask(
-              shaderCallback: (b) => kGrad.createShader(b),
-              child: Text(text, textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white,
-                    fontSize: 22, fontWeight: FontWeight.bold, height: 1.6))),
-          );
+          if (text.trim().isEmpty) return const SizedBox(height: 20);
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(text, textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white30, fontSize: 16, height: 1.6)));
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 350),
+              style: active
+                  ? TextStyle(color: accent, fontSize: 24,
+                      fontWeight: FontWeight.bold, height: 1.5)
+                  : TextStyle(color: Colors.white.withOpacity(0.25),
+                      fontSize: 18, height: 1.5, fontWeight: FontWeight.w600),
+              child: Text(text, textAlign: TextAlign.left),
+            ),
+          );
         },
       );
     }
     if (p.unsyncedLines != null && p.unsyncedLines!.isNotEmpty) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Text(p.unsyncedLines!.join("\n"),
-          style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.9),
-          textAlign: TextAlign.center));
+        controller: _scroll,
+        padding: const EdgeInsets.fromLTRB(28, 60, 28, 28),
+        child: Text(p.unsyncedLines!.join('\n'),
+          style: const TextStyle(color: Colors.white70, fontSize: 16, height: 2.0),
+          textAlign: TextAlign.left));
     }
-    return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.lyrics_outlined, color: Colors.white38, size: 56),
-      SizedBox(height: 16),
-      Text('Aucune parole disponible', style: TextStyle(color: Colors.white54)),
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.lyrics_outlined, color: accent.withOpacity(0.4), size: 56),
+      const SizedBox(height: 16),
+      const Text('Aucune parole disponible',
+          style: TextStyle(color: Colors.white54)),
     ]));
   }
 
   @override
-  void dispose() { _scroll.dispose(); super.dispose(); }
+  void dispose() {
+    if (widget.scrollController == null) _internalScroll.dispose();
+    super.dispose();
+  }
 }
 
-// ── Queue tab ──────────────────────────────────────────────────────────────────
-class _QueueTab extends StatelessWidget {
+// ── Page File d'attente ────────────────────────────────────────────────────────
+class _QueuePage extends StatelessWidget {
   final PlayerProvider player;
-  const _QueueTab({required this.player});
+  final Color accent;
+  const _QueuePage({required this.player, required this.accent});
   @override
   Widget build(BuildContext ctx) {
     final q = player.queue;
@@ -382,7 +576,7 @@ class _QueueTab extends StatelessWidget {
       child: Text('File vide', style: TextStyle(color: Colors.white54)));
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: Text('File d\'attente', style: TextStyle(
+        child: Text("File d'attente", style: TextStyle(
             color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
       Expanded(child: ReorderableListView.builder(
         padding: const EdgeInsets.only(bottom: 20),
@@ -399,14 +593,14 @@ class _QueueTab extends StatelessWidget {
               child: ArtworkWidget(key: ValueKey(s.hash), hash: s.image ?? s.hash,
                 size: 44, borderRadius: BorderRadius.circular(4))),
             title: Text(s.title, style: TextStyle(
-              color: cur ? Sp.g2 : Colors.white,
+              color: cur ? accent : Colors.white,
               fontWeight: cur ? FontWeight.bold : FontWeight.w500, fontSize: 14),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text(s.artist,
               style: const TextStyle(color: Colors.white54, fontSize: 12),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: cur
-                ? const GIcon(Icons.equalizer_rounded, size: 20)
+                ? Icon(Icons.equalizer_rounded, size: 20, color: accent)
                 : IconButton(
                     icon: const Icon(Icons.remove_circle_outline_rounded,
                         size: 18, color: Colors.white38),
