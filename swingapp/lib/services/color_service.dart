@@ -27,7 +27,7 @@ class ColorService {
       _cache[cacheKey] = colors;
       return colors;
     } catch (_) {
-      return DynamicColors._fallback();
+      return DynamicColors.fallback();
     }
   }
 
