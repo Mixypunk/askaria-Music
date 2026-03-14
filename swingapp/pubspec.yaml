@@ -1,4 +1,4 @@
-name: askasoud
+name: askasound
 description: Custom Swing Music Android App
 publish_to: 'none'
 version: 1.0.0+1
@@ -12,8 +12,6 @@ dependencies:
   
   # Audio
   just_audio: ^0.9.36
-  audio_session: ^0.1.18
-  just_audio_background: ^0.0.1-beta.11
   
   # HTTP & API
   http: ^1.2.0
@@ -23,7 +21,6 @@ dependencies:
   package_info_plus: ^8.0.0
   open_file: ^3.3.2
   path_provider: ^2.1.2
-  permission_handler: ^11.3.1
   
   # State management
   provider: ^6.1.1
@@ -32,11 +29,7 @@ dependencies:
   shared_preferences: ^2.2.2
   
   # UI
-  cached_network_image: ^3.3.1
-  flutter_svg: ^2.0.9
-  shimmer: ^3.0.0
   mobile_scanner: ^5.2.3
-  palette_generator: ^0.3.3+3
   
   # Icons
   cupertino_icons: ^1.0.6
