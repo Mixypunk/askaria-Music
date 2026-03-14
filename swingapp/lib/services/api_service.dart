@@ -280,7 +280,17 @@ class SwingApiService {
   }
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
-  String getStreamUrl(String trackHash) => '$_baseUrl/stream/track/$trackHash';
+  // Format réel découvert: /file/{folderHash}/legacy?filepath={path}&container=mp3&quality=original
+  static const _folderHash = '3d9fb431209e6d85'; // hash du dossier /music/
+
+  String getStreamUrl(String trackHash, {String? filepath}) {
+    if (filepath != null && filepath.isNotEmpty) {
+      final encoded = Uri.encodeComponent(filepath);
+      return '$_baseUrl/file/$_folderHash/legacy?filepath=$encoded&container=mp3&quality=original';
+    }
+    return '$_baseUrl/file/$trackHash/legacy?container=mp3&quality=original';
+  }
+
   String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash';
   String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash/thumbnail';
 }

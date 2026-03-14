@@ -7,6 +7,7 @@ class Song {
   final String artistHash;
   final int duration;
   final int trackNumber;
+  final String? filepath;
 
   const Song({
     required this.hash,
@@ -17,10 +18,10 @@ class Song {
     required this.artistHash,
     required this.duration,
     this.trackNumber = 0,
+    this.filepath,
   });
 
   factory Song.fromJson(Map<String, dynamic> j) => Song(
-    // Swing Music utilise "trackhash" comme identifiant
     hash: j['trackhash'] ?? j['hash'] ?? '',
     title: j['title'] ?? 'Unknown',
     artist: _extractArtist(j),
@@ -29,6 +30,7 @@ class Song {
     artistHash: _extractArtistHash(j),
     duration: (j['duration'] ?? 0).toInt(),
     trackNumber: j['track'] ?? j['trackno'] ?? j['disc_number'] ?? 0,
+    filepath: j['filepath'] ?? j['path'] ?? j['file_path'],
   );
 
   static String _extractArtist(Map<String, dynamic> j) {

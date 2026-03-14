@@ -79,10 +79,9 @@ class PlayerProvider extends ChangeNotifier {
     if (currentSong == null) return;
     _error = null;
     try {
-      final url = _api.getStreamUrl(currentSong!.hash);
+      final url = _api.getStreamUrl(currentSong!.hash, filepath: currentSong!.filepath);
       final cookie = _api.cookie;
       debugPrint('🎵 Stream URL: $url');
-      debugPrint('🍪 Cookie: $cookie');
       await _player.setAudioSource(
         AudioSource.uri(
           Uri.parse(url),
