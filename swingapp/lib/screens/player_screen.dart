@@ -16,55 +16,50 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: Consumer<PlayerProvider>(builder: (context, player, _) {
+      backgroundColor: Sp.bg,
+      body: Consumer<PlayerProvider>(builder: (ctx, player, _) {
         final song = player.currentSong;
         if (song == null) return const Center(child: Text('Aucune musique'));
 
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.grad1.withOpacity(0.25), AppColors.bg, AppColors.bg],
-              begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            ),
-          ),
-          child: SafeArea(
-            child: Column(children: [
-              // Top bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 30,
-                        color: AppColors.textSecondary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Expanded(child: Column(children: [
-                    const Text('EN COURS DE LECTURE',
-                      style: TextStyle(color: AppColors.textSecondary,
-                          fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text(song.album,
-                      style: const TextStyle(color: Colors.white,
-                          fontSize: 13, fontWeight: FontWeight.w500),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ])),
-                  // Tab icons
-                  _tabIcon(Icons.music_note_rounded, 0),
-                  _tabIcon(Icons.lyrics_rounded, 1),
-                  _tabIcon(Icons.queue_music_rounded, 2),
-                ]),
-              ),
+        return Column(children: [
+          // Drag handle
+          SafeArea(bottom: false, child: Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Center(child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: Sp.white40, borderRadius: BorderRadius.circular(2)),
+            )),
+          )),
 
-              // Content
-              Expanded(child: IndexedStack(index: _tab, children: [
-                _PlayerTab(player: player, song: song),
-                _LyricsTab(player: player),
-                _QueueTab(player: player),
+          // Top bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(children: [
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28, color: Sp.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              Expanded(child: Column(children: [
+                Text(song.album.toUpperCase(),
+                  style: const TextStyle(color: Sp.white70, fontSize: 11, letterSpacing: 1.5,
+                      fontWeight: FontWeight.w600),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
               ])),
+              // 3 tab icons
+              _tabIcon(Icons.music_note_rounded, 0),
+              _tabIcon(Icons.lyrics_rounded, 1),
+              _tabIcon(Icons.queue_music_rounded, 2),
             ]),
           ),
-        );
+
+          // Content
+          Expanded(child: IndexedStack(index: _tab, children: [
+            _PlayerTab(player: player, song: song),
+            _LyricsTab(player: player),
+            _QueueTab(player: player),
+          ])),
+        ]);
       }),
     );
   }
@@ -72,110 +67,122 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget _tabIcon(IconData icon, int idx) {
     final active = _tab == idx;
     return IconButton(
-      icon: active ? GradientIcon(icon, size: 22) : Icon(icon, size: 22, color: AppColors.textDisabled),
+      icon: active
+          ? GIcon(icon, size: 22)
+          : Icon(icon, size: 22, color: Sp.white40),
       onPressed: () => setState(() => _tab = idx),
     );
   }
 }
 
-// ── PLAYER TAB ────────────────────────────────────────────────────────────────
 class _PlayerTab extends StatelessWidget {
   final PlayerProvider player;
   final song;
   const _PlayerTab({required this.player, required this.song});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(children: [
-        const SizedBox(height: 16),
-        // Big artwork with glow
-        Expanded(child: Center(child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(
-              color: AppColors.grad2.withOpacity(0.35),
-              blurRadius: 50, spreadRadius: 5,
-            )],
-          ),
-          child: AspectRatio(
-            aspectRatio: 1,
+        // ── Artwork ──────────────────────────────────────────────
+        const SizedBox(height: 12),
+        Expanded(flex: 5, child: Center(child:
+          AspectRatio(aspectRatio: 1, child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
             child: ArtworkWidget(
               key: ValueKey(song.hash),
               hash: song.image ?? song.hash,
               size: double.infinity,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-        ))),
-        const SizedBox(height: 28),
-        // Title & Artist
-        Row(children: [
+          )),
+        )),
+        const SizedBox(height: 24),
+
+        // ── Title + heart ────────────────────────────────────────
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(song.title,
-              style: const TextStyle(color: Colors.white, fontSize: 20,
-                  fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            Text(song.title, style: const TextStyle(
+              color: Sp.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
-            Text(song.artist,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            Text(song.artist, style: const TextStyle(color: Sp.white70, fontSize: 15),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
-        ]),
-        const SizedBox(height: 20),
-        // Progress bar
-        _GradientSlider(player: player),
-        const SizedBox(height: 4),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(_fmt(player.position),
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-          Text(_fmt(player.duration),
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-        ]),
-        const SizedBox(height: 20),
-        // Controls
-        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          _ctrlBtn(
-            player.shuffle ? const GradientIcon(Icons.shuffle_rounded, size: 22)
-                           : const Icon(Icons.shuffle_rounded, size: 22, color: AppColors.textDisabled),
-            player.toggleShuffle,
+          const SizedBox(width: 16),
+          ShaderMask(
+            shaderCallback: (b) => kGrad.createShader(b),
+            child: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 28),
           ),
-          _ctrlBtn(const Icon(Icons.skip_previous_rounded, size: 38, color: Colors.white),
-              player.previous),
-          // Play/Pause big button
+        ]),
+        const SizedBox(height: 20),
+
+        // ── Progress bar ─────────────────────────────────────────
+        _SpotifySlider(player: player),
+        const SizedBox(height: 2),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(_fmt(player.position), style: const TextStyle(color: Sp.white70, fontSize: 11)),
+          Text(_fmt(player.duration), style: const TextStyle(color: Sp.white70, fontSize: 11)),
+        ]),
+        const SizedBox(height: 20),
+
+        // ── Controls ─────────────────────────────────────────────
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+          // Shuffle
+          GestureDetector(
+            onTap: player.toggleShuffle,
+            child: player.shuffle
+                ? const GIcon(Icons.shuffle_rounded, size: 24)
+                : const Icon(Icons.shuffle_rounded, size: 24, color: Sp.white70),
+          ),
+
+          // Previous
+          GestureDetector(
+            onTap: player.previous,
+            child: const Icon(Icons.skip_previous_rounded, color: Sp.white, size: 44),
+          ),
+
+          // Play/Pause — exact Spotify style: cercle blanc rempli
           GestureDetector(
             onTap: player.playPause,
             child: Container(
-              width: 68, height: 68,
-              decoration: const BoxDecoration(gradient: kGradient, shape: BoxShape.circle),
+              width: 64, height: 64,
+              decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
               child: Center(
                 child: player.isLoading
-                    ? const SizedBox(width: 26, height: 26,
+                    ? const SizedBox(width: 24, height: 24,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        color: Colors.white, size: 36),
+                    : Icon(
+                        player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: Colors.white, size: 38),
               ),
             ),
           ),
-          _ctrlBtn(const Icon(Icons.skip_next_rounded, size: 38, color: Colors.white),
-              player.next),
-          _ctrlBtn(
-            player.repeatMode == RepeatMode.one
-                ? const GradientIcon(Icons.repeat_one_rounded, size: 22)
-                : player.repeatMode == RepeatMode.all
-                    ? const GradientIcon(Icons.repeat_rounded, size: 22)
-                    : const Icon(Icons.repeat_rounded, size: 22, color: AppColors.textDisabled),
-            player.toggleRepeat,
+
+          // Next
+          GestureDetector(
+            onTap: player.next,
+            child: const Icon(Icons.skip_next_rounded, color: Sp.white, size: 44),
+          ),
+
+          // Repeat
+          GestureDetector(
+            onTap: player.toggleRepeat,
+            child: player.repeatMode == RepeatMode.off
+                ? const Icon(Icons.repeat_rounded, size: 24, color: Sp.white70)
+                : player.repeatMode == RepeatMode.one
+                    ? const GIcon(Icons.repeat_one_rounded, size: 24)
+                    : const GIcon(Icons.repeat_rounded, size: 24),
           ),
         ]),
-        const SizedBox(height: 28),
+
+        Expanded(flex: 1, child: Container()),
       ]),
     );
   }
-
-  Widget _ctrlBtn(Widget icon, VoidCallback cb) =>
-    GestureDetector(onTap: cb, child: Padding(padding: const EdgeInsets.all(8), child: icon));
 
   String _fmt(Duration d) {
     final m = d.inMinutes;
@@ -184,39 +191,33 @@ class _PlayerTab extends StatelessWidget {
   }
 }
 
-class _GradientSlider extends StatelessWidget {
+class _SpotifySlider extends StatelessWidget {
   final PlayerProvider player;
-  const _GradientSlider({required this.player});
-
+  const _SpotifySlider({required this.player});
   @override
-  Widget build(BuildContext context) {
-    final progress = player.progress.clamp(0.0, 1.0);
+  Widget build(BuildContext ctx) {
+    final v = player.progress.clamp(0.0, 1.0);
     return GestureDetector(
       onHorizontalDragUpdate: (d) {
-        final box = context.findRenderObject() as RenderBox?;
+        final box = ctx.findRenderObject() as RenderBox?;
         if (box == null) return;
-        final frac = ((d.localPosition.dx) / box.size.width).clamp(0.0, 1.0);
+        final frac = (d.localPosition.dx / box.size.width).clamp(0.0, 1.0);
         player.seek(Duration(milliseconds: (frac * player.duration.inMilliseconds).round()));
       },
-      child: SizedBox(
-        height: 28,
-        child: Stack(alignment: Alignment.centerLeft, children: [
+      child: SizedBox(height: 32,
+        child: Stack(alignment: Alignment.center, children: [
           // Track
-          Container(height: 3, decoration: BoxDecoration(
-            color: Colors.white12, borderRadius: BorderRadius.circular(3))),
+          Container(height: 4, decoration: BoxDecoration(
+            color: Sp.white40, borderRadius: BorderRadius.circular(2))),
           // Filled
-          FractionallySizedBox(
-            widthFactor: progress,
-            child: Container(height: 3, decoration: BoxDecoration(
-              gradient: kGradient, borderRadius: BorderRadius.circular(3))),
-          ),
+          Align(alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(widthFactor: v,
+              child: Container(height: 4, decoration: BoxDecoration(
+                gradient: kGrad, borderRadius: BorderRadius.circular(2))))),
           // Thumb
-          Positioned(
-            left: (MediaQuery.of(context).size.width - 56) * progress - 7,
+          Align(alignment: Alignment(v * 2 - 1, 0),
             child: Container(width: 14, height: 14, decoration: const BoxDecoration(
-              color: Colors.white, shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)])),
-          ),
+              color: Colors.white, shape: BoxShape.circle))),
         ]),
       ),
     );
@@ -232,10 +233,10 @@ class _LyricsTab extends StatefulWidget {
 }
 
 class _LyricsTabState extends State<_LyricsTab> {
-  final ScrollController _scroll = ScrollController();
-  int _currentLine = 0;
+  final _scroll = ScrollController();
+  int _line = 0;
 
-  void _updateLine() {
+  void _sync() {
     final lines = widget.player.syncedLines;
     if (lines == null || lines.isEmpty) return;
     final pos = widget.player.position.inMilliseconds;
@@ -243,49 +244,44 @@ class _LyricsTabState extends State<_LyricsTab> {
     for (int i = 0; i < lines.length; i++) {
       if (lines[i]['time'] <= pos) idx = i;
     }
-    if (idx != _currentLine) {
-      setState(() => _currentLine = idx);
+    if (idx != _line) {
+      setState(() => _line = idx);
       try {
-        final offset = (idx * 56.0) - 150;
-        _scroll.animateTo(offset.clamp(0.0, _scroll.position.maxScrollExtent),
+        _scroll.animateTo((idx * 56.0 - 150).clamp(0.0, _scroll.position.maxScrollExtent),
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       } catch (_) {}
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
     final p = widget.player;
     if (p.lyricsLoading) return const Center(
-        child: CircularProgressIndicator(color: AppColors.grad2));
+      child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2));
 
     if (p.lyricsSynced && p.syncedLines != null && p.syncedLines!.isNotEmpty) {
-      _updateLine();
+      _sync();
       return ListView.builder(
         controller: _scroll,
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 60),
         itemCount: p.syncedLines!.length,
         itemBuilder: (ctx, i) {
-          final active = i == _currentLine;
+          final active = i == _line;
           final text = p.syncedLines![i]['text'] as String;
           if (text.trim().isEmpty) return const SizedBox(height: 16);
-          return AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 250),
-            style: TextStyle(
-              height: 1.9,
-              fontSize: active ? 22 : 16,
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              color: active ? Colors.white : Colors.white24,
+          if (active) return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: ShaderMask(
+              shaderCallback: (b) => kGrad.createShader(b),
+              child: Text(text, textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white,
+                    fontSize: 22, fontWeight: FontWeight.bold, height: 1.6)),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: active
-                  ? ShaderMask(
-                      shaderCallback: (b) => kGradient.createShader(b),
-                      child: Text(text, textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white)))
-                  : Text(text, textAlign: TextAlign.center),
-            ),
+          );
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(text, textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white24, fontSize: 16, height: 1.6)),
           );
         },
       );
@@ -295,15 +291,15 @@ class _LyricsTabState extends State<_LyricsTab> {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(28),
         child: Text(p.unsyncedLines!.join("\n"),
-          style: const TextStyle(color: Colors.white70, height: 1.9, fontSize: 16),
+          style: const TextStyle(color: Sp.white70, fontSize: 16, height: 1.9),
           textAlign: TextAlign.center),
       );
     }
 
     return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      GradientIcon(Icons.lyrics_outlined, size: 56),
+      Icon(Icons.lyrics_outlined, color: Sp.white40, size: 56),
       SizedBox(height: 16),
-      Text('Pas de paroles disponibles', style: TextStyle(color: AppColors.textSecondary)),
+      Text('Aucune parole disponible', style: TextStyle(color: Sp.white70)),
     ]));
   }
 
@@ -315,47 +311,53 @@ class _LyricsTabState extends State<_LyricsTab> {
 class _QueueTab extends StatelessWidget {
   final PlayerProvider player;
   const _QueueTab({required this.player});
-
   @override
-  Widget build(BuildContext context) {
-    final queue = player.queue;
-    if (queue.isEmpty) return const Center(
-      child: Text('File vide', style: TextStyle(color: AppColors.textSecondary)));
+  Widget build(BuildContext ctx) {
+    final q = player.queue;
+    if (q.isEmpty) return const Center(
+      child: Text('File vide', style: TextStyle(color: Sp.white70)));
 
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.only(bottom: 20),
-      itemCount: queue.length,
-      onReorder: player.reorderQueue,
-      proxyDecorator: (child, _, __) => Material(color: Colors.transparent, child: child),
-      itemBuilder: (ctx, i) {
-        final s = queue[i];
-        final isCurrent = i == player.currentIndex;
-        return ListTile(
-          key: ValueKey(s.hash + i.toString()),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-          leading: isCurrent
-              ? const GradientIcon(Icons.equalizer_rounded, size: 20)
-              : Text('${i + 1}', style: const TextStyle(
-                  color: AppColors.textDisabled, fontSize: 13)),
-          title: Text(s.title,
-            style: TextStyle(
-              color: isCurrent ? AppColors.grad2 : Colors.white,
-              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-              fontSize: 14,
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Text('File d\'attente', style: TextStyle(
+            color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
+      ),
+      Expanded(child: ReorderableListView.builder(
+        padding: const EdgeInsets.only(bottom: 20),
+        itemCount: q.length,
+        onReorder: player.reorderQueue,
+        proxyDecorator: (c, _, __) => Material(color: Colors.transparent, child: c),
+        itemBuilder: (ctx, i) {
+          final s = q[i];
+          final cur = i == player.currentIndex;
+          return ListTile(
+            key: ValueKey('${s.hash}$i'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: ArtworkWidget(
+                key: ValueKey(s.hash),
+                hash: s.image ?? s.hash, size: 44,
+                borderRadius: BorderRadius.circular(4)),
             ),
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(s.artist,
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: isCurrent
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.remove_circle_outline_rounded,
-                      size: 18, color: AppColors.textDisabled),
-                  onPressed: () => player.removeFromQueue(i)),
-          onTap: () => player.playSong(s, queue: queue, index: i),
-        );
-      },
-    );
+            title: Text(s.title, style: TextStyle(
+              color: cur ? Sp.g2 : Sp.white,
+              fontWeight: cur ? FontWeight.bold : FontWeight.w500, fontSize: 14),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text(s.artist,
+              style: const TextStyle(color: Sp.white70, fontSize: 12),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: cur
+                ? const GIcon(Icons.equalizer_rounded, size: 20)
+                : IconButton(
+                    icon: const Icon(Icons.remove_circle_outline_rounded,
+                        size: 18, color: Sp.white40),
+                    onPressed: () => player.removeFromQueue(i)),
+            onTap: () => player.playSong(s, queue: q, index: i),
+          );
+        },
+      )),
+    ]);
   }
 }

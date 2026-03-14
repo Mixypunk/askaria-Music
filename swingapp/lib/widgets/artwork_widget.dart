@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../main.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 
@@ -70,7 +71,7 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
         borderRadius: br,
         child: Container(
           width: widget.size, height: widget.size,
-          color: Theme.of(context).colorScheme.surfaceVariant,
+          color: Sp.card,
           child: const Center(child: SizedBox(width: 16, height: 16,
             child: CircularProgressIndicator(strokeWidth: 2))),
         ),
@@ -81,10 +82,10 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
         borderRadius: br,
         child: Container(
           width: widget.size, height: widget.size,
-          color: Theme.of(context).colorScheme.surfaceVariant,
+          color: Sp.card,
           child: Icon(Icons.music_note_rounded,
             size: widget.size * 0.5,
-            color: Theme.of(context).colorScheme.onSurfaceVariant),
+            color: Sp.white40),
         ),
       );
     }

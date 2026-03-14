@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../services/api_service.dart';
 import '../main.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,86 +13,65 @@ class _LoginScreenState extends State<LoginScreen> {
   int _tab = 0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0D14), Color(0xFF1A1030), Color(0xFF0D0D14)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: Sp.bg,
+      body: SafeArea(child: Column(children: [
+        const SizedBox(height: 56),
+        // Logo Spotify style
+        ShaderMask(
+          shaderCallback: (b) => kGradV.createShader(b),
+          child: const Icon(Icons.music_note_rounded, size: 80, color: Colors.white),
+        ),
+        const SizedBox(height: 24),
+        const Text('Millions de titres.\nGratuit sur SwingApp.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Sp.white, fontSize: 24,
+              fontWeight: FontWeight.bold, height: 1.3)),
+        const SizedBox(height: 8),
+        const Text('Votre musique personnelle, partout.',
+          style: TextStyle(color: Sp.white70, fontSize: 14)),
+        const SizedBox(height: 40),
+
+        // Tabs
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(color: Sp.card, borderRadius: BorderRadius.circular(22)),
+            child: Row(children: [
+              _tab_(0, Icons.qr_code_scanner_rounded, 'QR Code'),
+              _tab_(1, Icons.keyboard_rounded, 'Connexion'),
+            ]),
           ),
         ),
-        child: SafeArea(
-          child: Column(children: [
-            const SizedBox(height: 48),
-            // Logo
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
-                gradient: kGradient,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(
-                  color: AppColors.grad2.withOpacity(0.5),
-                  blurRadius: 30, spreadRadius: 5,
-                )],
-              ),
-              child: const Icon(Icons.music_note_rounded, size: 40, color: Colors.white),
-            ),
-            const SizedBox(height: 20),
-            GradientText('SwingApp',
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -1)),
-            const SizedBox(height: 6),
-            const Text('Votre musique, partout',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-            const SizedBox(height: 36),
+        const SizedBox(height: 32),
 
-            // Tab switcher
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 32),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(children: [
-                _tabBtn('QR Code', Icons.qr_code_scanner_rounded, 0),
-                _tabBtn('Manuel', Icons.keyboard_rounded, 1),
-              ]),
-            ),
-            const SizedBox(height: 28),
-
-            Expanded(child: _tab == 0 ? const _QrTab() : const _ManualTab()),
-          ]),
-        ),
-      ),
+        Expanded(child: _tab == 0 ? const _QrTab() : const _ManualTab()),
+      ])),
     );
   }
 
-  Widget _tabBtn(String label, IconData icon, int idx) {
-    final active = _tab == idx;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _tab = idx),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            gradient: active ? kGradient : null,
-            borderRadius: BorderRadius.circular(26),
-          ),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 16, color: active ? Colors.white : AppColors.textSecondary),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(
-              color: active ? Colors.white : AppColors.textSecondary,
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              fontSize: 13,
-            )),
-          ]),
+  Widget _tab_(int idx, IconData icon, String label) {
+    final sel = _tab == idx;
+    return Expanded(child: GestureDetector(
+      onTap: () => setState(() => _tab = idx),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          gradient: sel ? kGrad : null,
+          borderRadius: BorderRadius.circular(18),
         ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 15, color: sel ? Colors.white : Sp.white70),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(
+            color: sel ? Colors.white : Sp.white70,
+            fontWeight: sel ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
+        ]),
       ),
-    );
+    ));
   }
 }
 
@@ -106,70 +85,53 @@ class _QrTabState extends State<_QrTab> {
   bool _scanning = true, _loading = false;
   String? _error;
 
-  Future<void> _onDetect(BarcodeCapture capture) async {
+  Future<void> _onDetect(BarcodeCapture c) async {
     if (!_scanning || _loading) return;
-    final raw = capture.barcodes.first.rawValue;
+    final raw = c.barcodes.first.rawValue;
     if (raw == null) return;
     setState(() { _scanning = false; _loading = true; _error = null; });
     final parts = raw.trim().split(' ');
     if (parts.length < 2) {
-      setState(() { _loading = false; _error = 'QR code invalide'; _scanning = true; });
+      setState(() { _loading = false; _error = 'QR invalide'; _scanning = true; });
       return;
     }
     final ok = await SwingApiService().pairWithCode(parts[0], parts[1]);
     if (!mounted) return;
-    if (ok) Navigator.of(context).pushReplacementNamed('/home');
-    else setState(() { _loading = false; _error = 'Échec — essaie la connexion manuelle'; _scanning = true; });
+    if (ok) Navigator.of(context).pushReplacementNamed('/root');
+    else setState(() { _loading = false; _error = 'Échec du pairing'; _scanning = true; });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(children: [
-        Text('Settings → Pair device sur Swing Music (PC)',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: kGradient,
-              boxShadow: [BoxShadow(color: AppColors.grad2.withOpacity(0.3), blurRadius: 20)],
-            ),
-            padding: const EdgeInsets.all(3),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(21),
-              child: _loading
-                  ? Container(color: AppColors.card,
-                      child: const Center(child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: AppColors.grad2),
-                          SizedBox(height: 16),
-                          Text('Connexion en cours...', style: TextStyle(color: Colors.white)),
-                        ],
-                      )))
-                  : MobileScanner(onDetect: _onDetect),
-            ),
-          ),
+  Widget build(BuildContext ctx) => Padding(
+    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+    child: Column(children: [
+      Text('Settings → Pair device sur Swing Music',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Sp.white70, fontSize: 13)),
+      const SizedBox(height: 16),
+      Expanded(child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: kGradV,
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
-            ),
-            child: Text(_error!, style: const TextStyle(color: Colors.redAccent), textAlign: TextAlign.center),
-          ),
-        ],
-      ]),
-    );
-  }
+        padding: const EdgeInsets.all(3),
+        child: ClipRRect(borderRadius: BorderRadius.circular(9),
+          child: _loading
+              ? Container(color: Sp.card, child: const Center(child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Sp.g2),
+                    SizedBox(height: 16),
+                    Text('Connexion...', style: TextStyle(color: Sp.white)),
+                  ])))
+              : MobileScanner(onDetect: _onDetect)),
+      )),
+      if (_error != null) ...[
+        const SizedBox(height: 12),
+        Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+      ],
+    ]),
+  );
 }
 
 class _ManualTab extends StatefulWidget {
@@ -179,77 +141,66 @@ class _ManualTab extends StatefulWidget {
 }
 
 class _ManualTabState extends State<_ManualTab> {
-  final _userCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  bool _loading = false, _obscure = true;
-  String? _error;
+  final _u = TextEditingController();
+  final _p = TextEditingController();
+  bool _loading = false, _obs = true;
+  String? _err;
 
   Future<void> _login() async {
-    if (_userCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) {
-      setState(() => _error = 'Remplis tous les champs');
-      return;
+    if (_u.text.trim().isEmpty || _p.text.isEmpty) {
+      setState(() => _err = 'Remplis tous les champs'); return;
     }
-    setState(() { _loading = true; _error = null; });
-    final ok = await SwingApiService().login(_userCtrl.text.trim(), _passCtrl.text);
+    setState(() { _loading = true; _err = null; });
+    final ok = await SwingApiService().login(_u.text.trim(), _p.text);
     if (!mounted) return;
-    if (ok) Navigator.of(context).pushReplacementNamed('/home');
-    else setState(() { _loading = false; _error = 'Identifiants incorrects'; });
+    if (ok) Navigator.of(context).pushReplacementNamed('/root');
+    else setState(() { _loading = false; _err = 'Identifiants incorrects'; });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Column(children: [
-        // Username
-        TextField(
-          controller: _userCtrl,
-          textInputAction: TextInputAction.next,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Nom d\'utilisateur',
-            prefixIcon: const Icon(Icons.person_rounded, color: AppColors.textSecondary),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            filled: true, fillColor: AppColors.card,
-          ),
+  Widget build(BuildContext ctx) => SingleChildScrollView(
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    child: Column(children: [
+      // Username
+      Container(
+        height: 52,
+        decoration: BoxDecoration(color: Sp.card, borderRadius: BorderRadius.circular(4)),
+        child: TextField(
+          controller: _u, textInputAction: TextInputAction.next,
+          style: const TextStyle(color: Sp.white, fontSize: 15),
+          decoration: const InputDecoration(
+            hintText: 'Nom d\'utilisateur', hintStyle: TextStyle(color: Sp.white70),
+            prefixIcon: Icon(Icons.person_outline_rounded, color: Sp.white70, size: 20),
+            border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 16)),
         ),
-        const SizedBox(height: 14),
-        // Password
-        TextField(
-          controller: _passCtrl,
-          obscureText: _obscure,
+      ),
+      const SizedBox(height: 12),
+      // Password
+      Container(
+        height: 52,
+        decoration: BoxDecoration(color: Sp.card, borderRadius: BorderRadius.circular(4)),
+        child: TextField(
+          controller: _p, obscureText: _obs,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _login(),
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Sp.white, fontSize: 15),
           decoration: InputDecoration(
-            hintText: 'Mot de passe',
-            prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.textSecondary),
+            hintText: 'Mot de passe', hintStyle: const TextStyle(color: Sp.white70),
+            prefixIcon: const Icon(Icons.lock_outline_rounded, color: Sp.white70, size: 20),
             suffixIcon: IconButton(
-              icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded,
-                  color: AppColors.textSecondary),
-              onPressed: () => setState(() => _obscure = !_obscure),
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            filled: true, fillColor: AppColors.card,
-          ),
+              icon: Icon(_obs ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: Sp.white70, size: 20),
+              onPressed: () => setState(() => _obs = !_obs)),
+            border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16)),
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(_error!, style: const TextStyle(color: Colors.redAccent), textAlign: TextAlign.center),
-          ),
-        ],
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: GradientButton(label: 'Se connecter', onPressed: _loading ? null : _login, loading: _loading),
-        ),
-      ]),
-    );
-  }
+      ),
+      if (_err != null) ...[
+        const SizedBox(height: 12),
+        Text(_err!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+      ],
+      const SizedBox(height: 24),
+      SizedBox(width: double.infinity,
+        child: GBtn('Se connecter', onTap: _loading ? null : _login, loading: _loading)),
+    ]),
+  );
 }
