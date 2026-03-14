@@ -73,7 +73,7 @@ class _AlbumCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final api = SwingApiService();
-    final thumb = api.getThumbnailUrl(album.hash, type: 'album');
+    final thumb = api.getThumbnailUrl(album.hash);
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => AlbumDetailScreen(album: album),
@@ -135,7 +135,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final api = SwingApiService();
-    final artwork = api.getArtworkUrl(widget.album.hash, type: 'album');
+    final artwork = api.getArtworkUrl(widget.album.hash);
     return Scaffold(
       appBar: AppBar(title: Text(widget.album.title)),
       body: _loading

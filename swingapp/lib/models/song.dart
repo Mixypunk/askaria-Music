@@ -1,5 +1,5 @@
 class Song {
-  final String hash;
+  final String hash;       // trackhash
   final String title;
   final String artist;
   final String album;
@@ -7,7 +7,8 @@ class Song {
   final String artistHash;
   final int duration;
   final int trackNumber;
-  final String? filepath;
+  final String? filepath;  // chemin du fichier sur le serveur
+  final String? image;     // hash de l'image (track.image dans l'app officielle)
 
   const Song({
     required this.hash,
@@ -19,6 +20,7 @@ class Song {
     required this.duration,
     this.trackNumber = 0,
     this.filepath,
+    this.image,
   });
 
   factory Song.fromJson(Map<String, dynamic> j) => Song(
@@ -29,8 +31,9 @@ class Song {
     albumHash: j['albumhash'] ?? j['album_hash'] ?? '',
     artistHash: _extractArtistHash(j),
     duration: (j['duration'] ?? 0).toInt(),
-    trackNumber: j['track'] ?? j['trackno'] ?? j['disc_number'] ?? 0,
+    trackNumber: j['track'] ?? j['trackno'] ?? 0,
     filepath: j['filepath'] ?? j['path'] ?? j['file_path'],
+    image: j['image'] ?? j['trackhash'] ?? j['hash'] ?? '',
   );
 
   static String _extractArtist(Map<String, dynamic> j) {

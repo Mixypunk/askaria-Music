@@ -24,8 +24,7 @@ class PlayerProvider extends ChangeNotifier {
   List<Song> get queue => _queue;
   int get currentIndex => _currentIndex;
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
-      ? _queue[_currentIndex]
-      : null;
+      ? _queue[_currentIndex] : null;
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
   Duration get position => _position;
@@ -36,29 +35,19 @@ class PlayerProvider extends ChangeNotifier {
   bool get lyricsLoading => _lyricsLoading;
   String? get error => _error;
 
-  double get progress =>
-      _duration.inMilliseconds > 0
-          ? _position.inMilliseconds / _duration.inMilliseconds
-          : 0.0;
+  double get progress => _duration.inMilliseconds > 0
+      ? _position.inMilliseconds / _duration.inMilliseconds : 0.0;
 
   PlayerProvider() {
     _player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering;
-      if (state.processingState == ProcessingState.completed) {
-        _onTrackComplete();
-      }
+      if (state.processingState == ProcessingState.completed) _onTrackComplete();
       notifyListeners();
     });
-    _player.positionStream.listen((pos) {
-      _position = pos;
-      notifyListeners();
-    });
-    _player.durationStream.listen((dur) {
-      _duration = dur ?? Duration.zero;
-      notifyListeners();
-    });
+    _player.positionStream.listen((pos) { _position = pos; notifyListeners(); });
+    _player.durationStream.listen((dur) { _duration = dur ?? Duration.zero; notifyListeners(); });
   }
 
   Future<void> playSong(Song song, {List<Song>? queue, int? index}) async {
@@ -79,19 +68,20 @@ class PlayerProvider extends ChangeNotifier {
     if (currentSong == null) return;
     _error = null;
     try {
-      final url = await _api.getStreamUrlAsync(currentSong!.hash, filepath: currentSong!.filepath);
-      final cookie = _api.cookie;
-      debugPrint('🎵 Stream URL: $url');
+      // Format officiel: /file/{trackhash}/legacy?filepath={encodedPath}
+      final url = _api.getStreamUrl(currentSong!.hash, filepath: currentSong!.filepath);
+      debugPrint('🎵 Stream: $url');
+
       await _player.setAudioSource(
         AudioSource.uri(
           Uri.parse(url),
-          headers: cookie != null ? {'Cookie': cookie} : {},
+          headers: _api.authHeaders, // Authorization: Bearer {token}
         ),
       );
       await _player.play();
       notifyListeners();
     } catch (e) {
-      _error = 'Erreur lecture: $e';
+      _error = 'Erreur: $e';
       debugPrint('Stream error: $e');
       notifyListeners();
     }
@@ -100,59 +90,39 @@ class PlayerProvider extends ChangeNotifier {
   void _onTrackComplete() {
     switch (_repeatMode) {
       case RepeatMode.one:
-        _player.seek(Duration.zero);
-        _player.play();
-        break;
+        _player.seek(Duration.zero); _player.play(); break;
       case RepeatMode.all:
         _currentIndex = (_currentIndex + 1) % _queue.length;
-        _loadAndPlay();
-        _fetchLyrics();
-        break;
+        _loadAndPlay(); _fetchLyrics(); break;
       case RepeatMode.off:
-        if (_currentIndex < _queue.length - 1) next();
-        break;
+        if (_currentIndex < _queue.length - 1) next(); break;
     }
   }
 
   Future<void> playPause() async {
-    if (_isPlaying) {
-      await _player.pause();
-    } else {
-      await _player.play();
-    }
+    if (_isPlaying) await _player.pause();
+    else await _player.play();
   }
 
   Future<void> next() async {
     if (_queue.isEmpty) return;
-    if (_shuffle) {
-      _currentIndex = DateTime.now().millisecondsSinceEpoch % _queue.length;
-    } else {
-      _currentIndex = (_currentIndex + 1) % _queue.length;
-    }
-    await _loadAndPlay();
-    _fetchLyrics();
+    _currentIndex = _shuffle
+        ? DateTime.now().millisecondsSinceEpoch % _queue.length
+        : (_currentIndex + 1) % _queue.length;
+    await _loadAndPlay(); _fetchLyrics();
   }
 
   Future<void> previous() async {
     if (_queue.isEmpty) return;
-    if (_position.inSeconds > 3) {
-      await _player.seek(Duration.zero);
-      return;
-    }
+    if (_position.inSeconds > 3) { await _player.seek(Duration.zero); return; }
     _currentIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
-    await _loadAndPlay();
-    _fetchLyrics();
+    await _loadAndPlay(); _fetchLyrics();
   }
 
-  Future<void> seek(Duration position) async {
-    await _player.seek(position);
-  }
+  Future<void> seek(Duration position) async => await _player.seek(position);
 
   void addToQueue(Song song) {
-    if (!_queue.contains(song)) {
-      _queue.add(song);
-      notifyListeners();
-    }
+    if (!_queue.contains(song)) { _queue.add(song); notifyListeners(); }
   }
 
   void removeFromQueue(int index) {
@@ -166,13 +136,9 @@ class PlayerProvider extends ChangeNotifier {
     if (oldIndex < newIndex) newIndex--;
     final song = _queue.removeAt(oldIndex);
     _queue.insert(newIndex, song);
-    if (oldIndex == _currentIndex) {
-      _currentIndex = newIndex;
-    } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
-      _currentIndex--;
-    } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
-      _currentIndex++;
-    }
+    if (oldIndex == _currentIndex) _currentIndex = newIndex;
+    else if (oldIndex < _currentIndex && newIndex >= _currentIndex) _currentIndex--;
+    else if (oldIndex > _currentIndex && newIndex <= _currentIndex) _currentIndex++;
     notifyListeners();
   }
 
@@ -181,24 +147,15 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleShuffle() {
-    _shuffle = !_shuffle;
-    notifyListeners();
-  }
+  void toggleShuffle() { _shuffle = !_shuffle; notifyListeners(); }
 
   Future<void> _fetchLyrics() async {
     if (currentSong == null) return;
-    _lyrics = null;
-    _lyricsLoading = true;
-    notifyListeners();
+    _lyrics = null; _lyricsLoading = true; notifyListeners();
     _lyrics = await _api.getLyrics(currentSong!.hash);
-    _lyricsLoading = false;
-    notifyListeners();
+    _lyricsLoading = false; notifyListeners();
   }
 
   @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
+  void dispose() { _player.dispose(); super.dispose(); }
 }

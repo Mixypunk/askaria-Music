@@ -9,22 +9,16 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _urlCtrl = TextEditingController();
-  final _hashCtrl = TextEditingController();
   bool _saved = false;
 
   @override
   void initState() {
     super.initState();
     _urlCtrl.text = SwingApiService().baseUrl;
-    // Affiche le hash actuel si connu
-    _hashCtrl.text = SwingApiService().folderHash ?? '';
   }
 
   void _save() async {
     await SwingApiService().saveUrl(_urlCtrl.text.trim());
-    if (_hashCtrl.text.trim().isNotEmpty) {
-      SwingApiService().storeFolderHash(_hashCtrl.text.trim());
-    }
     setState(() => _saved = true);
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _saved = false);
@@ -55,30 +49,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text('Folder Hash (pour le streaming)',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 4),
-          const Text(
-            'Trouvable dans le navigateur : Network → cliquer sur une musique → chercher l\'URL "/file/{HASH}/legacy"',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _hashCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Folder Hash',
-              hintText: 'ex: 3d9fb431209e6d85',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: _save,
             icon: Icon(_saved ? Icons.check : Icons.save_rounded),
             label: Text(_saved ? 'Sauvegardé !' : 'Sauvegarder'),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
+            style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
           ),
           const SizedBox(height: 32),
           const Divider(),
@@ -98,9 +73,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   @override
-  void dispose() {
-    _urlCtrl.dispose();
-    _hashCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _urlCtrl.dispose(); super.dispose(); }
 }

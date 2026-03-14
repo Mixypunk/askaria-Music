@@ -12,20 +12,26 @@ class SwingApiService {
   SwingApiService._internal();
 
   String _baseUrl = 'https://askaria-music.duckdns.org';
-  String? _cookie;
-  String? _token; // JWT token seul (sans "access_token_cookie=")
+  String? _accessToken;
+  String? _refreshToken;
 
   String get baseUrl => _baseUrl;
-  bool get isLoggedIn => _cookie != null;
-  String? get cookie => _cookie;
-  String? get folderHash => _folderHash;
+  bool get isLoggedIn => _accessToken != null;
 
+  // Headers avec Bearer token (format utilisé par l'app officielle)
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
+  };
+
+  // ── SETTINGS ───────────────────────────────────────────────────────────
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _baseUrl = prefs.getString('server_url') ?? 'https://askaria-music.duckdns.org';
-    _cookie = prefs.getString('auth_cookie');
-    _token = prefs.getString('auth_token');
-    _folderHash = prefs.getString('folder_hash');
+    // Enlève le slash final si présent
+    if (_baseUrl.endsWith('/')) _baseUrl = _baseUrl.substring(0, _baseUrl.length - 1);
+    _accessToken = prefs.getString('access_token');
+    _refreshToken = prefs.getString('refresh_token');
   }
 
   Future<void> saveUrl(String url) async {
@@ -34,23 +40,12 @@ class SwingApiService {
     await prefs.setString('server_url', _baseUrl);
   }
 
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    if (_cookie != null) 'Cookie': _cookie!,
-  };
-
-  void _storeCookieAndToken(String setCookieHeader) {
-    final match = RegExp(r'access_token_cookie=([^;]+)').firstMatch(setCookieHeader);
-    if (match != null) {
-      _token = match.group(1);
-      _cookie = 'access_token_cookie=${_token!}';
-    }
-  }
-
-  Future<void> _persistAuth() async {
+  Future<void> _storeTokens(String access, String? refresh) async {
+    _accessToken = access;
+    _refreshToken = refresh;
     final prefs = await SharedPreferences.getInstance();
-    if (_cookie != null) await prefs.setString('auth_cookie', _cookie!);
-    if (_token != null) await prefs.setString('auth_token', _token!);
+    await prefs.setString('access_token', access);
+    if (refresh != null) await prefs.setString('refresh_token', refresh);
   }
 
   // ── AUTH ───────────────────────────────────────────────────────────────
@@ -63,21 +58,14 @@ class SwingApiService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final setCookie = response.headers['set-cookie'] ?? '';
-        if (setCookie.isNotEmpty) {
-          _storeCookieAndToken(setCookie);
-          await _persistAuth();
-          return _cookie != null;
+        final data = json.decode(response.body);
+        // L'app officielle utilise "accesstoken" (sans underscore)
+        final token = data['accesstoken'] ?? data['access_token'] ?? data['token'];
+        if (token != null) {
+          await _storeTokens(token.toString(), 
+            (data['refreshtoken'] ?? data['refresh_token'])?.toString());
+          return true;
         }
-        try {
-          final data = json.decode(response.body);
-          if (data['access_token'] != null) {
-            _token = data['access_token'].toString();
-            _cookie = 'access_token_cookie=$_token';
-            await _persistAuth();
-            return true;
-          }
-        } catch (_) {}
       }
       return false;
     } catch (_) {
@@ -85,38 +73,37 @@ class SwingApiService {
     }
   }
 
+  // QR Code: GET /auth/pair?code={code}
   Future<bool> pairWithCode(String serverUrl, String code) async {
     await saveUrl(serverUrl);
-    for (final endpoint in ['/auth/pair', '/auth/confirmpairing', '/auth/login/pair']) {
-      try {
-        final r = await http.post(
-          Uri.parse('$serverUrl$endpoint'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({'code': code}),
-        ).timeout(const Duration(seconds: 10));
-        if (r.statusCode == 200) {
-          final setCookie = r.headers['set-cookie'] ?? '';
-          if (setCookie.isNotEmpty) {
-            _storeCookieAndToken(setCookie);
-            await _persistAuth();
-            return _cookie != null;
-          }
+    try {
+      final uri = Uri.parse('$serverUrl/auth/pair').replace(
+        queryParameters: {'code': code},
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final token = data['accesstoken'] ?? data['access_token'] ?? data['token'];
+        if (token != null) {
+          await _storeTokens(token.toString(),
+            (data['refreshtoken'] ?? data['refresh_token'])?.toString());
+          return true;
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
     return false;
   }
 
   Future<void> logout() async {
-    _cookie = null;
-    _token = null;
+    _accessToken = null;
+    _refreshToken = null;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_cookie');
-    await prefs.remove('auth_token');
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
   }
 
   Future<bool> checkAuth() async {
-    if (_cookie == null) return false;
+    if (_accessToken == null) return false;
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/auth/user'),
@@ -128,8 +115,24 @@ class SwingApiService {
     }
   }
 
-  // ── SONGS ──────────────────────────────────────────────────────────────
-  Future<List<Song>> getSongs({int start = 0, int limit = 200}) async {
+  // Récupère les utilisateurs disponibles sur le serveur (avant login)
+  Future<List<String>> getUsers(String serverUrl) async {
+    try {
+      final url = serverUrl.endsWith('/') ? serverUrl.substring(0, serverUrl.length - 1) : serverUrl;
+      final response = await http.get(
+        Uri.parse('$url/auth/users'),
+      ).timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final users = data['users'] ?? data['items'] ?? (data is List ? data : []);
+        return (users as List).map((u) => (u['username'] ?? u['name'] ?? '').toString()).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  // ── SONGS (POST /folder) ───────────────────────────────────────────────
+  Future<List<Song>> getSongs({int start = 0, int limit = 500}) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/folder'),
       headers: _headers,
@@ -145,33 +148,44 @@ class SwingApiService {
       }),
     );
     if (response.statusCode != 200) {
-      throw Exception('getSongs HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+      throw Exception('getSongs HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
     final items = data['tracks'] ?? [];
     return (items as List).map((e) => Song.fromJson(e)).toList();
   }
 
+  // ── SEARCH ─────────────────────────────────────────────────────────────
   Future<List<Song>> searchSongs(String query) async {
-    // Swing Music search endpoint
-    for (final path in ['/search', '/search/tracks']) {
-      try {
-        final uri = Uri.parse('$_baseUrl$path').replace(
-          queryParameters: {'q': query},
-        );
-        final response = await http.get(uri, headers: _headers);
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          final tracks = data['tracks'] ?? data['results'] ?? (data is List ? data : []);
-          return (tracks as List).map((e) => Song.fromJson(e)).toList();
-        }
-      } catch (_) {}
-    }
+    try {
+      final uri = Uri.parse('$_baseUrl/search/').replace(
+        queryParameters: {'q': query, 'limit': '-1', 'itemtype': 'tracks'},
+      );
+      final response = await http.get(uri, headers: _headers);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final tracks = data['tracks'] ?? data['results'] ?? (data is List ? data : []);
+        return (tracks as List).map((e) => Song.fromJson(e)).toList();
+      }
+    } catch (_) {}
     return [];
   }
 
+  Future<Map<String, dynamic>> searchTop(String query) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/search/top').replace(
+        queryParameters: {'q': query, 'limit': '5'},
+      );
+      final response = await http.get(uri, headers: _headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return {};
+  }
+
   // ── ALBUMS ─────────────────────────────────────────────────────────────
-  Future<List<Album>> getAlbums({int start = 0, int limit = 200}) async {
+  Future<List<Album>> getAlbums({int start = 0, int limit = 500}) async {
     final uri = Uri.parse('$_baseUrl/getall/albums').replace(
       queryParameters: {
         'start': '$start',
@@ -182,35 +196,29 @@ class SwingApiService {
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) {
-      throw Exception('getAlbums HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+      throw Exception('getAlbums HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
     final items = data['albums'] ?? data['items'] ?? (data is List ? data : []);
     return (items as List).map((e) => Album.fromJson(e)).toList();
   }
 
+  // POST /album avec {albumhash: hash}
   Future<List<Song>> getAlbumTracks(String albumHash) async {
-    // Try multiple possible endpoints
-    for (final path in [
-      '/album/$albumHash/tracks',
-      '/album/tracks/$albumHash',
-      '/getall/album/tracks/$albumHash',
-      '/getall/albums/$albumHash/tracks',
-    ]) {
-      try {
-        final r = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
-        if (r.statusCode == 200) {
-          final data = json.decode(r.body);
-          final tracks = data['tracks'] ?? (data is List ? data : []);
-          return (tracks as List).map((e) => Song.fromJson(e)).toList();
-        }
-      } catch (_) {}
+    final response = await http.get(
+      Uri.parse('$_baseUrl/album/$albumHash/tracks'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Album tracks HTTP ${response.statusCode}');
     }
-    throw Exception('Album tracks: endpoint not found');
+    final data = json.decode(response.body);
+    final tracks = data is List ? data : (data['tracks'] ?? []);
+    return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
   // ── ARTISTS ────────────────────────────────────────────────────────────
-  Future<List<Artist>> getArtists({int start = 0, int limit = 200}) async {
+  Future<List<Artist>> getArtists({int start = 0, int limit = 500}) async {
     final uri = Uri.parse('$_baseUrl/getall/artists').replace(
       queryParameters: {
         'start': '$start',
@@ -221,11 +229,22 @@ class SwingApiService {
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) {
-      throw Exception('getArtists HTTP ${response.statusCode}: ${response.body.substring(0, 100)}');
+      throw Exception('getArtists HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
     final items = data['artists'] ?? data['items'] ?? (data is List ? data : []);
     return (items as List).map((e) => Artist.fromJson(e)).toList();
+  }
+
+  Future<List<Song>> getArtistTracks(String artistHash) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/artist/$artistHash/tracks'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) return [];
+    final data = json.decode(response.body);
+    final tracks = data is List ? data : (data['tracks'] ?? []);
+    return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
   // ── PLAYLISTS ──────────────────────────────────────────────────────────
@@ -235,7 +254,7 @@ class SwingApiService {
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) {
-      throw Exception('getPlaylists HTTP \${response.statusCode}');
+      throw Exception('getPlaylists HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
     final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
@@ -248,7 +267,7 @@ class SwingApiService {
     );
     final response = await http.get(uri, headers: _headers);
     if (response.statusCode != 200) {
-      throw Exception('Playlist tracks HTTP \${response.statusCode}');
+      throw Exception('Playlist tracks HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
     final tracks = data['tracks'] ?? (data is List ? data : []);
@@ -271,44 +290,28 @@ class SwingApiService {
   }
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
-  String? _folderHash; // découvert dynamiquement au premier stream
-
-  // Découvre le hash du dossier racine /music/ depuis le serveur
-  Future<String?> _discoverFolderHash() async {
-    if (_folderHash != null) return _folderHash;
-    final prefs = await SharedPreferences.getInstance();
-    _folderHash = prefs.getString('folder_hash');
-    if (_folderHash != null) return _folderHash;
-    return null;
-  }
-
-  void storeFolderHash(String hash) async {
-    _folderHash = hash;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('folder_hash', hash);
-  }
-
-  // Retourne l'URL de stream. Si filepath est fourni, utilise /file/{hash}/legacy
-  // Le folderHash est découvert dynamiquement depuis l'URL réelle du premier stream
-  Future<String> getStreamUrlAsync(String trackHash, {String? filepath}) async {
-    await _discoverFolderHash();
-    if (_folderHash != null && filepath != null && filepath.isNotEmpty) {
-      final encoded = Uri.encodeComponent(filepath);
-      return '$_baseUrl/file/$_folderHash/legacy?filepath=$encoded&container=mp3&quality=original';
-    }
-    // Fallback: stream direct par trackhash
-    return '$_baseUrl/stream/track/$trackHash';
-  }
-
-  // Version sync pour la compatibilité (utilise le hash en cache)
+  // Format officiel: {baseUrl}file/{trackhash}/legacy?filepath={encodedPath}
   String getStreamUrl(String trackHash, {String? filepath}) {
-    if (_folderHash != null && filepath != null && filepath.isNotEmpty) {
+    if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);
-      return '$_baseUrl/file/$_folderHash/legacy?filepath=$encoded&container=mp3&quality=original';
+      return '$_baseUrl/file/$trackHash/legacy?filepath=$encoded';
     }
-    return '$_baseUrl/stream/track/$trackHash';
+    return '$_baseUrl/file/$trackHash/legacy';
   }
 
-  String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash';
-  String getThumbnailUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash/thumbnail';
+  // Format officiel: {baseUrl}img/thumbnail/{track.image}
+  String getArtworkUrl(String imageHash, {String type = 'track'}) {
+    return '$_baseUrl/img/thumbnail/$imageHash';
+  }
+
+  String getThumbnailUrl(String imageHash, {String type = 'track'}) {
+    return '$_baseUrl/img/thumbnail/$imageHash';
+  }
+
+  // Headers pour les requêtes image/stream (just_audio, cached_network_image)
+  Map<String, String> get authHeaders => {
+    if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
+  };
+
+  String? get accessToken => _accessToken;
 }

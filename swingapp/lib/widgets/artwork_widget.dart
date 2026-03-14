@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 
-// Cache simple en mémoire pour les images
 final _imageCache = <String, Uint8List>{};
 
 class ArtworkWidget extends StatefulWidget {
-  final String hash;
+  final String hash;       // image hash (track.image)
   final double size;
-  final String type;
+  final String type;       // ignoré - on utilise /img/thumbnail/{hash}
   final BorderRadius? borderRadius;
 
   const ArtworkWidget({
@@ -35,10 +34,13 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
   }
 
   Future<void> _load() async {
+    if (widget.hash.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
     final api = SwingApiService();
-    final url = api.getThumbnailUrl(widget.hash, type: widget.type);
+    final url = api.getThumbnailUrl(widget.hash);
 
-    // Check cache
     if (_imageCache.containsKey(url)) {
       if (mounted) setState(() { _bytes = _imageCache[url]; _loading = false; });
       return;
@@ -47,7 +49,7 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: api.cookie != null ? {'Cookie': api.cookie!} : {},
+        headers: api.authHeaders,
       ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
@@ -56,7 +58,6 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
         return;
       }
     } catch (_) {}
-
     if (mounted) setState(() => _loading = false);
   }
 
