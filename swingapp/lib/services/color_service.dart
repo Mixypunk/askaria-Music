@@ -89,9 +89,7 @@ class DynamicColors {
     );
   }
 
-  factory DynamicColors._fallback() => DynamicColors._from(const Color(0xFF4776E6));
-
-  static DynamicColors fallback() => DynamicColors._fallback();
+  static DynamicColors fallback() => DynamicColors._from(const Color(0xFF4776E6));
 
   /// Crée un shader pour ShaderMask (texte/icônes gradient)
   Shader shaderFor(Rect bounds) => gradient.createShader(bounds);

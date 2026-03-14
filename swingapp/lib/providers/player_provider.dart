@@ -33,7 +33,7 @@ class PlayerProvider extends ChangeNotifier {
   List<String>? _unsyncedLines;
 
   // Dynamic color
-  DynamicColors _dynamicColors = DynamicColors._fallback();
+  DynamicColors _dynamicColors = DynamicColors.fallback();
   DynamicColors get dynamicColors => _dynamicColors;
 
   // Getters
