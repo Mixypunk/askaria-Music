@@ -293,6 +293,116 @@ class _PlayerPage extends StatelessWidget {
   String _fmt(Duration d) =>
       '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
+  void _showShareSheet(BuildContext ctx, song, Color accent) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: const Color(0xFF282828),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(color: Colors.white24,
+                borderRadius: BorderRadius.circular(2))),
+          Text(song.title, style: const TextStyle(color: Colors.white,
+              fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(song.artist,
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13)),
+          const SizedBox(height: 24),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            _ShareBtn(Icons.copy_rounded, 'Copier le lien', () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                content: const Text('Lien copié !'),
+                backgroundColor: accent,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2)));
+            }),
+            _ShareBtn(Icons.message_rounded, 'Message', () => Navigator.pop(ctx)),
+            _ShareBtn(Icons.more_horiz_rounded, 'Plus', () => Navigator.pop(ctx)),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  void _showDevicesSheet(BuildContext ctx, Color accent) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: const Color(0xFF282828),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 36, height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white24,
+                borderRadius: BorderRadius.circular(2))),
+          const Text('Lecture sur', style: TextStyle(color: Colors.white,
+              fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Container(width: 44, height: 44,
+              decoration: BoxDecoration(color: accent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Icon(Icons.phone_android_rounded, color: accent, size: 24)),
+            title: const Text('Cet appareil',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            subtitle: Text('Connecté', style: TextStyle(color: accent, fontSize: 12)),
+            trailing: Icon(Icons.check_circle_rounded, color: accent, size: 20)),
+        ]),
+      ),
+    );
+  }
+
+  void _showMoreSheet(BuildContext ctx, PlayerProvider player, song, Color accent) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: const Color(0xFF282828),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(color: Colors.white24,
+                borderRadius: BorderRadius.circular(2))),
+          ListTile(
+            leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
+            title: const Text('Ajouter à la file',
+                style: TextStyle(color: Colors.white)),
+            onTap: () { player.addNextInQueue(song); Navigator.pop(ctx); }),
+          ListTile(
+            leading: Icon(
+              player.isFavourite(song.hash)
+                  ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              color: player.isFavourite(song.hash) ? accent : Colors.white70),
+            title: Text(
+              player.isFavourite(song.hash)
+                  ? 'Retirer des favoris' : 'Ajouter aux favoris',
+              style: const TextStyle(color: Colors.white)),
+            onTap: () { player.toggleFavourite(song.hash); Navigator.pop(ctx); }),
+          ListTile(
+            leading: const Icon(Icons.album_rounded, color: Colors.white70),
+            title: const Text("Aller à l'album",
+                style: TextStyle(color: Colors.white)),
+            onTap: () => Navigator.pop(ctx)),
+          ListTile(
+            leading: const Icon(Icons.person_rounded, color: Colors.white70),
+            title: const Text("Aller à l'artiste",
+                style: TextStyle(color: Colors.white)),
+            onTap: () => Navigator.pop(ctx)),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext ctx) {
     return Padding(
@@ -353,7 +463,20 @@ class _PlayerPage extends StatelessWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
           const SizedBox(width: 16),
-          Icon(Icons.favorite_border_rounded, color: accent, size: 28),
+          GestureDetector(
+            onTap: () => player.toggleFavourite(song.hash),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Icon(
+                player.isFavourite(song.hash)
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                key: ValueKey(player.isFavourite(song.hash)),
+                color: player.isFavourite(song.hash) ? accent : Colors.white70,
+                size: 28,
+              ),
+            ),
+          ),
         ]),
         const SizedBox(height: 20),
 
@@ -421,11 +544,20 @@ class _PlayerPage extends StatelessWidget {
         const SizedBox(height: 20),
 
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Icon(Icons.devices_rounded, size: 20, color: Colors.white.withOpacity(0.6)),
+          GestureDetector(
+            onTap: () => _showDevicesSheet(ctx, accent),
+            child: Icon(Icons.devices_rounded, size: 20,
+                color: Colors.white.withOpacity(0.6))),
           Row(children: [
-            Icon(Icons.share_rounded, size: 20, color: Colors.white.withOpacity(0.6)),
+            GestureDetector(
+              onTap: () => _showShareSheet(ctx, song, accent),
+              child: Icon(Icons.share_rounded, size: 20,
+                  color: Colors.white.withOpacity(0.6))),
             const SizedBox(width: 20),
-            Icon(Icons.more_horiz_rounded, size: 24, color: Colors.white.withOpacity(0.6)),
+            GestureDetector(
+              onTap: () => _showMoreSheet(ctx, player, song, accent),
+              child: Icon(Icons.more_horiz_rounded, size: 24,
+                  color: Colors.white.withOpacity(0.6))),
           ]),
         ]),
         const SizedBox(height: 12),
@@ -486,9 +618,48 @@ class _LyricsPage extends StatefulWidget {
 class _LyricsPageState extends State<_LyricsPage> {
   final _internalScroll = ScrollController();
   int _line = 0;
+  // Une clé par ligne pour mesurer la position réelle dans la liste
+  final Map<int, GlobalKey> _keys = {};
 
   ScrollController get _scroll =>
       widget.scrollController ?? _internalScroll;
+
+  GlobalKey _keyFor(int i) {
+    _keys[i] ??= GlobalKey();
+    return _keys[i]!;
+  }
+
+  /// Scrolle pour que la ligne active soit centrée verticalement dans la vue
+  void _centerLine(int idx) {
+    final key = _keys[idx];
+    if (key == null) return;
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    // Position absolue de la ligne dans le scroll
+    final itemOffset = box.localToGlobal(Offset.zero).dy;
+    final itemHeight = box.size.height;
+
+    // Hauteur visible de la zone de scroll
+    final scrollBox = _scroll.position.context.notificationContext
+        ?.findRenderObject() as RenderBox?;
+    final viewHeight = scrollBox?.size.height
+        ?? MediaQuery.of(ctx).size.height;
+
+    // Décalage actuel du scroll
+    final currentScroll = _scroll.offset;
+
+    // On veut que le centre de l'item soit au centre de la vue
+    final target = currentScroll + itemOffset - (viewHeight / 2) + (itemHeight / 2);
+
+    _scroll.animateTo(
+      target.clamp(0.0, _scroll.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   void _sync() {
     final lines = widget.player.syncedLines;
@@ -500,11 +671,8 @@ class _LyricsPageState extends State<_LyricsPage> {
     }
     if (idx != _line) {
       setState(() => _line = idx);
-      try {
-        _scroll.animateTo(
-          (idx * 56.0 - 150).clamp(0.0, _scroll.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-      } catch (_) {}
+      // Centrer après le rebuild
+      WidgetsBinding.instance.addPostFrameCallback((_) => _centerLine(idx));
     }
   }
 
@@ -520,21 +688,24 @@ class _LyricsPageState extends State<_LyricsPage> {
       _sync();
       return ListView.builder(
         controller: _scroll,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 60),
+        // Padding haut/bas = moitié écran pour que la 1ère et dernière ligne
+        // puissent aussi être centrées
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 300),
         itemCount: p.syncedLines!.length,
         itemBuilder: (ctx, i) {
           final active = i == _line;
           final text = p.syncedLines![i]['text'] as String;
           if (text.trim().isEmpty) return const SizedBox(height: 20);
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            key: _keyFor(i),
+            padding: const EdgeInsets.symmetric(vertical: 7),
             child: AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 350),
               style: active
-                  ? TextStyle(color: accent, fontSize: 24,
-                      fontWeight: FontWeight.bold, height: 1.5)
-                  : TextStyle(color: Colors.white.withOpacity(0.25),
-                      fontSize: 18, height: 1.5, fontWeight: FontWeight.w600),
+                  ? TextStyle(color: accent, fontSize: 26,
+                      fontWeight: FontWeight.bold, height: 1.4)
+                  : TextStyle(color: Colors.white.withOpacity(0.22),
+                      fontSize: 18, height: 1.4, fontWeight: FontWeight.w600),
               child: Text(text, textAlign: TextAlign.left),
             ),
           );
@@ -562,6 +733,25 @@ class _LyricsPageState extends State<_LyricsPage> {
     if (widget.scrollController == null) _internalScroll.dispose();
     super.dispose();
   }
+}
+
+// ── Share button helper ───────────────────────────────────────────────────────
+class _ShareBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _ShareBtn(this.icon, this.label, this.onTap);
+  @override
+  Widget build(BuildContext ctx) => GestureDetector(
+    onTap: onTap,
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 56, height: 56,
+        decoration: BoxDecoration(color: Colors.white12, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 26)),
+      const SizedBox(height: 8),
+      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+    ]),
+  );
 }
 
 // ── Page File d'attente ────────────────────────────────────────────────────────

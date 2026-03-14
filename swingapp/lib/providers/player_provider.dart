@@ -133,22 +133,18 @@ class PlayerProvider extends ChangeNotifier {
   // ── Track complete ─────────────────────────────────────────────────────
   void _onTrackComplete() {
     if (_queue.isEmpty) return;
-
     switch (_repeatMode) {
       case RepeatMode.one:
-        // Rejouer la même chanson
         _player.seek(Duration.zero);
         _player.play();
         return;
-
       case RepeatMode.all:
-        // Toujours passer à la suivante, boucler en fin de liste
         _nextTrack(loop: true);
         return;
-
       case RepeatMode.off:
-        // Passer à la suivante, s'arrêter en fin de liste
-        _nextTrack(loop: false);
+        // Comportement Spotify : toujours passer à la suivante,
+        // boucler sauf si une seule chanson dans la file
+        _nextTrack(loop: _queue.length > 1);
         return;
     }
   }
@@ -159,13 +155,12 @@ class PlayerProvider extends ChangeNotifier {
       final nextPos = pos + 1;
       if (nextPos >= _shuffleOrder.length) {
         if (loop) {
-          // Rebattre et recommencer
           _buildShuffleOrder();
           _currentIndex = _shuffleOrder[0];
           _loadAndPlay();
           _fetchLyrics();
+          _fetchColors();
         }
-        // Sinon s'arrête
         return;
       }
       _currentIndex = _shuffleOrder[nextPos];
@@ -175,7 +170,6 @@ class PlayerProvider extends ChangeNotifier {
         if (loop) {
           _currentIndex = 0;
         } else {
-          // Fin de la liste — on s'arrête sans crash
           return;
         }
       } else {
@@ -333,3 +327,19 @@ class PlayerProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
+  // ── Favourites ─────────────────────────────────────────────────────────
+  final Set<String> _favourites = {};
+  bool isFavourite(String hash) => _favourites.contains(hash);
+
+  Future<void> toggleFavourite(String hash) async {
+    final wasLiked = _favourites.contains(hash);
+    if (wasLiked) { _favourites.remove(hash); } else { _favourites.add(hash); }
+    notifyListeners();
+    final ok = await _api.toggleFavourite(hash);
+    if (!ok) {
+      // rollback si erreur réseau
+      if (wasLiked) { _favourites.add(hash); } else { _favourites.remove(hash); }
+      notifyListeners();
+    }
+  }

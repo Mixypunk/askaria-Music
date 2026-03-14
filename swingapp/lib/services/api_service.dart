@@ -322,3 +322,25 @@ class SwingApiService {
 
   String? get accessToken => _accessToken;
 }
+
+  // ── FAVOURITES ─────────────────────────────────────────────────────────
+  Future<bool> toggleFavourite(String trackHash) async {
+    try {
+      final r = await http.post(
+        Uri.parse('$_baseUrl/track/favourite'),
+        headers: _headers,
+        body: json.encode({'trackhash': trackHash}),
+      );
+      return r.statusCode == 200;
+    } catch (_) { return false; }
+  }
+
+  Future<List<Song>> getFavourites() async {
+    try {
+      final r = await http.get(Uri.parse('$_baseUrl/favourites'), headers: _headers);
+      if (r.statusCode != 200) return [];
+      final data = json.decode(r.body);
+      final list = data['tracks'] ?? data['items'] ?? [];
+      return (list as List).map((e) => Song.fromJson(e)).toList();
+    } catch (_) { return []; }
+  }
