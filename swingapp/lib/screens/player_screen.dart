@@ -294,7 +294,7 @@ class _LyricsTabState extends State<_LyricsTab> {
     }
 
     // Synced LRC lyrics
-    if (_parsed != null) {
+    if (_parsed != null && p.lyricsSynced) {
       _updateLine();
       return ListView.builder(
         controller: _scroll,

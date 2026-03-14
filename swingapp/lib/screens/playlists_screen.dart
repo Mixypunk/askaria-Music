@@ -148,3 +148,29 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     );
   }
 }
+
+
+class _PlaylistArtwork extends StatelessWidget {
+  final String playlistId;
+  final double size;
+  const _PlaylistArtwork({required this.playlistId, this.size = 48});
+
+  @override
+  Widget build(BuildContext context) {
+    final api = SwingApiService();
+    final url = '${api.baseUrl}/img/playlist/$playlistId.webp';
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.network(
+        url,
+        width: size, height: size, fit: BoxFit.cover,
+        headers: api.authHeaders,
+        errorBuilder: (_, __, ___) => Container(
+          width: size, height: size,
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          child: const Icon(Icons.queue_music_rounded),
+        ),
+      ),
+    );
+  }
+}

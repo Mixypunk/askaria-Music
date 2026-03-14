@@ -78,8 +78,9 @@ class Playlist {
   factory Playlist.fromJson(Map<String, dynamic> j) => Playlist(
     id: j['id']?.toString() ?? '',
     name: j['name'] ?? 'Unnamed Playlist',
-    description: j['comment'] ?? j['description'],
+    description: j['extra']?['description'] ?? j['description'],
     trackCount: j['count'] ?? j['trackcount'] ?? 0,
-    imageHash: j['image'] ?? j['trackhash'],
+    // playlist image served at /img/playlist/{id}.webp
+    imageHash: j['id']?.toString(),
   );
 }

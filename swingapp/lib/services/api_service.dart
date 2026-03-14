@@ -257,7 +257,8 @@ class SwingApiService {
       throw Exception('getPlaylists HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
-    final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
+    // Server returns {"data": [...]}
+    final items = data['data'] ?? data['playlists'] ?? data['items'] ?? (data is List ? data : []);
     return (items as List).map((e) => Playlist.fromJson(e)).toList();
   }
 
@@ -270,20 +271,26 @@ class SwingApiService {
       throw Exception('Playlist tracks HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
+    // Server returns {info: ..., tracks: [...]}
     final tracks = data['tracks'] ?? (data is List ? data : []);
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
   // ── LYRICS ─────────────────────────────────────────────────────────────
-  Future<String?> getLyrics(String trackHash) async {
+  Future<Map<String, dynamic>?> getLyrics(String trackHash, {String? filepath}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/lyrics/track/$trackHash'),
+      final response = await http.post(
+        Uri.parse('$_baseUrl/lyrics'),
         headers: _headers,
+        body: json.encode({
+          'trackhash': trackHash,
+          'filepath': filepath ?? '',
+        }),
       );
       if (response.statusCode != 200) return null;
       final data = json.decode(response.body);
-      return data['lyrics'] as String?;
+      if (data['error'] != null) return null;
+      return data; // {lyrics: str, synced: bool, copyright: str}
     } catch (_) {
       return null;
     }

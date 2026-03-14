@@ -19,6 +19,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _shuffle = false;
   String? _lyrics;
   bool _lyricsLoading = false;
+  bool _lyricsSynced = false;
   String? _error;
 
   List<Song> get queue => _queue;
@@ -33,6 +34,7 @@ class PlayerProvider extends ChangeNotifier {
   bool get shuffle => _shuffle;
   String? get lyrics => _lyrics;
   bool get lyricsLoading => _lyricsLoading;
+  bool get lyricsSynced => _lyricsSynced;
   String? get error => _error;
 
   double get progress => _duration.inMilliseconds > 0
@@ -151,8 +153,15 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> _fetchLyrics() async {
     if (currentSong == null) return;
-    _lyrics = null; _lyricsLoading = true; notifyListeners();
-    _lyrics = await _api.getLyrics(currentSong!.hash);
+    _lyrics = null; _lyricsSynced = false; _lyricsLoading = true; notifyListeners();
+    final result = await _api.getLyrics(
+      currentSong!.hash,
+      filepath: currentSong!.filepath,
+    );
+    if (result != null) {
+      _lyrics = result['lyrics'] as String?;
+      _lyricsSynced = result['synced'] == true;
+    }
     _lyricsLoading = false; notifyListeners();
   }
 
