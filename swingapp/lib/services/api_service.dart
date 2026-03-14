@@ -18,12 +18,14 @@ class SwingApiService {
   String get baseUrl => _baseUrl;
   bool get isLoggedIn => _cookie != null;
   String? get cookie => _cookie;
+  String? get folderHash => _folderHash;
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _baseUrl = prefs.getString('server_url') ?? 'https://askaria-music.duckdns.org';
     _cookie = prefs.getString('auth_cookie');
     _token = prefs.getString('auth_token');
+    _folderHash = prefs.getString('folder_hash');
   }
 
   Future<void> saveUrl(String url) async {
@@ -228,40 +230,29 @@ class SwingApiService {
 
   // ── PLAYLISTS ──────────────────────────────────────────────────────────
   Future<List<Playlist>> getPlaylists() async {
-    for (final path in [
-      '/playlist/all',
-      '/playlists',
-      '/getall/playlists',
-      '/playlist',
-    ]) {
-      try {
-        final r = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
-        if (r.statusCode == 200) {
-          final data = json.decode(r.body);
-          final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
-          return (items as List).map((e) => Playlist.fromJson(e)).toList();
-        }
-      } catch (_) {}
+    final uri = Uri.parse('$_baseUrl/playlists').replace(
+      queryParameters: {'start': '0', 'limit': '200', 'no_tracks': 'true'},
+    );
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode != 200) {
+      throw Exception('getPlaylists HTTP \${response.statusCode}');
     }
-    throw Exception('Playlists: endpoint not found');
+    final data = json.decode(response.body);
+    final items = data['playlists'] ?? data['items'] ?? (data is List ? data : []);
+    return (items as List).map((e) => Playlist.fromJson(e)).toList();
   }
 
   Future<List<Song>> getPlaylistTracks(String playlistId) async {
-    for (final path in [
-      '/playlist/$playlistId/tracks',
-      '/playlist/tracks/$playlistId',
-      '/getall/playlist/tracks/$playlistId',
-    ]) {
-      try {
-        final r = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
-        if (r.statusCode == 200) {
-          final data = json.decode(r.body);
-          final tracks = data['tracks'] ?? (data is List ? data : []);
-          return (tracks as List).map((e) => Song.fromJson(e)).toList();
-        }
-      } catch (_) {}
+    final uri = Uri.parse('$_baseUrl/playlists/$playlistId').replace(
+      queryParameters: {'no_tracks': 'false', 'start': '0', 'limit': '500'},
+    );
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode != 200) {
+      throw Exception('Playlist tracks HTTP \${response.statusCode}');
     }
-    throw Exception('Playlist tracks: endpoint not found');
+    final data = json.decode(response.body);
+    final tracks = data['tracks'] ?? (data is List ? data : []);
+    return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
   // ── LYRICS ─────────────────────────────────────────────────────────────
@@ -280,15 +271,42 @@ class SwingApiService {
   }
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
-  // Format réel découvert: /file/{folderHash}/legacy?filepath={path}&container=mp3&quality=original
-  static const _folderHash = '3d9fb431209e6d85'; // hash du dossier /music/
+  String? _folderHash; // découvert dynamiquement au premier stream
 
-  String getStreamUrl(String trackHash, {String? filepath}) {
-    if (filepath != null && filepath.isNotEmpty) {
+  // Découvre le hash du dossier racine /music/ depuis le serveur
+  Future<String?> _discoverFolderHash() async {
+    if (_folderHash != null) return _folderHash;
+    final prefs = await SharedPreferences.getInstance();
+    _folderHash = prefs.getString('folder_hash');
+    if (_folderHash != null) return _folderHash;
+    return null;
+  }
+
+  void storeFolderHash(String hash) async {
+    _folderHash = hash;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('folder_hash', hash);
+  }
+
+  // Retourne l'URL de stream. Si filepath est fourni, utilise /file/{hash}/legacy
+  // Le folderHash est découvert dynamiquement depuis l'URL réelle du premier stream
+  Future<String> getStreamUrlAsync(String trackHash, {String? filepath}) async {
+    await _discoverFolderHash();
+    if (_folderHash != null && filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);
       return '$_baseUrl/file/$_folderHash/legacy?filepath=$encoded&container=mp3&quality=original';
     }
-    return '$_baseUrl/file/$trackHash/legacy?container=mp3&quality=original';
+    // Fallback: stream direct par trackhash
+    return '$_baseUrl/stream/track/$trackHash';
+  }
+
+  // Version sync pour la compatibilité (utilise le hash en cache)
+  String getStreamUrl(String trackHash, {String? filepath}) {
+    if (_folderHash != null && filepath != null && filepath.isNotEmpty) {
+      final encoded = Uri.encodeComponent(filepath);
+      return '$_baseUrl/file/$_folderHash/legacy?filepath=$encoded&container=mp3&quality=original';
+    }
+    return '$_baseUrl/stream/track/$trackHash';
   }
 
   String getArtworkUrl(String hash, {String type = 'track'}) => '$_baseUrl/img/$type/$hash';
