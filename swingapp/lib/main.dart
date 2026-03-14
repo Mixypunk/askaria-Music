@@ -97,12 +97,9 @@ class SwingApp extends StatelessWidget {
         letterSpacing: -0.5,
       ),
     ),
-    navigationBarTheme: const NavigationBarThemeData(
+    navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
       indicatorColor: Colors.transparent,
-      labelTextStyle: MaterialStateProperty.all(
-        const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-      ),
     ),
     sliderTheme: const SliderThemeData(
       activeTrackColor: AppColors.grad2,
