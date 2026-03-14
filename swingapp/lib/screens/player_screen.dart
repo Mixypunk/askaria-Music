@@ -297,9 +297,7 @@ class _LyricsTabState extends State<_LyricsTab> {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Text(
-          p.unsyncedLines!.join('
-'),
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8),
+          p.unsyncedLines!.join("\n"),
           textAlign: TextAlign.center,
         ),
       );

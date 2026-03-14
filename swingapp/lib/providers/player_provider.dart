@@ -177,9 +177,7 @@ class PlayerProvider extends ChangeNotifier {
         _lyrics = 'synced';
       } else if (raw is List) {
         _unsyncedLines = List<String>.from(raw.map((e) => e.toString()));
-        _lyrics = _unsyncedLines!.join('
-');
-      } else if (raw is String) {
+        _lyrics = _unsyncedLines!.join("\n");
         _lyrics = raw;
       }
     }
