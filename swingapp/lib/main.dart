@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/update_service.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/player_provider.dart';
@@ -70,6 +71,7 @@ class SwingApp extends StatelessWidget {
         '/login': (_) => const LoginScreen(),
         '/home':  (_) => const HomeScreen(),
       },
+      builder: (context, child) => _UpdateChecker(child: child!),
     );
   }
 
@@ -180,4 +182,31 @@ class GradientButton extends StatelessWidget {
       ),
     ),
   );
+}
+
+// ── Auto-update checker ────────────────────────────────────────────────────────
+class _UpdateChecker extends StatefulWidget {
+  final Widget child;
+  const _UpdateChecker({required this.child});
+  @override
+  State<_UpdateChecker> createState() => _UpdateCheckerState();
+}
+
+class _UpdateCheckerState extends State<_UpdateChecker> {
+  @override
+  void initState() {
+    super.initState();
+    // Vérifier après 3s pour ne pas bloquer le démarrage
+    Future.delayed(const Duration(seconds: 3), _checkUpdate);
+  }
+
+  Future<void> _checkUpdate() async {
+    final info = await UpdateService().checkOnce();
+    if (info != null && mounted) {
+      await UpdateDialog.show(context, info);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
