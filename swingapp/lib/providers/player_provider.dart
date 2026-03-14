@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
@@ -8,8 +9,10 @@ enum RepeatMode { off, all, one }
 class PlayerProvider extends ChangeNotifier {
   final AudioPlayer _player = AudioPlayer();
   final SwingApiService _api = SwingApiService();
+  final _random = Random();
 
   List<Song> _queue = [];
+  List<int> _shuffleOrder = []; // indices shufflés
   int _currentIndex = -1;
   bool _isPlaying = false;
   bool _isLoading = false;
@@ -17,11 +20,16 @@ class PlayerProvider extends ChangeNotifier {
   Duration _duration = Duration.zero;
   RepeatMode _repeatMode = RepeatMode.off;
   bool _shuffle = false;
+  String? _error;
+
+  // Lyrics
   String? _lyrics;
   bool _lyricsLoading = false;
   bool _lyricsSynced = false;
-  String? _error;
+  List<Map<String, dynamic>>? _syncedLines;
+  List<String>? _unsyncedLines;
 
+  // Getters
   List<Song> get queue => _queue;
   int get currentIndex => _currentIndex;
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
@@ -35,6 +43,8 @@ class PlayerProvider extends ChangeNotifier {
   String? get lyrics => _lyrics;
   bool get lyricsLoading => _lyricsLoading;
   bool get lyricsSynced => _lyricsSynced;
+  List<Map<String, dynamic>>? get syncedLines => _syncedLines;
+  List<String>? get unsyncedLines => _unsyncedLines;
   String? get error => _error;
 
   double get progress => _duration.inMilliseconds > 0
@@ -45,23 +55,51 @@ class PlayerProvider extends ChangeNotifier {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering;
-      if (state.processingState == ProcessingState.completed) _onTrackComplete();
+      if (state.processingState == ProcessingState.completed) {
+        _onTrackComplete();
+      }
       notifyListeners();
     });
-    _player.positionStream.listen((pos) { _position = pos; notifyListeners(); });
-    _player.durationStream.listen((dur) { _duration = dur ?? Duration.zero; notifyListeners(); });
+    _player.positionStream.listen((pos) {
+      _position = pos;
+      notifyListeners();
+    });
+    _player.durationStream.listen((dur) {
+      _duration = dur ?? Duration.zero;
+      notifyListeners();
+    });
   }
 
+  // ── Shuffle order ──────────────────────────────────────────────────────
+  void _buildShuffleOrder() {
+    _shuffleOrder = List.generate(_queue.length, (i) => i);
+    _shuffleOrder.shuffle(_random);
+    // Met la chanson courante en premier
+    if (_currentIndex >= 0) {
+      _shuffleOrder.remove(_currentIndex);
+      _shuffleOrder.insert(0, _currentIndex);
+    }
+  }
+
+  int get _shufflePos {
+    if (_shuffleOrder.isEmpty) return 0;
+    final pos = _shuffleOrder.indexOf(_currentIndex);
+    return pos < 0 ? 0 : pos;
+  }
+
+  // ── Play ───────────────────────────────────────────────────────────────
   Future<void> playSong(Song song, {List<Song>? queue, int? index}) async {
     if (queue != null) {
       _queue = List.from(queue);
       _currentIndex = index ?? queue.indexOf(song);
+      if (_currentIndex < 0) _currentIndex = 0;
     } else if (!_queue.contains(song)) {
       _queue.add(song);
       _currentIndex = _queue.length - 1;
     } else {
       _currentIndex = _queue.indexOf(song);
     }
+    if (_shuffle) _buildShuffleOrder();
     await _loadAndPlay();
     _fetchLyrics();
   }
@@ -70,15 +108,10 @@ class PlayerProvider extends ChangeNotifier {
     if (currentSong == null) return;
     _error = null;
     try {
-      // Format officiel: /file/{trackhash}/legacy?filepath={encodedPath}
       final url = _api.getStreamUrl(currentSong!.hash, filepath: currentSong!.filepath);
       debugPrint('🎵 Stream: $url');
-
       await _player.setAudioSource(
-        AudioSource.uri(
-          Uri.parse(url),
-          headers: _api.authHeaders, // Authorization: Bearer {token}
-        ),
+        AudioSource.uri(Uri.parse(url), headers: _api.authHeaders),
       );
       await _player.play();
       notifyListeners();
@@ -89,18 +122,75 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  // ── Track complete ─────────────────────────────────────────────────────
   void _onTrackComplete() {
+    if (_queue.isEmpty) return;
+
     switch (_repeatMode) {
       case RepeatMode.one:
-        _player.seek(Duration.zero); _player.play(); break;
+        // Rejouer la même chanson
+        _player.seek(Duration.zero);
+        _player.play();
+        return;
+
       case RepeatMode.all:
-        _currentIndex = (_currentIndex + 1) % _queue.length;
-        _loadAndPlay(); _fetchLyrics(); break;
+        // Toujours passer à la suivante, boucler en fin de liste
+        _nextTrack(loop: true);
+        return;
+
       case RepeatMode.off:
-        if (_currentIndex < _queue.length - 1) next(); break;
+        // Passer à la suivante, s'arrêter en fin de liste
+        _nextTrack(loop: false);
+        return;
     }
   }
 
+  void _nextTrack({required bool loop}) {
+    if (_shuffle) {
+      final pos = _shufflePos;
+      final nextPos = pos + 1;
+      if (nextPos >= _shuffleOrder.length) {
+        if (loop) {
+          // Rebattre et recommencer
+          _buildShuffleOrder();
+          _currentIndex = _shuffleOrder[0];
+          _loadAndPlay();
+          _fetchLyrics();
+        }
+        // Sinon s'arrête
+        return;
+      }
+      _currentIndex = _shuffleOrder[nextPos];
+    } else {
+      final next = _currentIndex + 1;
+      if (next >= _queue.length) {
+        if (loop) {
+          _currentIndex = 0;
+        } else {
+          // Fin de la liste — on s'arrête sans crash
+          return;
+        }
+      } else {
+        _currentIndex = next;
+      }
+    }
+    _loadAndPlay();
+    _fetchLyrics();
+  }
+
+  void _prevTrack() {
+    if (_shuffle) {
+      final pos = _shufflePos;
+      final prevPos = (pos - 1 + _shuffleOrder.length) % _shuffleOrder.length;
+      _currentIndex = _shuffleOrder[prevPos];
+    } else {
+      _currentIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
+    }
+    _loadAndPlay();
+    _fetchLyrics();
+  }
+
+  // ── Controls ───────────────────────────────────────────────────────────
   Future<void> playPause() async {
     if (_isPlaying) await _player.pause();
     else await _player.play();
@@ -108,29 +198,55 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> next() async {
     if (_queue.isEmpty) return;
-    _currentIndex = _shuffle
-        ? DateTime.now().millisecondsSinceEpoch % _queue.length
-        : (_currentIndex + 1) % _queue.length;
-    await _loadAndPlay(); _fetchLyrics();
+    _nextTrack(loop: _repeatMode == RepeatMode.all);
   }
 
   Future<void> previous() async {
     if (_queue.isEmpty) return;
-    if (_position.inSeconds > 3) { await _player.seek(Duration.zero); return; }
-    _currentIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
-    await _loadAndPlay(); _fetchLyrics();
+    // Si > 3s : retour au début de la chanson
+    if (_position.inSeconds > 3) {
+      await _player.seek(Duration.zero);
+      return;
+    }
+    _prevTrack();
   }
 
   Future<void> seek(Duration position) async => await _player.seek(position);
 
+  void toggleRepeat() {
+    _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % RepeatMode.values.length];
+    notifyListeners();
+  }
+
+  void toggleShuffle() {
+    _shuffle = !_shuffle;
+    if (_shuffle) _buildShuffleOrder();
+    notifyListeners();
+  }
+
+  // ── Queue management ───────────────────────────────────────────────────
   void addToQueue(Song song) {
-    if (!_queue.contains(song)) { _queue.add(song); notifyListeners(); }
+    if (!_queue.contains(song)) {
+      _queue.add(song);
+      if (_shuffle) _shuffleOrder.add(_queue.length - 1);
+      notifyListeners();
+    }
+  }
+
+  void addNextInQueue(Song song) {
+    _queue.remove(song);
+    final insertAt = (_currentIndex + 1).clamp(0, _queue.length);
+    _queue.insert(insertAt, song);
+    if (insertAt <= _currentIndex) _currentIndex++;
+    if (_shuffle) _buildShuffleOrder();
+    notifyListeners();
   }
 
   void removeFromQueue(int index) {
     if (index == _currentIndex) return;
     if (index < _currentIndex) _currentIndex--;
     _queue.removeAt(index);
+    if (_shuffle) _buildShuffleOrder();
     notifyListeners();
   }
 
@@ -141,38 +257,34 @@ class PlayerProvider extends ChangeNotifier {
     if (oldIndex == _currentIndex) _currentIndex = newIndex;
     else if (oldIndex < _currentIndex && newIndex >= _currentIndex) _currentIndex--;
     else if (oldIndex > _currentIndex && newIndex <= _currentIndex) _currentIndex++;
+    if (_shuffle) _buildShuffleOrder();
     notifyListeners();
   }
 
-  void toggleRepeat() {
-    _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % RepeatMode.values.length];
-    notifyListeners();
-  }
-
-  void toggleShuffle() { _shuffle = !_shuffle; notifyListeners(); }
-
-  List<Map<String,dynamic>>? _syncedLines; // [{time: ms, text: str}]
-  List<String>? _unsyncedLines;           // [str, str, ...]
-
-  List<Map<String,dynamic>>? get syncedLines => _syncedLines;
-  List<String>? get unsyncedLines => _unsyncedLines;
-
+  // ── Lyrics ─────────────────────────────────────────────────────────────
   Future<void> _fetchLyrics() async {
     if (currentSong == null) return;
-    _lyrics = null; _syncedLines = null; _unsyncedLines = null;
-    _lyricsSynced = false; _lyricsLoading = true; notifyListeners();
+    _lyrics = null;
+    _syncedLines = null;
+    _unsyncedLines = null;
+    _lyricsSynced = false;
+    _lyricsLoading = true;
+    notifyListeners();
 
     final result = await _api.getLyrics(
       currentSong!.hash,
       filepath: currentSong!.filepath,
     );
+
     if (result != null) {
       _lyricsSynced = result['synced'] == true;
       final raw = result['lyrics'];
       if (_lyricsSynced && raw is List) {
-        // [{time: double/int ms, text: str}, ...]
-        _syncedLines = List<Map<String,dynamic>>.from(
-          raw.map((e) => {'time': (e['time'] as num).toInt(), 'text': e['text'] as String})
+        _syncedLines = List<Map<String, dynamic>>.from(
+          raw.map((e) => {
+            'time': (e['time'] as num).toInt(),
+            'text': (e['text'] ?? '').toString(),
+          }),
         );
         _lyrics = 'synced';
       } else if (raw is List) {
@@ -182,9 +294,14 @@ class PlayerProvider extends ChangeNotifier {
         _lyrics = raw;
       }
     }
-    _lyricsLoading = false; notifyListeners();
+
+    _lyricsLoading = false;
+    notifyListeners();
   }
 
   @override
-  void dispose() { _player.dispose(); super.dispose(); }
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
 }
