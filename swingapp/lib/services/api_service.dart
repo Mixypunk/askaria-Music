@@ -290,6 +290,17 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
+  Future<List<Album>> getArtistAlbums(String artistHash) async {
+    try {
+      final response = await _authedGet(
+          Uri.parse('$_baseUrl/artist/$artistHash/albums'));
+      if (response.statusCode != 200) return [];
+      final data = json.decode(response.body);
+      final items = data is List ? data : (data['albums'] ?? data['items'] ?? []);
+      return (items as List).map((e) => Album.fromJson(e)).toList();
+    } catch (_) { return []; }
+  }
+
   // ── PLAYLISTS ──────────────────────────────────────────────────────────
   Future<List<Playlist>> getPlaylists() async {
     final uri = Uri.parse('$_baseUrl/playlists').replace(

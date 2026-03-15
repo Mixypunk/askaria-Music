@@ -4,6 +4,7 @@ import '../main.dart';
 import '../models/playlist.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import 'artist_screen.dart';
 
 class LibraryTab extends StatefulWidget {
   const LibraryTab({super.key});
@@ -161,7 +162,8 @@ class _PlaylistTile extends StatelessWidget {
       trailing: GestureDetector(
         onTap: () => _showOptions(ctx, api),
         child: const Icon(Icons.more_vert, color: Colors.white38, size: 20)),
-      onTap: () => _play(ctx),
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => PlaylistScreen(playlist: playlist))),
     );
   }
 

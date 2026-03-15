@@ -9,6 +9,7 @@ import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import 'player_screen.dart';
 import 'settings_screen.dart';
+import 'artist_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -345,11 +346,9 @@ class _ArtistCard extends StatelessWidget {
     );
   }
 
-  Future<void> _openArtist(BuildContext ctx) async {
-    final tracks = await SwingApiService().getArtistTracks(artist.hash);
-    if (ctx.mounted && tracks.isNotEmpty)
-      ctx.read<PlayerProvider>()
-          .playSong(tracks.first, queue: tracks, index: 0);
+  void _openArtist(BuildContext ctx) {
+    Navigator.push(ctx, MaterialPageRoute(
+      builder: (_) => ArtistScreen(artist: artist)));
   }
 }
 
