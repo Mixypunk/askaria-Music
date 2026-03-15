@@ -208,7 +208,6 @@ class _AllSongsScreen extends StatelessWidget {
   const _AllSongsScreen({required this.songs});
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return Scaffold(
       backgroundColor: Sp.bg,
       appBar: AppBar(

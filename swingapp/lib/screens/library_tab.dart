@@ -15,8 +15,7 @@ class LibraryTab extends StatefulWidget {
   State<LibraryTab> createState() => _LibraryTabState();
 }
 
-class _LibraryTabState extends State<LibraryTab> with AutomaticKeepAliveClientMixin
-    with SingleTickerProviderStateMixin {
+class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabCtrl;
 
   List<Playlist> _playlists = [];

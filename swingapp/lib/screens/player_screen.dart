@@ -195,17 +195,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                     _QueuePage(player: player, accent: accent),
                   ],
                 )),
-              ])),
-
-
-            ]),
-                ))),
-          );
-        },
-      );
-    });
-  }
-}
+              ]),     // Column children
+              ),      // SafeArea(child: Column)
+              ),      // GestureDetector(child: SafeArea)
+            ]),       // Stack children
+          );          // Scaffold
+        },            // AnimatedBuilder builder
+      );              // AnimatedBuilder
+    });               // Consumer
+  }                   // build()
+}                     // class
 
 // ── Indicateur de page (3 points) ─────────────────────────────────────────────
 class _PageDots extends StatelessWidget {
