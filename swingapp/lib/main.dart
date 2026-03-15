@@ -8,16 +8,15 @@ import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
-// ── Palette de base (fond sombre) ─────────────────────────────────────────────
+// ── Palette ────────────────────────────────────────────────────────────────────
 class Sp {
-  static const bg       = Color(0xFF121212);
-  static const surface  = Color(0xFF181818);
-  static const card     = Color(0xFF282828);
-  static const cardHi   = Color(0xFF3E3E3E);
-  static const white    = Color(0xFFFFFFFF);
-  static const white70  = Color(0xFFB3B3B3);
-  static const white40  = Color(0xFF6A6A6A);
-  // Couleur de fallback (avant que la couleur dynamique soit chargée)
+  static const bg      = Color(0xFF121212);
+  static const surface = Color(0xFF181818);
+  static const card    = Color(0xFF282828);
+  static const cardHi  = Color(0xFF3E3E3E);
+  static const white   = Color(0xFFFFFFFF);
+  static const white70 = Color(0xFFB3B3B3);
+  static const white40 = Color(0xFF6A6A6A);
   static const g1 = Color(0xFF4776E6);
   static const g2 = Color(0xFF8E54E9);
   static const g3 = Color(0xFFD63AF9);
@@ -56,7 +55,6 @@ class GIcon extends StatelessWidget {
   );
 }
 
-// Bouton gradient style Spotify (pill)
 class GBtn extends StatelessWidget {
   final String label; final VoidCallback? onTap; final bool loading;
   const GBtn(this.label, {super.key, this.onTap, this.loading = false});
@@ -65,28 +63,23 @@ class GBtn extends StatelessWidget {
     onTap: onTap,
     child: Container(
       height: 48,
-      decoration: BoxDecoration(gradient: kGrad, borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(gradient: kGrad,
+          borderRadius: BorderRadius.circular(24)),
       alignment: Alignment.center,
       child: loading
-          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-          : Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+          ? const SizedBox(width: 22, height: 22,
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text(label, style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
     ),
   );
 }
 
-void main() async {
+// ── Point d'entrée ─────────────────────────────────────────────────────────────
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialiser le service audio arrière-plan
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.mixypunk.askasound.channel.audio',
-    androidNotificationChannelName: 'AskaSound',
-    androidNotificationOngoing: true,
-    androidStopForegroundOnPause: true,
-    notificationColor: const Color(0xFF121212),
-    androidNotificationIcon: 'mipmap/ic_launcher',
-  );
-
+  // Barre de statut transparente dès le départ
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -94,14 +87,103 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  await SwingApiService().loadSettings();
-  final ok = await SwingApiService().checkAuth();
-  runApp(MultiProvider(
-    providers: [ChangeNotifierProvider(create: (_) => PlayerProvider())],
-    child: _App(ok),
-  ));
+  // Initialiser le service audio arrière-plan
+  // Le try/catch évite l'écran noir si le plugin échoue
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.mixypunk.askasound.channel.audio',
+      androidNotificationChannelName: 'AskaSound',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+      notificationColor: const Color(0xFF121212),
+      androidNotificationIcon: 'mipmap/ic_launcher',
+    );
+  } catch (e) {
+    debugPrint('JustAudioBackground init error (non-fatal): $e');
+  }
+
+  // Démarrer l'app immédiatement avec un splash — l'auth se fait en arrière-plan
+  runApp(const _SplashWrapper());
 }
 
+// ── Splash → Auth → App ────────────────────────────────────────────────────────
+class _SplashWrapper extends StatefulWidget {
+  const _SplashWrapper();
+  @override
+  State<_SplashWrapper> createState() => _SplashWrapperState();
+}
+
+class _SplashWrapperState extends State<_SplashWrapper> {
+  bool _ready = false;
+  bool _logged = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      await SwingApiService().loadSettings();
+      _logged = await SwingApiService().checkAuth()
+          .timeout(const Duration(seconds: 8), onTimeout: () => false);
+    } catch (e) {
+      debugPrint('Auth error: $e');
+      _logged = false;
+    }
+    if (mounted) setState(() => _ready = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) return const _SplashScreen();
+
+    return MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => PlayerProvider())],
+      child: _App(_logged),
+    );
+  }
+}
+
+// ── Écran de splash ────────────────────────────────────────────────────────────
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Sp.bg,
+        body: Center(child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ShaderMask(
+              shaderCallback: (b) => kGradV.createShader(b),
+              child: const Icon(Icons.music_note_rounded,
+                  size: 72, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            ShaderMask(
+              shaderCallback: (b) => kGrad.createShader(b),
+              child: const Text('AskaSound',
+                style: TextStyle(color: Colors.white,
+                    fontSize: 28, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 48),
+            const SizedBox(
+              width: 24, height: 24,
+              child: CircularProgressIndicator(
+                  color: Sp.g2, strokeWidth: 2),
+            ),
+          ],
+        )),
+      ),
+    );
+  }
+}
+
+// ── App principale ─────────────────────────────────────────────────────────────
 class _App extends StatelessWidget {
   final bool logged;
   const _App(this.logged);
@@ -124,7 +206,8 @@ class _App extends StatelessWidget {
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent, elevation: 0,
         iconTheme: IconThemeData(color: Sp.white),
-        titleTextStyle: TextStyle(color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold),
+        titleTextStyle: TextStyle(color: Sp.white,
+            fontSize: 18, fontWeight: FontWeight.bold),
       ),
       iconTheme: const IconThemeData(color: Sp.white),
     ),
@@ -137,6 +220,7 @@ class _App extends StatelessWidget {
   );
 }
 
+// ── Vérification mise à jour ───────────────────────────────────────────────────
 class _UpdateChecker extends StatefulWidget {
   final Widget child;
   const _UpdateChecker({required this.child});
@@ -148,12 +232,15 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 4), _check);
+    // Délai pour ne pas bloquer le rendu initial
+    Future.delayed(const Duration(seconds: 5), _check);
   }
+
   Future<void> _check() async {
     final info = await UpdateService().checkOnce();
     if (info != null && mounted) await UpdateDialog.show(context, info);
   }
+
   @override
   Widget build(BuildContext ctx) => widget.child;
 }
