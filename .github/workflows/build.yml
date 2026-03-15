@@ -35,7 +35,7 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # ── Calcul de version ─────────────────────────────────────────────
+      # ── Version ───────────────────────────────────────────────────────
       - name: Set version
         id: version
         run: |
@@ -45,26 +45,41 @@ jobs:
             VERSION="1.0.${{ github.run_number }}"
           fi
           BUILD="${{ github.run_number }}"
-          echo "version=$VERSION"                    >> $GITHUB_OUTPUT
-          echo "build=$BUILD"                        >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION"                       >> $GITHUB_OUTPUT
-          echo "apk_name=AskaSound V$VERSION.apk"   >> $GITHUB_OUTPUT
-          echo "Version: $VERSION+$BUILD"
+          echo "version=$VERSION"                  >> $GITHUB_OUTPUT
+          echo "build=$BUILD"                      >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION"                     >> $GITHUB_OUTPUT
+          echo "apk_name=AskaSound V$VERSION.apk"  >> $GITHUB_OUTPUT
 
-      # ── Injecter la version dans pubspec.yaml ─────────────────────────
+      # ── Injecter version dans pubspec.yaml ────────────────────────────
       - name: Update pubspec version
         working-directory: swingapp
         run: |
           sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}+${{ steps.version.outputs.build }}/" pubspec.yaml
-          echo "Version injectée :"
           grep "^version:" pubspec.yaml
+
+      # ── Keystore : décoder depuis secret GitHub ───────────────────────
+      - name: Setup keystore
+        working-directory: swingapp/android
+        run: |
+          # Décoder la keystore Base64 stockée dans les secrets
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/askasound.jks
+
+          # Créer key.properties avec les infos de signature
+          cat > key.properties << KEYEOF
+          storeFile=../app/askasound.jks
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          KEYEOF
+
+          echo "Keystore prête : $(ls -lh app/askasound.jks)"
 
       # ── Dépendances Flutter ───────────────────────────────────────────
       - name: Flutter pub get
         working-directory: swingapp
         run: flutter pub get
 
-      # ── Build APK Release ─────────────────────────────────────────────
+      # ── Build APK signé ───────────────────────────────────────────────
       - name: Build APK
         working-directory: swingapp
         run: |
@@ -76,10 +91,10 @@ jobs:
       # ── Renommer l'APK ────────────────────────────────────────────────
       - name: Rename APK
         run: |
-          APK_SRC="swingapp/build/app/outputs/flutter-apk/app-release.apk"
-          APK_DST="swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}"
-          cp "$APK_SRC" "$APK_DST"
-          echo "APK : $(du -sh "$APK_DST")"
+          SRC="swingapp/build/app/outputs/flutter-apk/app-release.apk"
+          DST="swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}"
+          cp "$SRC" "$DST"
+          echo "APK : $(du -sh $DST)"
 
       # ── Upload artifact ───────────────────────────────────────────────
       - name: Upload APK artifact
@@ -89,7 +104,7 @@ jobs:
           path: swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
           retention-days: 30
 
-      # ── Créer la GitHub Release avec l'APK ───────────────────────────
+      # ── Créer GitHub Release ──────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -97,18 +112,14 @@ jobs:
           name: "AskaSound ${{ steps.version.outputs.tag }}"
           body: |
             ## 🎵 AskaSound ${{ steps.version.outputs.tag }}
-
-            Build automatique déclenché par : `${{ github.event.head_commit.message }}`
-
-            ---
+            Build : `${{ github.event.head_commit.message }}`
 
             ### 📱 Installation
-            1. Télécharge **`${{ steps.version.outputs.apk_name }}`** ci-dessous
-            2. Ouvre le fichier sur ton téléphone Android
-            3. Autorise "Sources inconnues" si demandé → Installer
+            1. Télécharge **`${{ steps.version.outputs.apk_name }}`**
+            2. Ouvre sur Android → Installer
 
             ### 🔄 Mise à jour automatique
-            L'app vérifie automatiquement les nouvelles versions au démarrage.
+            L'app détecte et installe les mises à jour automatiquement.
           files: swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
           draft: false
           prerelease: false
