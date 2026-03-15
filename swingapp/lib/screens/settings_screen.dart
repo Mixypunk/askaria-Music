@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   int _artCacheSize() {
-    try { return artCache._map.length * 50; } catch (_) { return 0; }
+    return artCache.count * 50;
   }
 
   @override
@@ -246,6 +246,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _clearCache() async {
     ColorService.clearCache();
+    artCache.clear();
     setState(() => _cacheSize = 0);
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Cache vidé !'),

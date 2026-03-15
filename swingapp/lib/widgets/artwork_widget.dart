@@ -29,6 +29,15 @@ class _ImageCache {
     _map[key] = data;
     _order.add(key);
   }
+
+  // Nombre d'entrées en cache (accessible publiquement)
+  int get count => _map.length;
+
+  // Vider le cache
+  void clear() {
+    _map.clear();
+    _order.clear();
+  }
 }
 
 final artCache = _ImageCache();
