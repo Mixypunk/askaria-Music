@@ -15,7 +15,7 @@ class LibraryTab extends StatefulWidget {
   State<LibraryTab> createState() => _LibraryTabState();
 }
 
-class _LibraryTabState extends State<LibraryTab>
+class _LibraryTabState extends State<LibraryTab> with AutomaticKeepAliveClientMixin
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
 
@@ -63,6 +63,7 @@ class _LibraryTabState extends State<LibraryTab>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return NestedScrollView(
       headerSliverBuilder: (_, __) => [
         SliverAppBar(
@@ -160,14 +161,11 @@ class _PlaylistTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(4),
-        child: Image.network(
-          '${api.baseUrl}/img/playlist/${playlist.id}.webp',
-          width: 56, height: 56, fit: BoxFit.cover,
-          headers: api.authHeaders,
-          errorBuilder: (_, __, ___) => Container(
-            width: 56, height: 56, color: Sp.card,
-            child: const Icon(Icons.queue_music_rounded,
-                color: Colors.white38, size: 28)))),
+        child: NetImage(url: '${api.baseUrl}/img/playlist/${playlist.id}.webp', width: 56, height: 56,
+              headers: api.authHeaders,
+              borderRadius: BorderRadius.circular(4),
+              placeholder: Container(width: 56, height: 56, color: Sp.card,
+                child: const Icon(Icons.queue_music_rounded, color: Colors.white38, size: 28)))),
       title: Text(playlist.name, style: const TextStyle(
           color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
         maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -208,13 +206,11 @@ class _AlbumTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(4),
-        child: Image.network(
-          '${api.baseUrl}/img/thumbnail/${album.image}',
-          width: 56, height: 56, fit: BoxFit.cover,
-          headers: api.authHeaders,
-          errorBuilder: (_, __, ___) => Container(
-            width: 56, height: 56, color: Sp.card,
-            child: const Icon(Icons.album, color: Colors.white38, size: 28)))),
+        child: NetImage(url: '${api.baseUrl}/img/thumbnail/${album.image}', width: 56, height: 56,
+              headers: api.authHeaders,
+              borderRadius: BorderRadius.circular(4),
+              placeholder: Container(width: 56, height: 56, color: Sp.card,
+                child: const Icon(Icons.album, color: Colors.white38, size: 28)))),
       title: Text(album.title, style: const TextStyle(
           color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
         maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -254,13 +250,11 @@ class _ArtistTile extends StatelessWidget {
     final api = SwingApiService();
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: ClipOval(child: Image.network(
-        '${api.baseUrl}/img/artist/small/${artist.image}',
-        width: 56, height: 56, fit: BoxFit.cover,
-        headers: api.authHeaders,
-        errorBuilder: (_, __, ___) => Container(
-          width: 56, height: 56, color: Sp.card,
-          child: const Icon(Icons.person, color: Colors.white38, size: 28)))),
+      leading: ClipOval(child: NetImage(url: '${api.baseUrl}/img/artist/small/${artist.image}', width: 56, height: 56,
+              headers: api.authHeaders,
+              borderRadius: BorderRadius.circular(4),
+              placeholder: Container(width: 56, height: 56, color: Sp.card,
+                child: const Icon(Icons.person, color: Colors.white38, size: 28)))),
       title: Text(artist.name, style: const TextStyle(
           color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
         maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -333,6 +327,9 @@ class _FavouritesContent extends StatefulWidget {
 class _FavouritesContentState extends State<_FavouritesContent> {
   List<Song> _songs = [];
   bool _loading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() { super.initState(); _load(); }

@@ -164,3 +164,105 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
     );
   }
 }
+
+// ── Widget image réseau avec timeout + fallback ───────────────────────────────
+// Utilise le même cache LRU qu'ArtworkWidget
+class NetImage extends StatefulWidget {
+  final String url;
+  final double width;
+  final double height;
+  final BoxFit fit;
+  final BorderRadius? borderRadius;
+  final bool circular;
+  final Map<String, String>? headers;
+  final Widget? placeholder;
+
+  const NetImage({
+    super.key,
+    required this.url,
+    required this.width,
+    required this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius,
+    this.circular = false,
+    this.headers,
+    this.placeholder,
+  });
+
+  @override
+  State<NetImage> createState() => _NetImageState();
+}
+
+class _NetImageState extends State<NetImage> {
+  Uint8List? _bytes;
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  @override
+  void didUpdateWidget(NetImage old) {
+    super.didUpdateWidget(old);
+    if (old.url != widget.url) {
+      setState(() { _bytes = null; _loading = true; });
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    if (widget.url.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    // Cache LRU partagé
+    final cached = artCache.get(widget.url);
+    if (cached != null) {
+      if (mounted) setState(() { _bytes = cached; _loading = false; });
+      return;
+    }
+    try {
+      final r = await http.get(
+        Uri.parse(widget.url),
+        headers: widget.headers ?? {},
+      ).timeout(const Duration(seconds: 8));
+      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
+        artCache.put(widget.url, r.bodyBytes);
+        if (mounted) setState(() { _bytes = r.bodyBytes; _loading = false; });
+        return;
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget child;
+    if (_loading) {
+      child = Container(
+        width: widget.width, height: widget.height,
+        color: const Color(0xFF282828),
+        child: Center(child: SizedBox(
+          width: widget.width * 0.25, height: widget.width * 0.25,
+          child: const CircularProgressIndicator(
+              strokeWidth: 1.5, color: Color(0xFF6A6A6A)))));
+    } else if (_bytes == null) {
+      child = widget.placeholder ?? Container(
+        width: widget.width, height: widget.height,
+        color: const Color(0xFF282828),
+        child: Icon(Icons.music_note_rounded,
+          size: widget.width * 0.4, color: const Color(0xFF6A6A6A)));
+    } else {
+      child = Image.memory(_bytes!,
+        width: widget.width, height: widget.height,
+        fit: widget.fit, gaplessPlayback: true);
+    }
+
+    if (widget.circular) {
+      return ClipOval(child: child);
+    }
+    if (widget.borderRadius != null) {
+      return ClipRRect(borderRadius: widget.borderRadius!, child: child);
+    }
+    return child;
+  }
+}

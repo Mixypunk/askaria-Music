@@ -15,7 +15,7 @@ class SearchTab extends StatefulWidget {
   State<SearchTab> createState() => _SearchTabState();
 }
 
-class _SearchTabState extends State<SearchTab> {
+class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixin {
   final _ctrl  = TextEditingController();
   final _focus = FocusNode();
   Timer? _debounce;
@@ -116,6 +116,9 @@ class _SearchTabState extends State<SearchTab> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _ctrl.dispose();
@@ -125,6 +128,7 @@ class _SearchTabState extends State<SearchTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return CustomScrollView(slivers: [
       SliverAppBar(
         pinned: true,

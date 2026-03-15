@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/song.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
@@ -12,6 +13,7 @@ class SwingApiService {
   SwingApiService._internal();
 
   String _baseUrl = 'https://askaria-music.duckdns.org';
+  final _secure = const FlutterSecureStorage();
   String? _accessToken;
   String? _refreshToken;
 
@@ -28,10 +30,18 @@ class SwingApiService {
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _baseUrl = prefs.getString('server_url') ?? 'https://askaria-music.duckdns.org';
-    // Enlève le slash final si présent
     if (_baseUrl.endsWith('/')) _baseUrl = _baseUrl.substring(0, _baseUrl.length - 1);
-    _accessToken = prefs.getString('access_token');
-    _refreshToken = prefs.getString('refresh_token');
+    // Tokens chiffrés dans SecureStorage
+    _accessToken  = await _secure.read(key: 'access_token');
+    _refreshToken = await _secure.read(key: 'refresh_token');
+    // Migration : lire l'ancien token non chiffré si présent
+    if (_accessToken == null) {
+      _accessToken = prefs.getString('access_token');
+      if (_accessToken != null) {
+        await _secure.write(key: 'access_token', value: _accessToken!);
+        await prefs.remove('access_token');
+      }
+    }
   }
 
   Future<void> saveUrl(String url) async {
@@ -43,9 +53,11 @@ class SwingApiService {
   Future<void> _storeTokens(String access, String? refresh) async {
     _accessToken = access;
     _refreshToken = refresh;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_token', access);
-    if (refresh != null) await prefs.setString('refresh_token', refresh);
+    // Stockage chiffré via Keystore Android
+    await _secure.write(key: 'access_token',  value: access);
+    if (refresh != null) {
+      await _secure.write(key: 'refresh_token', value: refresh);
+    }
   }
 
   // ── AUTH ───────────────────────────────────────────────────────────────
@@ -97,6 +109,8 @@ class SwingApiService {
   Future<void> logout() async {
     _accessToken = null;
     _refreshToken = null;
+    await _secure.delete(key: 'access_token');
+    await _secure.delete(key: 'refresh_token');
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');

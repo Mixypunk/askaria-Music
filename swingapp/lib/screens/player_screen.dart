@@ -137,7 +137,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                   stops: const [0.0, 0.4, 1.0])))),
 
               // ── Contenu principal ────────────────────────────────────
-              SafeArea(child: Column(children: [
+              GestureDetector(
+                onVerticalDragEnd: (d) {
+                  // Swipe bas rapide = fermer le player
+                  if ((d.primaryVelocity ?? 0) > 400) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: SafeArea(child: Column(children: [
 
                 // Top bar : flèche bas + titre album + indicateurs de page
                 Padding(
@@ -192,6 +199,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
 
             ]),
+                ))),
           );
         },
       );

@@ -17,12 +17,15 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> {
+class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   List<Song>   _songs   = [];
   List<Album>  _albums  = [];
   List<Artist> _artists = [];
   bool _loading = true;
   bool _offline = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() { super.initState(); _load(); }
@@ -53,6 +56,7 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return RefreshIndicator(
       color: Sp.g2,
       backgroundColor: Sp.card,
@@ -204,6 +208,7 @@ class _AllSongsScreen extends StatelessWidget {
   const _AllSongsScreen({required this.songs});
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Sp.bg,
       appBar: AppBar(
@@ -290,13 +295,11 @@ class _AlbumCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: Image.network(url, width: 140, height: 140,
-                fit: BoxFit.cover,
-                headers: SwingApiService().authHeaders,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 140, height: 140, color: Sp.card,
-                  child: const Icon(Icons.album,
-                      color: Sp.white40, size: 48)))),
+              child: NetImage(url: url, width: 140, height: 140,
+              headers: SwingApiService().authHeaders,
+              borderRadius: BorderRadius.circular(4),
+              placeholder: Container(width: 140, height: 140, color: Sp.card,
+                child: const Icon(Icons.album, color: Sp.white40, size: 48)))),
             const SizedBox(height: 8),
             Text(album.title,
               style: const TextStyle(color: Sp.white,
@@ -329,13 +332,11 @@ class _ArtistCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(right: 16),
         child: SizedBox(width: 120, child: Column(children: [
-          ClipOval(child: Image.network(url, width: 120, height: 120,
-            fit: BoxFit.cover,
-            headers: api.authHeaders,
-            errorBuilder: (_, __, ___) => Container(
-              width: 120, height: 120, color: Sp.card,
-              child: const Icon(Icons.person,
-                  color: Sp.white40, size: 48)))),
+          NetImage(url: url, width: 120, height: 120,
+          headers: api.authHeaders,
+          circular: true,
+          placeholder: Container(width: 120, height: 120, color: Sp.card,
+            child: const Icon(Icons.person, color: Sp.white40, size: 48))),
           const SizedBox(height: 8),
           Text(artist.name,
             style: const TextStyle(color: Sp.white,

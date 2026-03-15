@@ -17,7 +17,7 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen> {
   int _tab = 0;
 
-  static const _tabs = [HomeTab(), SearchTab(), LibraryTab()];
+  final _tabs = const [HomeTab(), SearchTab(), LibraryTab()];
 
   DateTime? _lastBack;
 
@@ -43,7 +43,16 @@ class _RootScreenState extends State<RootScreen> {
       },
       child: Scaffold(
       backgroundColor: Sp.bg,
-      body: IndexedStack(index: _tab, children: _tabs),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 150),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, anim) => FadeTransition(
+          opacity: anim, child: child),
+        child: KeyedSubtree(
+          key: ValueKey(_tab),
+          child: _tabs[_tab]),
+      ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

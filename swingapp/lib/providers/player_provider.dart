@@ -118,6 +118,7 @@ class PlayerProvider extends ChangeNotifier {
     await _loadAndPlay();
     _fetchLyrics();
     _fetchColors();
+    _persistQueue();
   }
 
   Future<void> _loadAndPlay() async {
@@ -239,7 +240,10 @@ class PlayerProvider extends ChangeNotifier {
     _prevTrack();
   }
 
-  Future<void> seek(Duration position) async => await _player.seek(position);
+  Future<void> seek(Duration position) async {
+    await _player.seek(position);
+    _persistQueue();
+  }
 
   // Volume (0.0 → 1.0)
   double _volume = 1.0;
@@ -414,6 +418,19 @@ class PlayerProvider extends ChangeNotifier {
     _sleepTimer?.cancel();
     _sleepAt = null;
     notifyListeners();
+  }
+
+  // ── Persistance queue ─────────────────────────────────────────────────
+  Future<void> _persistQueue() async {
+    if (_queue.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Sauvegarder les hashes + index courant + position
+      final hashes = _queue.map((s) => s.hash).toList();
+      await prefs.setStringList('queue_hashes', hashes);
+      await prefs.setInt('queue_index', _currentIndex);
+      await prefs.setInt('queue_position', _position.inSeconds);
+    } catch (_) {}
   }
 
   // ── Historique ────────────────────────────────────────────────────────

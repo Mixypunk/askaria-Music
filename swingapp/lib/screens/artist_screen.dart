@@ -99,12 +99,10 @@ class _ArtistScreenState extends State<ArtistScreen> {
                     style: const TextStyle(color: Colors.white,
                         fontSize: 16, fontWeight: FontWeight.bold))),
                 background: Stack(fit: StackFit.expand, children: [
-                  Image.network(imgUrl, fit: BoxFit.cover,
+                  NetImage(url: imgUrl, width: double.infinity, height: double.infinity,
                     headers: api.authHeaders,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: Sp.card,
-                      child: const Icon(Icons.person_rounded,
-                          color: Sp.white40, size: 80))),
+                    placeholder: Container(color: Sp.card,
+                      child: const Icon(Icons.person_rounded, color: Sp.white40, size: 80))),
                   // Dégradé bas
                   const DecoratedBox(decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -269,13 +267,11 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                 // Pochette
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(imgUrl,
-                    width: 160, height: 160, fit: BoxFit.cover,
-                    headers: api.authHeaders,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 160, height: 160, color: Sp.card,
-                      child: const Icon(Icons.queue_music_rounded,
-                          color: Sp.white40, size: 64)))),
+                  child: NetImage(url: imgUrl, width: 160, height: 160,
+                  headers: api.authHeaders,
+                  borderRadius: BorderRadius.circular(8),
+                  placeholder: Container(width: 160, height: 160, color: Sp.card,
+                    child: const Icon(Icons.queue_music_rounded, color: Sp.white40, size: 64)))),
                 const SizedBox(height: 16),
                 // Nom
                 Padding(
@@ -538,13 +534,11 @@ class _AlbumCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
-              child: Image.network(url, width: 130, height: 130,
-                fit: BoxFit.cover,
-                headers: api.authHeaders,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 130, height: 130, color: Sp.card,
-                  child: const Icon(Icons.album,
-                      color: Sp.white40, size: 40)))),
+              child: NetImage(url: url, width: 130, height: 130,
+              headers: api.authHeaders,
+              borderRadius: BorderRadius.circular(6),
+              placeholder: Container(width: 130, height: 130, color: Sp.card,
+                child: const Icon(Icons.album, color: Sp.white40, size: 40)))),
             const SizedBox(height: 8),
             Text(album.title,
               style: const TextStyle(color: Sp.white,
@@ -625,13 +619,11 @@ class _AlbumScreenState extends State<AlbumScreen> {
                       blurRadius: 30, offset: const Offset(0, 10))]),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(imgUrl,
-                      width: 160, height: 160, fit: BoxFit.cover,
-                      headers: api.authHeaders,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 160, height: 160, color: Sp.card,
-                        child: const Icon(Icons.album,
-                            color: Sp.white40, size: 64))))),
+                    child: NetImage(url: imgUrl, width: 160, height: 160,
+                  headers: api.authHeaders,
+                  borderRadius: BorderRadius.circular(8),
+                  placeholder: Container(width: 160, height: 160, color: Sp.card,
+                    child: const Icon(Icons.album, color: Sp.white40, size: 64))))),
                 const SizedBox(height: 16),
                 // Titre
                 Padding(

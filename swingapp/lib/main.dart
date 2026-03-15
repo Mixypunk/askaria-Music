@@ -77,6 +77,10 @@ class GBtn extends StatelessWidget {
 
 // ── Point d'entrée ─────────────────────────────────────────────────────────────
 Future<void> main() async {
+  // Gestionnaire d'erreurs global — évite les crashes silencieux
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('Flutter error: \${details.exceptionAsString()}');
+  };
   WidgetsFlutterBinding.ensureInitialized();
 
   // Barre de statut transparente dès le départ
