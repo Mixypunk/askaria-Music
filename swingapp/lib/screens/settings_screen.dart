@@ -191,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // ── STATISTIQUES ─────────────────────────────────────────
         _sectionTitle('STATISTIQUES'),
         const SizedBox(height: 10),
-        _card(_tile('Mes statistiques d'écoute', '',
+        _card(_tile('Mes statistiques d\'écoute', '',
             Icons.bar_chart_rounded,
             () => Navigator.push(context, MaterialPageRoute(
                 builder: (_) => const StatsScreen())))),

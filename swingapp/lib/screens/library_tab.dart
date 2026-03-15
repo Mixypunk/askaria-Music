@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/playlist.dart';
 import '../models/album.dart';
+import '../models/song.dart';
+import '../widgets/artwork_widget.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import 'artist_screen.dart';

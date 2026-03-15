@@ -427,52 +427,6 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Sleep timer ───────────────────────────────────────────────────────
-  Timer? _sleepTimer;
-  DateTime? _sleepAt;
-  Duration? get sleepRemaining {
-    if (_sleepAt == null) return null;
-    final rem = _sleepAt!.difference(DateTime.now());
-    return rem.isNegative ? null : rem;
-  }
-  bool get hasSleepTimer => _sleepAt != null;
-
-  void setSleepTimer(int minutes) {
-    _sleepTimer?.cancel();
-    if (minutes <= 0) {
-      _sleepAt = null;
-      notifyListeners();
-      return;
-    }
-    _sleepAt = DateTime.now().add(Duration(minutes: minutes));
-    _sleepTimer = Timer(Duration(minutes: minutes), () async {
-      await _player.pause();
-      _sleepAt = null;
-      notifyListeners();
-    });
-    // Tick chaque minute pour mettre à jour le temps restant
-    Timer.periodic(const Duration(minutes: 1), (t) {
-      if (_sleepAt == null) { t.cancel(); return; }
-      notifyListeners();
-    });
-    notifyListeners();
-  }
-
-  void cancelSleepTimer() {
-    _sleepTimer?.cancel();
-    _sleepAt = null;
-    notifyListeners();
-  }
-
-  // ── Historique ────────────────────────────────────────────────────────
-  final List<Song> _history = [];
-  List<Song> get history => List.unmodifiable(_history);
-
-  void _addToHistory(Song song) {
-    _history.removeWhere((s) => s.hash == song.hash);
-    _history.insert(0, song);
-    if (_history.length > 50) _history.removeLast();
-  }
 
   @override
   void dispose() {
