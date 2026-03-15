@@ -9,10 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
-  # Audio
+
+  # Audio — background playback
   just_audio: ^0.9.36
-  
+  just_audio_background: ^0.0.1-beta.11
+  audio_service: ^0.18.14
+
   # HTTP & API
   http: ^1.2.0
   dio: ^5.4.0
@@ -21,17 +23,15 @@ dependencies:
   package_info_plus: ^8.0.0
   open_file: ^3.3.2
   path_provider: ^2.1.2
-  
+
   # State management
   provider: ^6.1.1
-  
+
   # Storage
   shared_preferences: ^2.2.2
-  
+
   # UI
   mobile_scanner: ^5.2.3
-  
-  # Icons
   cupertino_icons: ^1.0.6
 
   # Dynamic color from artwork

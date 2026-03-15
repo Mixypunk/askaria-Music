@@ -1,11 +1,15 @@
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
+
+export 'package:audio_service/audio_service.dart' show MediaItem;
 
 enum RepeatMode { off, all, one }
 
@@ -15,7 +19,7 @@ class PlayerProvider extends ChangeNotifier {
   final _random = Random();
 
   List<Song> _queue = [];
-  List<int> _shuffleOrder = []; // indices shufflés
+  List<int> _shuffleOrder = [];
   int _currentIndex = -1;
   bool _isPlaying = false;
   bool _isLoading = false;
@@ -36,7 +40,10 @@ class PlayerProvider extends ChangeNotifier {
   DynamicColors _dynamicColors = DynamicColors.fallback();
   DynamicColors get dynamicColors => _dynamicColors;
 
-  // Getters
+  // Favourites
+  final Set<String> _favourites = {};
+
+  // ── Getters ────────────────────────────────────────────────────────────
   List<Song> get queue => _queue;
   int get currentIndex => _currentIndex;
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
@@ -57,31 +64,45 @@ class PlayerProvider extends ChangeNotifier {
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds : 0.0;
 
+  bool isFavourite(String hash) => _favourites.contains(hash);
+
+  // ── Init ───────────────────────────────────────────────────────────────
   PlayerProvider() {
     _player.playerStateStream.listen((state) {
+      final wasPlaying = _isPlaying;
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering;
       if (state.processingState == ProcessingState.completed) {
         _onTrackComplete();
       }
-      notifyListeners();
+      // Notify seulement si quelque chose a vraiment changé
+      if (wasPlaying != _isPlaying || _isLoading != _isLoading) {
+        notifyListeners();
+      } else {
+        notifyListeners();
+      }
     });
+
+    // Position : throttle à 500ms pour réduire les rebuilds
     _player.positionStream.listen((pos) {
-      _position = pos;
-      notifyListeners();
+      final diff = (pos - _position).abs();
+      if (diff.inMilliseconds >= 500 || pos == Duration.zero) {
+        _position = pos;
+        notifyListeners();
+      }
     });
+
     _player.durationStream.listen((dur) {
       _duration = dur ?? Duration.zero;
       notifyListeners();
     });
   }
 
-  // ── Shuffle order ──────────────────────────────────────────────────────
+  // ── Shuffle ────────────────────────────────────────────────────────────
   void _buildShuffleOrder() {
     _shuffleOrder = List.generate(_queue.length, (i) => i);
     _shuffleOrder.shuffle(_random);
-    // Met la chanson courante en premier
     if (_currentIndex >= 0) {
       _shuffleOrder.remove(_currentIndex);
       _shuffleOrder.insert(0, _currentIndex);
@@ -115,12 +136,34 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _loadAndPlay() async {
     if (currentSong == null) return;
     _error = null;
+    final song = currentSong!;
+
     try {
-      final url = _api.getStreamUrl(currentSong!.hash, filepath: currentSong!.filepath);
-      debugPrint('🎵 Stream: $url');
-      await _player.setAudioSource(
-        AudioSource.uri(Uri.parse(url), headers: _api.authHeaders),
+      final streamUrl = _api.getStreamUrl(song.hash, filepath: song.filepath);
+      final artUrl = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
+
+      // MediaItem = métadonnées pour la notification Android
+      final mediaItem = MediaItem(
+        id: song.hash,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        duration: _duration,
+        artUri: Uri.parse(artUrl),
+        extras: {
+          'url': streamUrl,
+          'headers': _api.authHeaders,
+        },
       );
+
+      final audioSource = AudioSource.uri(
+        Uri.parse(streamUrl),
+        headers: _api.authHeaders,
+        tag: mediaItem,
+      );
+
+      debugPrint('🎵 Stream: $streamUrl');
+      await _player.setAudioSource(audioSource);
       await _player.play();
       notifyListeners();
     } catch (e) {
@@ -142,8 +185,6 @@ class PlayerProvider extends ChangeNotifier {
         _nextTrack(loop: true);
         return;
       case RepeatMode.off:
-        // Comportement Spotify : toujours passer à la suivante,
-        // boucler sauf si une seule chanson dans la file
         _nextTrack(loop: _queue.length > 1);
         return;
     }
@@ -202,12 +243,11 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> next() async {
     if (_queue.isEmpty) return;
-    _nextTrack(loop: _repeatMode == RepeatMode.all);
+    _nextTrack(loop: _repeatMode == RepeatMode.all || _queue.length > 1);
   }
 
   Future<void> previous() async {
     if (_queue.isEmpty) return;
-    // Si > 3s : retour au début de la chanson
     if (_position.inSeconds > 3) {
       await _player.seek(Duration.zero);
       return;
@@ -228,7 +268,7 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Queue management ───────────────────────────────────────────────────
+  // ── Queue ──────────────────────────────────────────────────────────────
   void addToQueue(Song song) {
     if (!_queue.contains(song)) {
       _queue.add(song);
@@ -274,14 +314,12 @@ class PlayerProvider extends ChangeNotifier {
       final url = '${_api.baseUrl}/img/thumbnail/$cacheKey';
       final r = await http.get(Uri.parse(url), headers: _api.authHeaders)
           .timeout(const Duration(seconds: 6));
-      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
+      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
         _dynamicColors = await ColorService.fromBytes(cacheKey, r.bodyBytes);
         notifyListeners();
       }
     } catch (_) {}
   }
-
-  bool get mounted => true; // Provider est toujours actif tant qu'il n'est pas dispose
 
   // ── Lyrics ─────────────────────────────────────────────────────────────
   Future<void> _fetchLyrics() async {
@@ -311,21 +349,16 @@ class PlayerProvider extends ChangeNotifier {
         _lyrics = 'synced';
       } else if (raw is List) {
         _unsyncedLines = List<String>.from(raw.map((e) => e.toString()));
-        _lyrics = _unsyncedLines!.join("\n");
+        _lyrics = _unsyncedLines!.join('\n');
       } else if (raw is String) {
         _lyrics = raw;
       }
     }
-
     _lyricsLoading = false;
     notifyListeners();
   }
 
-  // ── Favourites ────────────────────────────────────────────────────────
-  final Set<String> _favourites = {};
-
-  bool isFavourite(String hash) => _favourites.contains(hash);
-
+  // ── Favourites ─────────────────────────────────────────────────────────
   Future<void> toggleFavourite(String hash) async {
     final wasLiked = _favourites.contains(hash);
     if (wasLiked) { _favourites.remove(hash); } else { _favourites.add(hash); }

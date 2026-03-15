@@ -6,6 +6,7 @@ import 'services/api_service.dart';
 import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 // ── Palette de base (fond sombre) ─────────────────────────────────────────────
 class Sp {
@@ -75,12 +76,24 @@ class GBtn extends StatelessWidget {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialiser le service audio arrière-plan
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.mixypunk.askasound.channel.audio',
+    androidNotificationChannelName: 'AskaSound',
+    androidNotificationOngoing: true,
+    androidStopForegroundOnPause: true,
+    notificationColor: const Color(0xFF121212),
+    androidNotificationIcon: 'mipmap/ic_launcher',
+  );
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
     systemNavigationBarColor: Sp.bg,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
+
   await SwingApiService().loadSettings();
   final ok = await SwingApiService().checkAuth();
   runApp(MultiProvider(
