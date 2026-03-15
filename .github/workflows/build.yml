@@ -45,14 +45,15 @@ jobs:
             VERSION="1.0.${{ github.run_number }}"
           fi
           BUILD="${{ github.run_number }}"
-          echo "version=$VERSION"       >> $GITHUB_OUTPUT
-          echo "build=$BUILD"           >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION"          >> $GITHUB_OUTPUT
-          echo "apk_name=AskaSound V$VERSION.apk" >> $GITHUB_OUTPUT
+          echo "version=$VERSION"                    >> $GITHUB_OUTPUT
+          echo "build=$BUILD"                        >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION"                       >> $GITHUB_OUTPUT
+          echo "apk_name=AskaSound V$VERSION.apk"   >> $GITHUB_OUTPUT
           echo "Version: $VERSION+$BUILD"
 
       # ── Injecter la version dans pubspec.yaml ─────────────────────────
       - name: Update pubspec version
+        working-directory: swingapp
         run: |
           sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}+${{ steps.version.outputs.build }}/" pubspec.yaml
           echo "Version injectée :"
@@ -60,10 +61,12 @@ jobs:
 
       # ── Dépendances Flutter ───────────────────────────────────────────
       - name: Flutter pub get
+        working-directory: swingapp
         run: flutter pub get
 
       # ── Build APK Release ─────────────────────────────────────────────
       - name: Build APK
+        working-directory: swingapp
         run: |
           flutter build apk --release \
             --no-tree-shake-icons \
@@ -73,20 +76,20 @@ jobs:
       # ── Renommer l'APK ────────────────────────────────────────────────
       - name: Rename APK
         run: |
-          APK_SRC="build/app/outputs/flutter-apk/app-release.apk"
-          APK_DST="build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}"
+          APK_SRC="swingapp/build/app/outputs/flutter-apk/app-release.apk"
+          APK_DST="swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}"
           cp "$APK_SRC" "$APK_DST"
-          echo "APK : $(du -sh $APK_DST)"
+          echo "APK : $(du -sh "$APK_DST")"
 
-      # ── Upload artifact (accès direct sans Release) ───────────────────
+      # ── Upload artifact ───────────────────────────────────────────────
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.version.outputs.apk_name }}
-          path: build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
+          path: swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
           retention-days: 30
 
-      # ── Créer une GitHub Release avec l'APK ──────────────────────────
+      # ── Créer la GitHub Release avec l'APK ───────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -106,7 +109,7 @@ jobs:
 
             ### 🔄 Mise à jour automatique
             L'app vérifie automatiquement les nouvelles versions au démarrage.
-          files: build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
+          files: swingapp/build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
           draft: false
           prerelease: false
           make_latest: true
