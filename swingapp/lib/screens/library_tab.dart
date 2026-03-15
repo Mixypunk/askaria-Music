@@ -27,6 +27,9 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
   String _sort = 'recent';
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 4, vsync: this);
@@ -326,9 +329,6 @@ class _FavouritesContent extends StatefulWidget {
 class _FavouritesContentState extends State<_FavouritesContent> {
   List<Song> _songs = [];
   bool _loading = true;
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() { super.initState(); _load(); }
