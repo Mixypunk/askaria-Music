@@ -231,6 +231,15 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> seek(Duration position) async => await _player.seek(position);
 
+  // Volume (0.0 → 1.0)
+  double _volume = 1.0;
+  double get volume => _volume;
+  Future<void> setVolume(double v) async {
+    _volume = v.clamp(0.0, 1.0);
+    await _player.setVolume(_volume);
+    notifyListeners();
+  }
+
   void toggleRepeat() {
     _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % RepeatMode.values.length];
     notifyListeners();

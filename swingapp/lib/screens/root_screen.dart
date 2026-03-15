@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/player_provider.dart';
@@ -18,9 +19,29 @@ class _RootScreenState extends State<RootScreen> {
 
   static const _tabs = [HomeTab(), SearchTab(), LibraryTab()];
 
+  DateTime? _lastBack;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        // Double appui retour pour quitter
+        final now = DateTime.now();
+        if (_lastBack == null ||
+            now.difference(_lastBack!) > const Duration(seconds: 2)) {
+          _lastBack = now;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Appuyez encore une fois pour quitter'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ));
+          return;
+        }
+        exit(0);
+      },
+      child: Scaffold(
       backgroundColor: Sp.bg,
       body: IndexedStack(index: _tab, children: _tabs),
       bottomNavigationBar: Column(
@@ -45,6 +66,7 @@ class _RootScreenState extends State<RootScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../models/album.dart';
 import 'artist_screen.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
@@ -227,6 +228,8 @@ class _PlayerPage extends StatelessWidget {
       '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   void _showShareSheet(BuildContext ctx, song, Color accent) {
+    final api   = SwingApiService();
+    final url   = api.getStreamUrl(song.hash, filepath: song.filepath);
     showModalBottomSheet(
       context: ctx,
       backgroundColor: const Color(0xFF282828),
@@ -243,18 +246,45 @@ class _PlayerPage extends StatelessWidget {
               fontSize: 16, fontWeight: FontWeight.bold)),
           Text(song.artist,
               style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13)),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          // URL de stream (copiable)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(6)),
+            child: Text(url,
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+              maxLines: 2, overflow: TextOverflow.ellipsis)),
           Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
             _ShareBtn(Icons.copy_rounded, 'Copier le lien', () {
+              Clipboard.setData(ClipboardData(text: url));
               Navigator.pop(ctx);
               ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                content: const Text('Lien copié !'),
+                content: const Text('Lien copié dans le presse-papier !'),
                 backgroundColor: accent,
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 2)));
             }),
-            _ShareBtn(Icons.message_rounded, 'Message', () => Navigator.pop(ctx)),
-            _ShareBtn(Icons.more_horiz_rounded, 'Plus', () => Navigator.pop(ctx)),
+            _ShareBtn(Icons.info_outline_rounded, 'Infos', () {
+              Navigator.pop(ctx);
+              showDialog(context: ctx, builder: (_) => AlertDialog(
+                backgroundColor: const Color(0xFF282828),
+                title: Text(song.title,
+                  style: const TextStyle(color: Colors.white, fontSize: 16)),
+                content: Column(mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _InfoRow('Artiste', song.artist),
+                  _InfoRow('Album',   song.album),
+                  _InfoRow('Durée',
+                    '${song.duration ~/ 60}:${(song.duration % 60).toString().padLeft(2,"0")}'),
+                ]),
+                actions: [TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Fermer', style: TextStyle(color: accent)))],
+              ));
+            }),
           ]),
         ]),
       ),
@@ -497,6 +527,32 @@ class _PlayerPage extends StatelessWidget {
         ]),
         const SizedBox(height: 20),
 
+        // ── Slider volume ─────────────────────────────────────────
+        Row(children: [
+          Icon(
+            player.volume == 0
+                ? Icons.volume_off_rounded
+                : player.volume < 0.5
+                    ? Icons.volume_down_rounded
+                    : Icons.volume_up_rounded,
+            size: 18, color: Colors.white38),
+          Expanded(child: SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              activeTrackColor: accent,
+              inactiveTrackColor: Colors.white24,
+              thumbColor: Colors.white,
+              overlayColor: accent.withOpacity(0.2)),
+            child: Slider(
+              value: player.volume,
+              onChanged: (v) => player.setVolume(v)),
+          )),
+          Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
+        ]),
+        const SizedBox(height: 6),
+
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           GestureDetector(
             onTap: () => _showDevicesSheet(ctx, accent),
@@ -704,6 +760,22 @@ class _ShareBtn extends StatelessWidget {
         child: Icon(icon, color: Colors.white, size: 26)),
       const SizedBox(height: 8),
       Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+    ]),
+  );
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _InfoRow(this.label, this.value);
+  @override
+  Widget build(BuildContext ctx) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(width: 60, child: Text(label,
+        style: const TextStyle(color: Colors.white54, fontSize: 13))),
+      Expanded(child: Text(value,
+        style: const TextStyle(color: Colors.white, fontSize: 13))),
     ]),
   );
 }

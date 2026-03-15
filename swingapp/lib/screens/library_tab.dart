@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/playlist.dart';
+import '../models/album.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import 'artist_screen.dart';
@@ -12,19 +13,39 @@ class LibraryTab extends StatefulWidget {
   State<LibraryTab> createState() => _LibraryTabState();
 }
 
-class _LibraryTabState extends State<LibraryTab> {
+class _LibraryTabState extends State<LibraryTab>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+
   List<Playlist> _playlists = [];
+  List<Album>    _albums    = [];
+  List<Artist>   _artists   = [];
+
   bool _loading = true;
   String? _error;
-  String _sort = 'recent'; // recent | alpha
+  String _sort = 'recent';
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 3, vsync: this);
+    _load();
+  }
+
+  @override
+  void dispose() { _tabCtrl.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      _playlists = await SwingApiService().getPlaylists();
+      final results = await Future.wait([
+        SwingApiService().getPlaylists(),
+        SwingApiService().getAlbums(limit: 200),
+        SwingApiService().getArtists(limit: 200),
+      ]);
+      _playlists = results[0] as List<Playlist>;
+      _albums    = results[1] as List<Album>;
+      _artists   = results[2] as List<Artist>;
       _applySorting();
     } catch (e) { _error = e.toString(); }
     if (mounted) setState(() => _loading = false);
@@ -33,239 +54,256 @@ class _LibraryTabState extends State<LibraryTab> {
   void _applySorting() {
     if (_sort == 'alpha') {
       _playlists.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      _albums.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      _artists.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     }
-    // 'recent' = ordre API par défaut
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(slivers: [
-
-      // ── AppBar ──────────────────────────────────────────────────
-      SliverAppBar(
-        floating: true,
-        backgroundColor: Sp.bg,
-        elevation: 0,
-        titleSpacing: 16,
-        title: Row(children: [
-          Container(
-            width: 32, height: 32,
-            decoration: const BoxDecoration(
-              gradient: kGrad, shape: BoxShape.circle),
-            child: const Icon(Icons.person_rounded, size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 10),
-          const Text('Votre bibliothèque',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                color: Colors.white)),
-        ]),
-        actions: [
-          // Tri
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort_rounded, color: Colors.white),
-            color: const Color(0xFF282828),
-            onSelected: (v) {
-              setState(() { _sort = v; _applySorting(); });
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'recent',
-                child: Row(children: [
+    return NestedScrollView(
+      headerSliverBuilder: (_, __) => [
+        SliverAppBar(
+          floating: true,
+          backgroundColor: Sp.bg,
+          titleSpacing: 16,
+          title: Row(children: [
+            Container(
+              width: 32, height: 32,
+              decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
+              child: const Icon(Icons.person_rounded, size: 18, color: Colors.white)),
+            const SizedBox(width: 10),
+            const Text('Bibliothèque',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                  color: Colors.white)),
+          ]),
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.sort_rounded, color: Colors.white),
+              color: const Color(0xFF282828),
+              onSelected: (v) => setState(() { _sort = v; _applySorting(); }),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'recent', child: Row(children: [
                   Icon(Icons.access_time_rounded,
                     color: _sort == 'recent' ? Sp.g2 : Colors.white70, size: 18),
                   const SizedBox(width: 10),
                   Text('Récents', style: TextStyle(
-                    color: _sort == 'recent' ? Sp.g2 : Colors.white)),
-                ])),
-              PopupMenuItem(value: 'alpha',
-                child: Row(children: [
+                    color: _sort == 'recent' ? Sp.g2 : Colors.white))])),
+                PopupMenuItem(value: 'alpha', child: Row(children: [
                   Icon(Icons.sort_by_alpha_rounded,
                     color: _sort == 'alpha' ? Sp.g2 : Colors.white70, size: 18),
                   const SizedBox(width: 10),
                   Text('A → Z', style: TextStyle(
-                    color: _sort == 'alpha' ? Sp.g2 : Colors.white)),
-                ])),
+                    color: _sort == 'alpha' ? Sp.g2 : Colors.white))])),
+              ]),
+            const SizedBox(width: 4),
+          ],
+          bottom: TabBar(
+            controller: _tabCtrl,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white54,
+            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            indicatorColor: Sp.g2,
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorWeight: 2,
+            tabs: [
+              Tab(text: 'Playlists ${_playlists.isNotEmpty ? "(${_playlists.length})" : ""}'),
+              Tab(text: 'Albums ${_albums.isNotEmpty ? "(${_albums.length})" : ""}'),
+              Tab(text: 'Artistes ${_artists.isNotEmpty ? "(${_artists.length})" : ""}'),
             ],
           ),
-          const SizedBox(width: 4),
-        ],
-      ),
-
-      // ── Compteur ────────────────────────────────────────────────
-      if (!_loading && _error == null)
-        SliverToBoxAdapter(child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Text('${_playlists.length} playlist${_playlists.length != 1 ? 's' : ''}',
-            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
-        )),
-
-      // ── États ───────────────────────────────────────────────────
-      if (_loading)
-        const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator(
-              color: Colors.white, strokeWidth: 2)))
-      else if (_error != null)
-        SliverFillRemaining(child: Center(child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.error_outline, color: Colors.white38, size: 48),
-            const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.white54, fontSize: 12),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            TextButton(onPressed: _load,
-                child: const Text('Réessayer',
-                    style: TextStyle(color: Sp.g2))),
-          ])))
-      else if (_playlists.isEmpty)
-        SliverFillRemaining(child: Center(child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.queue_music_rounded,
-                color: Colors.white24, size: 64),
-            const SizedBox(height: 16),
-            const Text('Aucune playlist',
-                style: TextStyle(color: Colors.white54, fontSize: 16)),
-            const SizedBox(height: 8),
-            const Text('Créez des playlists sur votre serveur Swing Music',
-                style: TextStyle(color: Colors.white30, fontSize: 12),
-                textAlign: TextAlign.center),
-          ])))
-      else
-        SliverList(delegate: SliverChildBuilderDelegate(
-          (ctx, i) {
-            if (i == _playlists.length) return const SizedBox(height: 100);
-            return _PlaylistTile(playlist: _playlists[i]);
-          },
-          childCount: _playlists.length + 1,
-        )),
-    ]);
+        ),
+      ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(
+              color: Colors.white, strokeWidth: 2))
+          : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : TabBarView(
+                  controller: _tabCtrl,
+                  children: [
+                    _PlaylistsList(playlists: _playlists),
+                    _AlbumsList(albums: _albums),
+                    _ArtistsList(artists: _artists),
+                  ],
+                ),
+    );
   }
 }
 
-// ── Playlist tile ──────────────────────────────────────────────────────────────
+// ── Playlists ──────────────────────────────────────────────────────────────────
+class _PlaylistsList extends StatelessWidget {
+  final List<Playlist> playlists;
+  const _PlaylistsList({required this.playlists});
+  @override
+  Widget build(BuildContext ctx) {
+    if (playlists.isEmpty) return const _EmptyView(
+      icon: Icons.queue_music_rounded, label: 'Aucune playlist');
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100),
+      itemCount: playlists.length,
+      itemBuilder: (ctx, i) => _PlaylistTile(playlist: playlists[i]),
+    );
+  }
+}
+
 class _PlaylistTile extends StatelessWidget {
   final Playlist playlist;
   const _PlaylistTile({required this.playlist});
-
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
-
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: _art(api),
-      title: Text(playlist.name,
-        style: const TextStyle(color: Colors.white,
-            fontWeight: FontWeight.w500, fontSize: 15),
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          '${api.baseUrl}/img/playlist/${playlist.id}.webp',
+          width: 56, height: 56, fit: BoxFit.cover,
+          headers: api.authHeaders,
+          errorBuilder: (_, __, ___) => Container(
+            width: 56, height: 56, color: Sp.card,
+            child: const Icon(Icons.queue_music_rounded,
+                color: Colors.white38, size: 28)))),
+      title: Text(playlist.name, style: const TextStyle(
+          color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
         maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(
-        'Playlist · ${playlist.trackCount} titre${playlist.trackCount != 1 ? 's' : ''}',
+        'Playlist · ${playlist.trackCount} titre${playlist.trackCount != 1 ? "s" : ""}',
         style: const TextStyle(color: Colors.white54, fontSize: 13)),
-      trailing: GestureDetector(
-        onTap: () => _showOptions(ctx, api),
-        child: const Icon(Icons.more_vert, color: Colors.white38, size: 20)),
+      trailing: const Icon(Icons.chevron_right_rounded,
+          color: Colors.white38, size: 20),
       onTap: () => Navigator.push(ctx, MaterialPageRoute(
         builder: (_) => PlaylistScreen(playlist: playlist))),
     );
   }
+}
 
-  Widget _art(SwingApiService api) {
-    final imgUrl = '${api.baseUrl}/img/playlist/${playlist.id}.webp';
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Image.network(imgUrl, width: 56, height: 56, fit: BoxFit.cover,
+// ── Albums ─────────────────────────────────────────────────────────────────────
+class _AlbumsList extends StatelessWidget {
+  final List<Album> albums;
+  const _AlbumsList({required this.albums});
+  @override
+  Widget build(BuildContext ctx) {
+    if (albums.isEmpty) return const _EmptyView(
+      icon: Icons.album_rounded, label: 'Aucun album');
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100),
+      itemCount: albums.length,
+      itemBuilder: (ctx, i) => _AlbumTile(album: albums[i]),
+    );
+  }
+}
+
+class _AlbumTile extends StatelessWidget {
+  final Album album;
+  const _AlbumTile({required this.album});
+  @override
+  Widget build(BuildContext ctx) {
+    final api = SwingApiService();
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          '${api.baseUrl}/img/thumbnail/${album.image}',
+          width: 56, height: 56, fit: BoxFit.cover,
+          headers: api.authHeaders,
+          errorBuilder: (_, __, ___) => Container(
+            width: 56, height: 56, color: Sp.card,
+            child: const Icon(Icons.album, color: Colors.white38, size: 28)))),
+      title: Text(album.title, style: const TextStyle(
+          color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
+        maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        '${album.artist}${album.year != null ? " · ${album.year}" : ""}',
+        style: const TextStyle(color: Colors.white54, fontSize: 13),
+        maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: const Icon(Icons.chevron_right_rounded,
+          color: Colors.white38, size: 20),
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => AlbumScreen(album: album))),
+    );
+  }
+}
+
+// ── Artistes ───────────────────────────────────────────────────────────────────
+class _ArtistsList extends StatelessWidget {
+  final List<Artist> artists;
+  const _ArtistsList({required this.artists});
+  @override
+  Widget build(BuildContext ctx) {
+    if (artists.isEmpty) return const _EmptyView(
+      icon: Icons.person_rounded, label: 'Aucun artiste');
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100),
+      itemCount: artists.length,
+      itemBuilder: (ctx, i) => _ArtistTile(artist: artists[i]),
+    );
+  }
+}
+
+class _ArtistTile extends StatelessWidget {
+  final Artist artist;
+  const _ArtistTile({required this.artist});
+  @override
+  Widget build(BuildContext ctx) {
+    final api = SwingApiService();
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      leading: ClipOval(child: Image.network(
+        '${api.baseUrl}/img/artist/small/${artist.image}',
+        width: 56, height: 56, fit: BoxFit.cover,
         headers: api.authHeaders,
         errorBuilder: (_, __, ___) => Container(
-          width: 56, height: 56, color: const Color(0xFF282828),
-          child: const Icon(Icons.queue_music_rounded,
-              color: Colors.white38, size: 28))),
+          width: 56, height: 56, color: Sp.card,
+          child: const Icon(Icons.person, color: Colors.white38, size: 28)))),
+      title: Text(artist.name, style: const TextStyle(
+          color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
+        maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        '${artist.trackCount} titre${artist.trackCount != 1 ? "s" : ""}'
+        '${artist.albumCount > 0 ? " · ${artist.albumCount} album${artist.albumCount != 1 ? "s" : ""}" : ""}',
+        style: const TextStyle(color: Colors.white54, fontSize: 13)),
+      trailing: const Icon(Icons.chevron_right_rounded,
+          color: Colors.white38, size: 20),
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => ArtistScreen(artist: artist))),
     );
   }
+}
 
-  Future<void> _play(BuildContext ctx) async {
-    final tracks = await SwingApiService().getPlaylistTracks(playlist.id);
-    if (ctx.mounted && tracks.isNotEmpty)
-      ctx.read<PlayerProvider>().playSong(tracks.first, queue: tracks, index: 0);
-  }
+// ── Helpers ────────────────────────────────────────────────────────────────────
+class _EmptyView extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _EmptyView({required this.icon, required this.label});
+  @override
+  Widget build(BuildContext ctx) => Center(child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(icon, color: Colors.white24, size: 64),
+      const SizedBox(height: 16),
+      Text(label, style: const TextStyle(color: Colors.white54, fontSize: 16)),
+    ],
+  ));
+}
 
-  void _showOptions(BuildContext ctx, SwingApiService api) {
-    showModalBottomSheet(
-      context: ctx,
-      backgroundColor: const Color(0xFF282828),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 36, height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: Colors.white24,
-                borderRadius: BorderRadius.circular(2))),
-          // En-tête
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(children: [
-              ClipRRect(borderRadius: BorderRadius.circular(4),
-                child: Image.network(
-                  '${api.baseUrl}/img/playlist/${playlist.id}.webp',
-                  width: 48, height: 48, fit: BoxFit.cover,
-                  headers: api.authHeaders,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 48, height: 48, color: const Color(0xFF3E3E3E),
-                    child: const Icon(Icons.queue_music_rounded,
-                        color: Colors.white38, size: 24)))),
-              const SizedBox(width: 12),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(playlist.name, style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold,
-                      fontSize: 15),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text('${playlist.trackCount} titres',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                ])),
-            ]),
-          ),
-          const Divider(color: Colors.white12, height: 1),
-          ListTile(
-            leading: const Icon(Icons.play_circle_outline_rounded,
-                color: Colors.white70),
-            title: const Text('Lire', style: TextStyle(color: Colors.white)),
-            onTap: () { Navigator.pop(ctx); _play(ctx); }),
-          ListTile(
-            leading: const Icon(Icons.shuffle_rounded, color: Colors.white70),
-            title: const Text('Lecture aléatoire',
-                style: TextStyle(color: Colors.white)),
-            onTap: () async {
-              Navigator.pop(ctx);
-              final tracks = await SwingApiService()
-                  .getPlaylistTracks(playlist.id);
-              if (ctx.mounted && tracks.isNotEmpty) {
-                final p = ctx.read<PlayerProvider>();
-                p.toggleShuffle();
-                p.playSong(tracks.first, queue: tracks, index: 0);
-              }
-            }),
-          ListTile(
-            leading: const Icon(Icons.queue_music_rounded,
-                color: Colors.white70),
-            title: const Text('Ajouter à la file',
-                style: TextStyle(color: Colors.white)),
-            onTap: () async {
-              Navigator.pop(ctx);
-              final tracks = await SwingApiService()
-                  .getPlaylistTracks(playlist.id);
-              if (ctx.mounted) {
-                final p = ctx.read<PlayerProvider>();
-                for (final t in tracks) p.addToQueue(t);
-                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                  content: Text('${tracks.length} titres ajoutés à la file'),
-                  backgroundColor: const Color(0xFF282828),
-                  behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 2)));
-              }
-            }),
-        ]),
-      ),
-    );
-  }
+class _ErrorView extends StatelessWidget {
+  final String error;
+  final VoidCallback onRetry;
+  const _ErrorView({required this.error, required this.onRetry});
+  @override
+  Widget build(BuildContext ctx) => Center(child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      const Icon(Icons.error_outline, color: Colors.white38, size: 48),
+      const SizedBox(height: 12),
+      Text(error, style: const TextStyle(color: Colors.white54, fontSize: 12),
+          textAlign: TextAlign.center),
+      const SizedBox(height: 16),
+      TextButton(onPressed: onRetry,
+        child: const Text('Réessayer', style: TextStyle(color: Sp.g2))),
+    ],
+  ));
 }

@@ -37,6 +37,12 @@ class _MiniPlayerContent extends StatelessWidget {
           child: child,
         ),
       )),
+      // Swipe gauche = suivant, swipe droite = précédent
+      onHorizontalDragEnd: (d) {
+        if (d.primaryVelocity == null) return;
+        if (d.primaryVelocity! < -300) player.next();
+        if (d.primaryVelocity! >  300) player.previous();
+      },
       child: Container(
         margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
         height: 62,
