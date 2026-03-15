@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
@@ -13,30 +14,51 @@ class SearchTab extends StatefulWidget {
 }
 
 class _SearchTabState extends State<SearchTab> {
-  final _ctrl = TextEditingController();
+  final _ctrl  = TextEditingController();
   final _focus = FocusNode();
   List<Song> _results = [];
   bool _loading = false;
-  bool _focused = false;
-  String _query = '';
+  String _query  = '';
+  Timer? _debounce;
 
-  // Catégories Spotify style
   static const _categories = [
-    ('Musique', Sp.g1, Icons.music_note_rounded),
-    ('Podcasts', Color(0xFF1DB954), Icons.podcasts_rounded),
-    ('Hip-Hop', Color(0xFFE8115B), Icons.headphones_rounded),
-    ('Pop', Color(0xFFE91429), Icons.star_rounded),
-    ('Rock', Color(0xFF148A08), Icons.electric_bolt_rounded),
-    ('Électro', Color(0xFF509BF5), Icons.graphic_eq_rounded),
-    ('R&B', Color(0xFFBA5D07), Icons.piano_rounded),
+    ('Musique',   Color(0xFF4776E6), Icons.music_note_rounded),
+    ('Podcasts',  Color(0xFF1DB954), Icons.podcasts_rounded),
+    ('Hip-Hop',   Color(0xFFE8115B), Icons.headphones_rounded),
+    ('Pop',       Color(0xFFE91429), Icons.star_rounded),
+    ('Rock',      Color(0xFF148A08), Icons.electric_bolt_rounded),
+    ('Électro',   Color(0xFF509BF5), Icons.graphic_eq_rounded),
+    ('R&B',       Color(0xFFBA5D07), Icons.piano_rounded),
     ('Classique', Color(0xFF0D73EC), Icons.queue_music_rounded),
   ];
 
+  // Debounce 400ms — évite une requête à chaque caractère
+  void _onChanged(String v) {
+    _debounce?.cancel();
+    if (v.trim().isEmpty) {
+      setState(() { _results = []; _query = ''; _loading = false; });
+      return;
+    }
+    setState(() { _loading = true; _query = v; });
+    _debounce = Timer(const Duration(milliseconds: 400), () => _search(v));
+  }
+
   Future<void> _search(String q) async {
-    if (q.trim().isEmpty) { setState(() { _results = []; _query = ''; }); return; }
-    setState(() { _loading = true; _query = q; });
-    try { _results = await SwingApiService().searchSongs(q); } catch (_) { _results = []; }
-    if (mounted) setState(() => _loading = false);
+    if (q.trim().isEmpty) return;
+    try {
+      final r = await SwingApiService().searchSongs(q);
+      if (mounted && _query == q) setState(() { _results = r; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _results = []; _loading = false; });
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
   }
 
   @override
@@ -49,39 +71,37 @@ class _SearchTabState extends State<SearchTab> {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Sp.white)),
       ),
 
-      // Search bar
       SliverToBoxAdapter(child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: GestureDetector(
-          onTap: () { _focus.requestFocus(); setState(() => _focused = true); },
-          child: Container(
-            height: 46,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-            child: Row(children: [
-              const SizedBox(width: 12),
-              const Icon(Icons.search, color: Colors.black, size: 22),
-              const SizedBox(width: 8),
-              Expanded(child: TextField(
-                controller: _ctrl,
-                focusNode: _focus,
-                style: const TextStyle(color: Colors.black, fontSize: 15),
-                decoration: const InputDecoration(
-                  hintText: 'Artistes, titres, podcasts',
-                  hintStyle: TextStyle(color: Color(0xFF666666)),
-                  border: InputBorder.none, isDense: true,
-                ),
-                onChanged: (v) { _search(v); setState(() {}); },
-                onTap: () => setState(() => _focused = true),
-              )),
-              if (_ctrl.text.isNotEmpty)
-                GestureDetector(
-                  onTap: () { _ctrl.clear(); _search(''); setState(() {}); },
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(Icons.clear, color: Colors.black, size: 20)),
-                ),
-            ]),
-          ),
+        child: Container(
+          height: 46,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
+          child: Row(children: [
+            const SizedBox(width: 12),
+            const Icon(Icons.search, color: Colors.black, size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(
+              controller: _ctrl,
+              focusNode: _focus,
+              style: const TextStyle(color: Colors.black, fontSize: 15),
+              decoration: const InputDecoration(
+                hintText: 'Artistes, titres, albums',
+                hintStyle: TextStyle(color: Color(0xFF666666)),
+                border: InputBorder.none, isDense: true,
+              ),
+              onChanged: _onChanged,
+            )),
+            if (_ctrl.text.isNotEmpty)
+              GestureDetector(
+                onTap: () {
+                  _ctrl.clear();
+                  _onChanged('');
+                  _focus.unfocus();
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(Icons.clear, color: Colors.black, size: 20))),
+          ]),
         ),
       )),
 
@@ -104,7 +124,6 @@ class _SearchTabState extends State<SearchTab> {
           ],
         )))
       else ...[
-        // Browse categories Spotify style
         SliverToBoxAdapter(child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: const Text('Parcourir les catégories',
@@ -123,7 +142,7 @@ class _SearchTabState extends State<SearchTab> {
           ),
         ),
       ],
-      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+      const SliverToBoxAdapter(child: SizedBox(height: 100)),
     ]);
   }
 }
@@ -136,11 +155,12 @@ class _CategoryCard extends StatelessWidget {
     borderRadius: BorderRadius.circular(6),
     child: Container(
       color: cat.$2,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(children: [
         Expanded(child: Text(cat.$1,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-        Icon(cat.$3, color: Colors.white.withOpacity(0.7), size: 36),
+          style: const TextStyle(color: Colors.white,
+              fontWeight: FontWeight.bold, fontSize: 14))),
+        Icon(cat.$3, color: Colors.white54, size: 36),
       ]),
     ),
   );
@@ -151,8 +171,7 @@ class _ResultRow extends StatelessWidget {
   const _ResultRow({required this.song, required this.all, required this.idx});
   @override
   Widget build(BuildContext ctx) {
-    final player = ctx.watch<PlayerProvider>();
-    final isCurrent = player.currentSong == song;
+    final isCurrent = ctx.watch<PlayerProvider>().currentSong == song;
     return GestureDetector(
       onTap: () => ctx.read<PlayerProvider>().playSong(song, queue: all, index: idx),
       child: Padding(
@@ -162,12 +181,12 @@ class _ResultRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: ArtworkWidget(
               key: ValueKey(song.hash), hash: song.image ?? song.hash,
-              size: 52, borderRadius: BorderRadius.circular(4)),
-          ),
+              size: 52, borderRadius: BorderRadius.circular(4))),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(song.title, style: TextStyle(
-              color: isCurrent ? Sp.g2 : Sp.white, fontSize: 15, fontWeight: FontWeight.w500),
+              color: isCurrent ? Sp.g2 : Sp.white,
+              fontSize: 15, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             Text(song.artist,
               style: const TextStyle(color: Sp.white70, fontSize: 13),

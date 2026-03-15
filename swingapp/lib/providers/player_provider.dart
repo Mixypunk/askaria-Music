@@ -59,6 +59,7 @@ class PlayerProvider extends ChangeNotifier {
       ? _position.inMilliseconds / _duration.inMilliseconds : 0.0;
 
   PlayerProvider() {
+    _loadFavourites();
     _player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
@@ -350,7 +351,14 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // ── Favourites ────────────────────────────────────────────────────────
+  // Charger les favoris depuis le serveur au démarrage
+  Future<void> _loadFavourites() async {
+    try {
+      final songs = await _api.getFavourites();
+      _favourites.addAll(songs.map((s) => s.hash));
+      notifyListeners();
+    } catch (_) {}
+  }
 
   @override
   void dispose() {

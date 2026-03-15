@@ -30,9 +30,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   Uint8List? _bgImage;
   String? _bgHash;
 
-  // Panneau paroles (DraggableScrollableSheet) — visible depuis page player
-  bool _lyricsSheetOpen = false;
-  late DraggableScrollableController _sheetController;
 
   @override
   void initState() {
@@ -40,14 +37,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     _pageController = PageController();
     _colorAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
-    _sheetController = DraggableScrollableController();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _colorAnim.dispose();
-    _sheetController.dispose();
     super.dispose();
   }
 
@@ -72,20 +67,26 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _openLyricsSheet() {
-    setState(() => _lyricsSheetOpen = true);
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (mounted) _sheetController.animateTo(1.0,
-          duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
-    });
+    final player = context.read<PlayerProvider>();
+    final song   = player.currentSong;
+    if (song == null) return;
+    Navigator.push(context, PageRouteBuilder(
+      opaque: false,
+      barrierColor: Colors.black54,
+      pageBuilder: (_, a, __) => _LyricsOverlay(
+        player: player,
+        song: song,
+        accent: player.dynamicColors.accent,
+      ),
+      transitionsBuilder: (_, a, __, child) => SlideTransition(
+        position: Tween(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+        child: child,
+      ),
+    ));
   }
 
-  void _closeLyricsSheet() {
-    _sheetController.animateTo(0.0,
-        duration: const Duration(milliseconds: 350), curve: Curves.easeInCubic
-    ).then((_) {
-      if (mounted) setState(() => _lyricsSheetOpen = false);
-    });
-  }
+  void _closeLyricsSheet() => Navigator.maybePop(context);
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +141,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(children: [
                     GestureDetector(
-                      onTap: () {
-                        if (_lyricsSheetOpen) { _closeLyricsSheet(); return; }
-                        Navigator.pop(context);
-                      },
+                      onTap: () => Navigator.pop(context),
                       child: const Icon(Icons.keyboard_arrow_down_rounded,
                           size: 32, color: Colors.white),
                     ),
@@ -184,74 +182,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 )),
               ])),
 
-              // ── Panneau paroles draggable (swipe up depuis player) ───
-              if (_lyricsSheetOpen)
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: _closeLyricsSheet,
-                    child: Container(color: Colors.black.withOpacity(0.3)),
-                  ),
-                ),
-              if (_lyricsSheetOpen)
-                DraggableScrollableSheet(
-                  controller: _sheetController,
-                  initialChildSize: 0.0,
-                  minChildSize: 0.0,
-                  maxChildSize: 1.0,
-                  snap: true,
-                  snapSizes: const [0.0, 1.0],
-                  builder: (ctx, scrollController) => Container(
-                    decoration: BoxDecoration(
-                      color: dark.withOpacity(0.97),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Column(children: [
-                      // Handle + bouton fermer
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                        child: Row(children: [
-                          // Mini artwork
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: ArtworkWidget(
-                              key: ValueKey(song.hash),
-                              hash: song.image ?? song.hash,
-                              size: 40, borderRadius: BorderRadius.circular(4)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(song.title, style: const TextStyle(
-                                  color: Colors.white, fontSize: 14,
-                                  fontWeight: FontWeight.bold),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                              Text(song.artist, style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6), fontSize: 12),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                            ],
-                          )),
-                          GestureDetector(
-                            onTap: _closeLyricsSheet,
-                            child: Container(
-                              width: 32, height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.white12,
-                                shape: BoxShape.circle),
-                              child: const Icon(Icons.keyboard_arrow_down_rounded,
-                                  color: Colors.white, size: 22),
-                            ),
-                          ),
-                        ]),
-                      ),
-                      Divider(color: Colors.white.withOpacity(0.08), height: 1),
-                      // Paroles scrollables
-                      Expanded(child: _LyricsPage(
-                        player: player, accent: accent,
-                        scrollController: scrollController)),
-                    ]),
-                  ),
-                ),
+
             ]),
           );
         },
@@ -800,5 +731,69 @@ class _QueuePage extends StatelessWidget {
         },
       )),
     ]);
+  }
+}
+
+// ── Overlay paroles ─────────────────────────────────────────────────────────────
+class _LyricsOverlay extends StatelessWidget {
+  final PlayerProvider player;
+  final song;
+  final Color accent;
+  const _LyricsOverlay({required this.player, required this.song, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          color: HSLColor.fromColor(accent).withLightness(0.10).toColor()
+              .withOpacity(0.97),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        margin: const EdgeInsets.only(top: 60),
+        child: Column(children: [
+          // Handle
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: ArtworkWidget(
+                  key: ValueKey(song.hash),
+                  hash: song.image ?? song.hash,
+                  size: 40, borderRadius: BorderRadius.circular(4))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(song.title, style: const TextStyle(
+                    color: Colors.white, fontSize: 14,
+                    fontWeight: FontWeight.bold),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(song.artist, style: TextStyle(
+                    color: Colors.white.withOpacity(0.6), fontSize: 12),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                ])),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: const BoxDecoration(
+                    color: Colors.white12, shape: BoxShape.circle),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white, size: 22))),
+            ]),
+          ),
+          Divider(color: Colors.white.withOpacity(0.08), height: 1),
+          // Paroles
+          Expanded(child: ChangeNotifierProvider.value(
+            value: player,
+            child: Consumer<PlayerProvider>(
+              builder: (ctx, p, _) => _LyricsPage(player: p, accent: accent)),
+          )),
+        ]),
+      ),
+    );
   }
 }

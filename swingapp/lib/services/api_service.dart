@@ -102,14 +102,65 @@ class SwingApiService {
     await prefs.remove('refresh_token');
   }
 
+  // ── Refresh token automatique ────────────────────────────────────────
+  Future<bool> _refreshAccessToken() async {
+    if (_refreshToken == null) return false;
+    try {
+      final r = await http.post(
+        Uri.parse('$_baseUrl/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'token': _refreshToken}),
+      ).timeout(const Duration(seconds: 8));
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body);
+        final token = data['accesstoken'] ?? data['access_token'] ?? data['token'];
+        if (token != null) {
+          await _storeTokens(token.toString(), _refreshToken);
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  // Requête GET avec retry automatique si 401
+  Future<http.Response> _authedGet(Uri uri) async {
+    var r = await http.get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+    if (r.statusCode == 401) {
+      final refreshed = await _refreshAccessToken();
+      if (refreshed) {
+        r = await http.get(uri, headers: _headers)
+            .timeout(const Duration(seconds: 10));
+      }
+    }
+    return r;
+  }
+
+  // Requête POST avec retry automatique si 401
+  Future<http.Response> _authedPost(Uri uri, {Object? body}) async {
+    var r = await http.post(uri, headers: _headers, body: body)
+        .timeout(const Duration(seconds: 10));
+    if (r.statusCode == 401) {
+      final refreshed = await _refreshAccessToken();
+      if (refreshed) {
+        r = await http.post(uri, headers: _headers, body: body)
+            .timeout(const Duration(seconds: 10));
+      }
+    }
+    return r;
+  }
+
   Future<bool> checkAuth() async {
     if (_accessToken == null) return false;
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/user'),
-        headers: _headers,
-      ).timeout(const Duration(seconds: 8));
-      return response.statusCode == 200;
+      final response = await _authedGet(Uri.parse('$_baseUrl/auth/user'));
+      if (response.statusCode == 200) return true;
+      // Essayer le refresh si 401
+      if (response.statusCode == 401) {
+        return await _refreshAccessToken();
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -133,9 +184,7 @@ class SwingApiService {
 
   // ── SONGS (POST /folder) ───────────────────────────────────────────────
   Future<List<Song>> getSongs({int start = 0, int limit = 500}) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/folder'),
-      headers: _headers,
+    final response = await _authedPost(Uri.parse('$_baseUrl/folder'),
       body: json.encode({
         'folder': '/music/',
         'start': start,
@@ -161,7 +210,7 @@ class SwingApiService {
       final uri = Uri.parse('$_baseUrl/search/').replace(
         queryParameters: {'q': query, 'limit': '-1', 'itemtype': 'tracks'},
       );
-      final response = await http.get(uri, headers: _headers);
+      final response = await _authedGet(uri);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final tracks = data['tracks'] ?? data['results'] ?? (data is List ? data : []);
@@ -176,7 +225,7 @@ class SwingApiService {
       final uri = Uri.parse('$_baseUrl/search/top').replace(
         queryParameters: {'q': query, 'limit': '5'},
       );
-      final response = await http.get(uri, headers: _headers);
+      final response = await _authedGet(uri);
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
@@ -194,7 +243,7 @@ class SwingApiService {
         'reverse': '1',
       },
     );
-    final response = await http.get(uri, headers: _headers);
+    final response = await _authedGet(uri);
     if (response.statusCode != 200) {
       throw Exception('getAlbums HTTP ${response.statusCode}');
     }
@@ -205,10 +254,7 @@ class SwingApiService {
 
   // POST /album avec {albumhash: hash}
   Future<List<Song>> getAlbumTracks(String albumHash) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/album/$albumHash/tracks'),
-      headers: _headers,
-    );
+    final response = await _authedGet(Uri.parse('$_baseUrl/album/$albumHash/tracks'));
     if (response.statusCode != 200) {
       throw Exception('Album tracks HTTP ${response.statusCode}');
     }
@@ -227,7 +273,7 @@ class SwingApiService {
         'reverse': '0',
       },
     );
-    final response = await http.get(uri, headers: _headers);
+    final response = await _authedGet(uri);
     if (response.statusCode != 200) {
       throw Exception('getArtists HTTP ${response.statusCode}');
     }
@@ -237,10 +283,7 @@ class SwingApiService {
   }
 
   Future<List<Song>> getArtistTracks(String artistHash) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/artist/$artistHash/tracks'),
-      headers: _headers,
-    );
+    final response = await _authedGet(Uri.parse('$_baseUrl/artist/$artistHash/tracks'));
     if (response.statusCode != 200) return [];
     final data = json.decode(response.body);
     final tracks = data is List ? data : (data['tracks'] ?? []);
@@ -252,7 +295,7 @@ class SwingApiService {
     final uri = Uri.parse('$_baseUrl/playlists').replace(
       queryParameters: {'start': '0', 'limit': '200', 'no_tracks': 'true'},
     );
-    final response = await http.get(uri, headers: _headers);
+    final response = await _authedGet(uri);
     if (response.statusCode != 200) {
       throw Exception('getPlaylists HTTP ${response.statusCode}');
     }
@@ -266,7 +309,7 @@ class SwingApiService {
     final uri = Uri.parse('$_baseUrl/playlists/$playlistId').replace(
       queryParameters: {'no_tracks': 'false', 'start': '0', 'limit': '500'},
     );
-    final response = await http.get(uri, headers: _headers);
+    final response = await _authedGet(uri);
     if (response.statusCode != 200) {
       throw Exception('Playlist tracks HTTP ${response.statusCode}');
     }
@@ -336,7 +379,7 @@ class SwingApiService {
 
   Future<List<Song>> getFavourites() async {
     try {
-      final r = await http.get(Uri.parse('$_baseUrl/favourites'), headers: _headers);
+      final r = await _authedGet(Uri.parse('$_baseUrl/favourites'));
       if (r.statusCode != 200) return [];
       final data = json.decode(r.body);
       final list = data['tracks'] ?? data['items'] ?? [];
