@@ -35,9 +35,23 @@ class _ArtistScreenState extends State<ArtistScreen> {
   }
 
   Future<void> _load() async {
+    var hash = widget.artist.hash;
+
+    // Si le hash est vide, chercher l'artiste par nom
+    if (hash.isEmpty && widget.artist.name.isNotEmpty) {
+      final found = await SwingApiService()
+          .searchArtistByName(widget.artist.name);
+      if (found != null) hash = found.hash;
+    }
+
+    if (hash.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
     final results = await Future.wait([
-      SwingApiService().getArtistTracks(widget.artist.hash),
-      SwingApiService().getArtistAlbums(widget.artist.hash),
+      SwingApiService().getArtistTracks(hash),
+      SwingApiService().getArtistAlbums(hash),
     ]);
     if (mounted) setState(() {
       _tracks = results[0] as List<Song>;

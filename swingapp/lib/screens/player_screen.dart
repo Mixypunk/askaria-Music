@@ -151,8 +151,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                     Expanded(child: Column(children: [
                       Text(
                         _page == 0 ? 'EN LECTURE'
-                        : _page == 1 ? 'PAROLES'
-                        : 'FILE D\'ATTENTE',
+                        : (player.hasLyrics || player.lyricsLoading) && _page == 1
+                            ? 'PAROLES'
+                            : 'FILE D\'ATTENTE',
                         style: const TextStyle(color: Colors.white70, fontSize: 10,
                             letterSpacing: 1.5, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
@@ -161,11 +162,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     ])),
                     // Indicateur de page (3 petits points)
-                    _PageDots(current: _page, accent: accent),
+                    _PageDots(
+                      current: _page,
+                      accent: accent,
+                      count: (player.hasLyrics || player.lyricsLoading) ? 3 : 2),
                   ]),
                 ),
 
-                // PageView horizontal : Player / Paroles / Queue
+                // PageView dynamique : Paroles masquée si absentes
                 Expanded(child: PageView(
                   controller: _pageController,
                   onPageChanged: (p) => setState(() => _page = p),
@@ -177,8 +181,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                       accent: accent,
                       onLyricsTap: _openLyricsSheet,
                     ),
-                    // ── Page 1 : Paroles ───────────────────────────────
-                    _LyricsPage(player: player, accent: accent),
+                    // ── Page 1 : Paroles (seulement si dispo) ──────────
+                    if (player.hasLyrics || player.lyricsLoading)
+                      _LyricsPage(player: player, accent: accent),
                     // ── Page 2 : File d'attente ────────────────────────
                     _QueuePage(player: player, accent: accent),
                   ],
@@ -198,11 +203,13 @@ class _PlayerScreenState extends State<PlayerScreen>
 class _PageDots extends StatelessWidget {
   final int current;
   final Color accent;
-  const _PageDots({required this.current, required this.accent});
+  final int count; // 2 si pas de paroles, 3 sinon
+  const _PageDots({required this.current, required this.accent,
+      this.count = 3});
   @override
   Widget build(BuildContext ctx) => Row(
     mainAxisSize: MainAxisSize.min,
-    children: List.generate(3, (i) => AnimatedContainer(
+    children: List.generate(count, (i) => AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 3),
       width: i == current ? 16 : 6,
@@ -226,6 +233,66 @@ class _PlayerPage extends StatelessWidget {
 
   String _fmt(Duration d) =>
       '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+
+  String _fmtRemaining(Duration? d) {
+    if (d == null) return '';
+    if (d.inHours > 0) return '${d.inHours}h${d.inMinutes.remainder(60)}min';
+    return '${d.inMinutes}min';
+  }
+
+  void _showSleepTimer(BuildContext ctx, PlayerProvider player) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: const Color(0xFF282828),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(color: Colors.white24,
+                borderRadius: BorderRadius.circular(2))),
+          const Row(children: [
+            Icon(Icons.bedtime_rounded, color: Colors.blueAccent, size: 22),
+            SizedBox(width: 10),
+            Text('Timer de sommeil', style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ]),
+          const SizedBox(height: 20),
+          // Options de durée
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            for (final min in [15, 30, 45, 60, 90])
+              GestureDetector(
+                onTap: () { player.setSleepTimer(min); Navigator.pop(ctx); },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3A3A3A),
+                    borderRadius: BorderRadius.circular(24)),
+                  child: Text('${min}min',
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600)))),
+          ]),
+          if (player.hasSleepTimer) ...[
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () { player.cancelSleepTimer(); Navigator.pop(ctx); },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                  borderRadius: BorderRadius.circular(8)),
+                child: const Center(child: Text('Annuler le timer',
+                  style: TextStyle(color: Colors.redAccent,
+                      fontWeight: FontWeight.bold))))),
+          ],
+        ]),
+      ),
+    );
+  }
 
   void _showShareSheet(BuildContext ctx, song, Color accent) {
     final api   = SwingApiService();
@@ -352,6 +419,19 @@ class _PlayerPage extends StatelessWidget {
               style: const TextStyle(color: Colors.white)),
             onTap: () { player.toggleFavourite(song.hash); Navigator.pop(ctx); }),
           ListTile(
+            leading: Icon(Icons.bedtime_rounded,
+              color: player.hasSleepTimer ? Colors.blueAccent : Colors.white70),
+            title: Text(
+              player.hasSleepTimer
+                ? 'Timer sommeil : ${_fmtRemaining(player.sleepRemaining)}'
+                : 'Timer de sommeil',
+              style: TextStyle(
+                color: player.hasSleepTimer ? Colors.blueAccent : Colors.white)),
+            onTap: () {
+              Navigator.pop(ctx);
+              _showSleepTimer(ctx, player);
+            }),
+          ListTile(
             leading: const Icon(Icons.album_rounded, color: Colors.white70),
             title: const Text("Aller à l'album",
                 style: TextStyle(color: Colors.white)),
@@ -420,27 +500,48 @@ class _PlayerPage extends StatelessWidget {
         )),
         const SizedBox(height: 6),
 
-        // Hint swipe paroles
-        GestureDetector(
-          onTap: onLyricsTap,
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.lyrics_rounded, size: 14, color: accent.withOpacity(0.7)),
-            const SizedBox(width: 6),
-            Text('Voir les paroles', style: TextStyle(
-                color: accent.withOpacity(0.7), fontSize: 12)),
-            const SizedBox(width: 4),
-            Icon(Icons.keyboard_arrow_up_rounded, size: 14, color: accent.withOpacity(0.7)),
-          ]),
-        ),
+        // Hint "Voir les paroles" — visible seulement si paroles disponibles
+        if (player.hasLyrics)
+          GestureDetector(
+            onTap: onLyricsTap,
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.lyrics_rounded, size: 14, color: accent.withOpacity(0.7)),
+              const SizedBox(width: 6),
+              Text('Voir les paroles', style: TextStyle(
+                  color: accent.withOpacity(0.7), fontSize: 12)),
+              const SizedBox(width: 4),
+              Icon(Icons.keyboard_arrow_up_rounded, size: 14,
+                  color: accent.withOpacity(0.7)),
+            ]),
+          )
+        else
+          const SizedBox(height: 2),
         const SizedBox(height: 14),
 
         // Titre + like
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(song.title, style: const TextStyle(
-              color: Colors.white, fontSize: 22,
-              fontWeight: FontWeight.bold, letterSpacing: -0.3),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
+            Row(children: [
+              Expanded(child: Text(song.title, style: const TextStyle(
+                color: Colors.white, fontSize: 22,
+                fontWeight: FontWeight.bold, letterSpacing: -0.3),
+                maxLines: 1, overflow: TextOverflow.ellipsis)),
+              // Badge lossless
+              if (song.isLossless) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: accent.withOpacity(0.8), width: 1),
+                    borderRadius: BorderRadius.circular(4)),
+                  child: Text(song.audioFormat,
+                    style: TextStyle(
+                      color: accent, fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5)),
+                ),
+              ],
+            ]),
             const SizedBox(height: 4),
             Text(song.artist, style: TextStyle(
               color: Colors.white.withOpacity(0.7), fontSize: 15),

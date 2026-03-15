@@ -28,7 +28,7 @@ class _LibraryTabState extends State<LibraryTab>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 4, vsync: this);
     _load();
   }
 
@@ -125,6 +125,7 @@ class _LibraryTabState extends State<LibraryTab>
                     _PlaylistsList(playlists: _playlists),
                     _AlbumsList(albums: _albums),
                     _ArtistsList(artists: _artists),
+                    const _FavouritesList(),
                   ],
                 ),
     );
@@ -306,4 +307,88 @@ class _ErrorView extends StatelessWidget {
         child: const Text('Réessayer', style: TextStyle(color: Sp.g2))),
     ],
   ));
+}
+
+// ── Favoris ────────────────────────────────────────────────────────────────────
+class _FavouritesList extends StatelessWidget {
+  const _FavouritesList();
+  @override
+  Widget build(BuildContext ctx) {
+    return Consumer<PlayerProvider>(builder: (ctx, player, _) {
+      // Charger les favoris depuis l'API à la demande
+      return _FavouritesContent(player: player);
+    });
+  }
+}
+
+class _FavouritesContent extends StatefulWidget {
+  final PlayerProvider player;
+  const _FavouritesContent({required this.player});
+  @override
+  State<_FavouritesContent> createState() => _FavouritesContentState();
+}
+
+class _FavouritesContentState extends State<_FavouritesContent> {
+  List<Song> _songs = [];
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    try {
+      _songs = await SwingApiService().getFavourites();
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext ctx) {
+    if (_loading) return const Center(
+      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
+    if (_songs.isEmpty) return Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        Icon(Icons.favorite_border_rounded, color: Colors.white24, size: 64),
+        SizedBox(height: 16),
+        Text('Aucun favori', style: TextStyle(color: Colors.white54, fontSize: 16)),
+        SizedBox(height: 8),
+        Text('Likez des titres depuis le lecteur',
+          style: TextStyle(color: Colors.white30, fontSize: 13)),
+      ],
+    ));
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100),
+      itemCount: _songs.length,
+      itemBuilder: (ctx, i) {
+        final song = _songs[i];
+        final isCurrent = ctx.watch<PlayerProvider>().currentSong?.hash == song.hash;
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: ArtworkWidget(
+              key: ValueKey(song.hash),
+              hash: song.image ?? song.hash,
+              size: 50, borderRadius: BorderRadius.circular(4))),
+          title: Text(song.title, style: TextStyle(
+            color: isCurrent ? Sp.g2 : Colors.white,
+            fontWeight: FontWeight.w500, fontSize: 15),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(song.artist,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+          trailing: GestureDetector(
+            onTap: () {
+              ctx.read<PlayerProvider>().toggleFavourite(song.hash);
+              setState(() => _songs.removeAt(i));
+            },
+            child: const Icon(Icons.favorite_rounded,
+                color: Colors.redAccent, size: 22)),
+          onTap: () => ctx.read<PlayerProvider>()
+              .playSong(song, queue: _songs, index: i),
+        );
+      },
+    );
+  }
 }

@@ -290,6 +290,23 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
+  /// Cherche un artiste par nom — utile quand artistHash est vide
+  Future<Artist?> searchArtistByName(String name) async {
+    try {
+      final data = await searchTop(name);
+      final artists = data['artists'] ?? data['top_result']?['artists'] ?? [];
+      if (artists is List && artists.isNotEmpty) {
+        return Artist.fromJson(artists.first as Map<String, dynamic>);
+      }
+      // Fallback : chercher dans getArtists
+      final all = await getArtists(limit: 500);
+      final match = all.where((a) =>
+        a.name.toLowerCase() == name.toLowerCase()).toList();
+      if (match.isNotEmpty) return match.first;
+    } catch (_) {}
+    return null;
+  }
+
   Future<List<Album>> getArtistAlbums(String artistHash) async {
     try {
       final response = await _authedGet(
@@ -352,12 +369,17 @@ class SwingApiService {
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
   // Format officiel: {baseUrl}file/{trackhash}/legacy?filepath={encodedPath}
-  String getStreamUrl(String trackHash, {String? filepath}) {
+  String getStreamUrl(String trackHash,
+      {String? filepath, String quality = 'high'}) {
+    // Paramètre bitrate selon la qualité choisie
+    final bitrate = quality == 'low' ? '96'
+                  : quality == 'medium' ? '192'
+                  : '0'; // 0 = qualité originale (lossless si dispo)
     if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);
-      return '$_baseUrl/file/$trackHash/legacy?filepath=$encoded';
+      return '$_baseUrl/file/$trackHash/legacy?filepath=$encoded&bitrate=$bitrate';
     }
-    return '$_baseUrl/file/$trackHash/legacy';
+    return '$_baseUrl/file/$trackHash/legacy?bitrate=$bitrate';
   }
 
   // Format officiel: {baseUrl}img/thumbnail/{track.image}

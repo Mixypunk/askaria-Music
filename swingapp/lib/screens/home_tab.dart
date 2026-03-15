@@ -102,9 +102,11 @@ class _HomeTabState extends State<HomeTab> {
           )))
 
         else ...[
-          // ── Grille récents ────────────────────────────────────────
-          if (_songs.isNotEmpty)
-            SliverPadding(
+          // ── Récemment joués (historique réel) ─────────────────────
+          Consumer<PlayerProvider>(builder: (ctx, player, _) {
+            final recent = player.history;
+            if (recent.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -112,11 +114,14 @@ class _HomeTabState extends State<HomeTab> {
                   childAspectRatio: 4.5),
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => _RecentTile(
-                      song: _songs[i], allSongs: _songs, idx: i),
-                  childCount: _songs.length.clamp(0, 6),
+                    song: recent[i],
+                    allSongs: recent,
+                    idx: i),
+                  childCount: recent.length.clamp(0, 6),
                 ),
               ),
-            ),
+            );
+          }),
 
           // ── Albums ────────────────────────────────────────────────
           if (_albums.isNotEmpty) ...[

@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/song.dart';
+import '../models/album.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
+import 'artist_screen.dart';
 
 class SearchTab extends StatefulWidget {
   const SearchTab({super.key});
@@ -16,64 +18,101 @@ class SearchTab extends StatefulWidget {
 class _SearchTabState extends State<SearchTab> {
   final _ctrl  = TextEditingController();
   final _focus = FocusNode();
-  List<Song> _results = [];
-  bool _loading = false;
-  String _query = '';
   Timer? _debounce;
 
-  // Catégories avec leurs mots-clés de recherche réels
+  // Résultats par type
+  List<Song>   _tracks  = [];
+  List<Album>  _albums  = [];
+  List<Artist> _artists = [];
+  bool   _loading = false;
+  String _query   = '';
+  String? _activeCategory;
+
   static const _categories = [
-    ('Tous',      Color(0xFF535353), Icons.apps_rounded,            ''),
-    ('Hip-Hop',   Color(0xFFE8115B), Icons.headphones_rounded,      'hip hop'),
-    ('Pop',       Color(0xFFE91429), Icons.star_rounded,             'pop'),
-    ('Rock',      Color(0xFF148A08), Icons.electric_bolt_rounded,    'rock'),
-    ('Électro',   Color(0xFF509BF5), Icons.graphic_eq_rounded,       'electro'),
-    ('R&B',       Color(0xFFBA5D07), Icons.piano_rounded,            'rnb'),
-    ('Jazz',      Color(0xFF0D73EC), Icons.music_note_rounded,       'jazz'),
-    ('Classique', Color(0xFF7358FF), Icons.queue_music_rounded,      'classique'),
+    ('Tous',      Color(0xFF535353), Icons.apps_rounded,         ''),
+    ('Hip-Hop',   Color(0xFFE8115B), Icons.headphones_rounded,   'hip hop'),
+    ('Pop',       Color(0xFFE91429), Icons.star_rounded,          'pop'),
+    ('Rock',      Color(0xFF148A08), Icons.electric_bolt_rounded, 'rock'),
+    ('Électro',   Color(0xFF509BF5), Icons.graphic_eq_rounded,    'electro'),
+    ('R&B',       Color(0xFFBA5D07), Icons.piano_rounded,         'rnb'),
+    ('Jazz',      Color(0xFF0D73EC), Icons.music_note_rounded,    'jazz'),
+    ('Classique', Color(0xFF7358FF), Icons.queue_music_rounded,   'classique'),
   ];
 
-  String? _activeCategory; // null = pas de filtre catégorie
+  bool get _hasResults =>
+      _tracks.isNotEmpty || _albums.isNotEmpty || _artists.isNotEmpty;
 
   void _onChanged(String v) {
     _debounce?.cancel();
     if (v.trim().isEmpty && _activeCategory == null) {
-      setState(() { _results = []; _query = ''; _loading = false; });
+      setState(() { _tracks = []; _albums = []; _artists = [];
+                    _query = ''; _loading = false; });
       return;
     }
     setState(() { _loading = true; _query = v; });
-    _debounce = Timer(const Duration(milliseconds: 400), () => _search());
+    _debounce = Timer(const Duration(milliseconds: 400), _search);
   }
 
   void _selectCategory(String keyword) {
-    // Si on clique sur la catégorie active → désactiver
     if (_activeCategory == keyword) {
-      setState(() { _activeCategory = null; });
+      setState(() => _activeCategory = null);
       _onChanged(_ctrl.text);
       return;
     }
     setState(() { _activeCategory = keyword; _loading = true; });
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 200), () => _search());
+    _debounce = Timer(const Duration(milliseconds: 200), _search);
   }
 
   Future<void> _search() async {
-    // Combiner texte saisi + filtre catégorie
     final base  = _ctrl.text.trim();
     final cat   = _activeCategory ?? '';
     final query = [base, cat].where((s) => s.isNotEmpty).join(' ');
-
     if (query.isEmpty) {
-      setState(() { _results = []; _loading = false; });
+      setState(() { _tracks = []; _albums = []; _artists = []; _loading = false; });
       return;
     }
 
     try {
-      final r = await SwingApiService().searchSongs(query);
-      if (mounted) setState(() { _results = r; _loading = false; });
+      // Lancer les 3 recherches en parallèle
+      final results = await Future.wait([
+        SwingApiService().searchSongs(query),
+        _searchAlbums(query),
+        _searchArtists(query),
+      ]);
+      if (mounted) setState(() {
+        _tracks  = results[0] as List<Song>;
+        _albums  = results[1] as List<Album>;
+        _artists = results[2] as List<Artist>;
+        _loading = false;
+      });
     } catch (_) {
-      if (mounted) setState(() { _results = []; _loading = false; });
+      if (mounted) setState(() {
+        _tracks = []; _albums = []; _artists = []; _loading = false;
+      });
     }
+  }
+
+  Future<List<Album>> _searchAlbums(String query) async {
+    try {
+      final data = await SwingApiService().searchTop(query);
+      final raw = data['albums'] ?? [];
+      if (raw is List && raw.isNotEmpty) {
+        return raw.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<List<Artist>> _searchArtists(String query) async {
+    try {
+      final data = await SwingApiService().searchTop(query);
+      final raw = data['artists'] ?? [];
+      if (raw is List && raw.isNotEmpty) {
+        return raw.map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
   @override
@@ -87,7 +126,6 @@ class _SearchTabState extends State<SearchTab> {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(slivers: [
-
       SliverAppBar(
         pinned: true,
         backgroundColor: Sp.bg,
@@ -96,7 +134,7 @@ class _SearchTabState extends State<SearchTab> {
               fontSize: 22, fontWeight: FontWeight.bold, color: Sp.white)),
       ),
 
-      // ── Barre de recherche ───────────────────────────────────
+      // ── Barre de recherche ────────────────────────────────────
       SliverToBoxAdapter(child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Container(
@@ -132,7 +170,7 @@ class _SearchTabState extends State<SearchTab> {
         ),
       )),
 
-      // ── Chips catégories ─────────────────────────────────────
+      // ── Chips catégories ──────────────────────────────────────
       SliverToBoxAdapter(child: SizedBox(
         height: 36,
         child: ListView.builder(
@@ -147,7 +185,9 @@ class _SearchTabState extends State<SearchTab> {
                 ? _activeCategory == null
                 : _activeCategory == keyword;
             return GestureDetector(
-              onTap: () => isAll ? _selectCategory('') : _selectCategory(keyword),
+              onTap: () => isAll
+                  ? _selectCategory('')
+                  : _selectCategory(keyword),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.only(right: 8),
@@ -157,8 +197,7 @@ class _SearchTabState extends State<SearchTab> {
                   color: isActive ? cat.$2 : const Color(0xFF2A2A2A),
                   borderRadius: BorderRadius.circular(20)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(cat.$3,
-                    size: 14,
+                  Icon(cat.$3, size: 14,
                     color: isActive ? Colors.white : Sp.white70),
                   const SizedBox(width: 5),
                   Text(cat.$1, style: TextStyle(
@@ -173,24 +212,54 @@ class _SearchTabState extends State<SearchTab> {
 
       const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-      // ── Résultats ─────────────────────────────────────────────
+      // ── États ────────────────────────────────────────────────
       if (_loading)
         const SliverFillRemaining(child: Center(
           child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2)))
 
-      else if (_results.isNotEmpty)
-        SliverList(delegate: SliverChildBuilderDelegate(
-          (ctx, i) => _ResultRow(
-              song: _results[i], all: _results, idx: i),
-          childCount: _results.length,
-        ))
+      else if (_hasResults) ...[
+        // Artistes
+        if (_artists.isNotEmpty) ...[
+          _SectionTitle('Artistes'),
+          SliverToBoxAdapter(child: SizedBox(
+            height: 130,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _artists.length,
+              itemBuilder: (ctx, i) => _ArtistChip(artist: _artists[i]),
+            ),
+          )),
+        ],
+        // Albums
+        if (_albums.isNotEmpty) ...[
+          _SectionTitle('Albums'),
+          SliverToBoxAdapter(child: SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _albums.length,
+              itemBuilder: (ctx, i) => _AlbumChip(album: _albums[i]),
+            ),
+          )),
+        ],
+        // Titres
+        if (_tracks.isNotEmpty) ...[
+          _SectionTitle('Titres'),
+          SliverList(delegate: SliverChildBuilderDelegate(
+            (ctx, i) => _TrackRow(
+                song: _tracks[i], all: _tracks, idx: i),
+            childCount: _tracks.length,
+          )),
+        ],
+      ]
 
       else if (_query.isNotEmpty || _activeCategory != null)
         SliverFillRemaining(child: Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off_rounded,
-                color: Sp.white40, size: 64),
+            const Icon(Icons.search_off_rounded, color: Sp.white40, size: 64),
             const SizedBox(height: 16),
             Text(
               _activeCategory != null && _query.isEmpty
@@ -204,8 +273,7 @@ class _SearchTabState extends State<SearchTab> {
         SliverFillRemaining(child: Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_rounded,
-                color: Sp.white40, size: 64),
+            const Icon(Icons.search_rounded, color: Sp.white40, size: 64),
             const SizedBox(height: 16),
             const Text('Recherchez un titre, artiste ou album',
               style: TextStyle(color: Sp.white70)),
@@ -217,9 +285,94 @@ class _SearchTabState extends State<SearchTab> {
   }
 }
 
-class _ResultRow extends StatelessWidget {
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle(this.title);
+  @override
+  Widget build(BuildContext ctx) => SliverToBoxAdapter(child: Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+    child: Text(title, style: const TextStyle(
+        color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
+  ));
+}
+
+class _ArtistChip extends StatelessWidget {
+  final Artist artist;
+  const _ArtistChip({required this.artist});
+  @override
+  Widget build(BuildContext ctx) {
+    final api = SwingApiService();
+    return GestureDetector(
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => ArtistScreen(artist: artist))),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: SizedBox(width: 80, child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ClipOval(child: Image.network(
+              '${api.baseUrl}/img/artist/small/${artist.image}',
+              width: 80, height: 80, fit: BoxFit.cover,
+              headers: api.authHeaders,
+              errorBuilder: (_, __, ___) => Container(
+                width: 80, height: 80, color: Sp.card,
+                child: const Icon(Icons.person,
+                    color: Sp.white40, size: 36)))),
+            const SizedBox(height: 6),
+            Text(artist.name,
+              style: const TextStyle(color: Sp.white,
+                  fontSize: 12, fontWeight: FontWeight.w500),
+              maxLines: 2, overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center),
+          ],
+        )),
+      ),
+    );
+  }
+}
+
+class _AlbumChip extends StatelessWidget {
+  final Album album;
+  const _AlbumChip({required this.album});
+  @override
+  Widget build(BuildContext ctx) {
+    final api = SwingApiService();
+    return GestureDetector(
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => AlbumScreen(album: album))),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: SizedBox(width: 120, child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.network(
+                '${api.baseUrl}/img/thumbnail/${album.image}',
+                width: 120, height: 120, fit: BoxFit.cover,
+                headers: api.authHeaders,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 120, height: 120, color: Sp.card,
+                  child: const Icon(Icons.album,
+                      color: Sp.white40, size: 40)))),
+            const SizedBox(height: 6),
+            Text(album.title,
+              style: const TextStyle(color: Sp.white,
+                  fontSize: 12, fontWeight: FontWeight.w500),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(album.artist,
+              style: const TextStyle(color: Sp.white70, fontSize: 11),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        )),
+      ),
+    );
+  }
+}
+
+class _TrackRow extends StatelessWidget {
   final Song song; final List<Song> all; final int idx;
-  const _ResultRow({required this.song, required this.all, required this.idx});
+  const _TrackRow({required this.song, required this.all, required this.idx});
   @override
   Widget build(BuildContext ctx) {
     final isCurrent = ctx.watch<PlayerProvider>().currentSong == song;

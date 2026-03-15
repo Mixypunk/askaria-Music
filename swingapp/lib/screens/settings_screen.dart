@@ -9,6 +9,7 @@ import '../widgets/artwork_widget.dart';
 
 import '../providers/player_provider.dart';
 import 'package:provider/provider.dart';
+import 'stats_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -185,6 +186,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(color: Colors.white12, height: 1, indent: 56),
           _tile('Vider le cache', '', Icons.delete_outline_rounded, _clearCache),
         ])),
+        const SizedBox(height: 28),
+
+        // ── STATISTIQUES ─────────────────────────────────────────
+        _sectionTitle('STATISTIQUES'),
+        const SizedBox(height: 10),
+        _card(_tile('Mes statistiques d'écoute', '',
+            Icons.bar_chart_rounded,
+            () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const StatsScreen())))),
         const SizedBox(height: 28),
 
         // ── COMPTE ───────────────────────────────────────────────

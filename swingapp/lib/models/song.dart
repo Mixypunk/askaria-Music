@@ -62,6 +62,37 @@ class Song {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
+  /// Détecte si le fichier est en format lossless depuis le filepath
+  bool get isLossless {
+    if (filepath == null) return false;
+    final ext = filepath!.toLowerCase();
+    return ext.endsWith('.flac') ||
+           ext.endsWith('.wav')  ||
+           ext.endsWith('.aiff') ||
+           ext.endsWith('.aif')  ||
+           ext.endsWith('.alac') ||
+           ext.endsWith('.ape')  ||
+           ext.endsWith('.wv');
+  }
+
+  /// Label du format audio pour affichage
+  String get audioFormat {
+    if (filepath == null) return '';
+    final ext = filepath!.toLowerCase();
+    if (ext.endsWith('.flac'))       return 'FLAC';
+    if (ext.endsWith('.wav'))        return 'WAV';
+    if (ext.endsWith('.aiff') || ext.endsWith('.aif')) return 'AIFF';
+    if (ext.endsWith('.alac'))       return 'ALAC';
+    if (ext.endsWith('.ape'))        return 'APE';
+    if (ext.endsWith('.wv'))         return 'WV';
+    if (ext.endsWith('.mp3'))        return 'MP3';
+    if (ext.endsWith('.aac'))        return 'AAC';
+    if (ext.endsWith('.ogg'))        return 'OGG';
+    if (ext.endsWith('.opus'))       return 'OPUS';
+    if (ext.endsWith('.m4a'))        return 'M4A';
+    return '';
+  }
+
   @override
   bool operator ==(Object other) => other is Song && other.hash == hash;
 

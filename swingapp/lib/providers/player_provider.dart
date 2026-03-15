@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
@@ -53,6 +55,10 @@ class PlayerProvider extends ChangeNotifier {
   bool get lyricsSynced => _lyricsSynced;
   List<Map<String, dynamic>>? get syncedLines => _syncedLines;
   List<String>? get unsyncedLines => _unsyncedLines;
+  /// Vrai si les paroles sont disponibles (après chargement terminé)
+  bool get hasLyrics => !_lyricsLoading &&
+      ((_syncedLines != null && _syncedLines!.isNotEmpty) ||
+       (_unsyncedLines != null && _unsyncedLines!.isNotEmpty));
   String? get error => _error;
 
   double get progress => _duration.inMilliseconds > 0
@@ -119,7 +125,11 @@ class PlayerProvider extends ChangeNotifier {
     _error = null;
     try {
       final song = currentSong!;
-      final url    = _api.getStreamUrl(song.hash, filepath: song.filepath);
+      final prefs   = await SharedPreferences.getInstance();
+      final quality  = prefs.getString('audio_quality') ?? 'high';
+      final url      = _api.getStreamUrl(song.hash,
+          filepath: song.filepath, quality: quality);
+      _addToHistory(song);
       final artUrl = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
       debugPrint('🎵 Stream: $url');
       await _player.setAudioSource(
@@ -369,8 +379,104 @@ class PlayerProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ── Sleep timer ───────────────────────────────────────────────────────
+  Timer? _sleepTimer;
+  DateTime? _sleepAt;
+  Duration? get sleepRemaining {
+    if (_sleepAt == null) return null;
+    final rem = _sleepAt!.difference(DateTime.now());
+    return rem.isNegative ? null : rem;
+  }
+  bool get hasSleepTimer => _sleepAt != null;
+
+  void setSleepTimer(int minutes) {
+    _sleepTimer?.cancel();
+    if (minutes <= 0) {
+      _sleepAt = null;
+      notifyListeners();
+      return;
+    }
+    _sleepAt = DateTime.now().add(Duration(minutes: minutes));
+    _sleepTimer = Timer(Duration(minutes: minutes), () async {
+      await _player.pause();
+      _sleepAt = null;
+      notifyListeners();
+    });
+    // Tick chaque minute pour mettre à jour le temps restant
+    Timer.periodic(const Duration(minutes: 1), (t) {
+      if (_sleepAt == null) { t.cancel(); return; }
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepAt = null;
+    notifyListeners();
+  }
+
+  // ── Historique ────────────────────────────────────────────────────────
+  final List<Song> _history = [];
+  List<Song> get history => List.unmodifiable(_history);
+
+  void _addToHistory(Song song) {
+    _history.removeWhere((s) => s.hash == song.hash);
+    _history.insert(0, song);
+    if (_history.length > 50) _history.removeLast();
+    notifyListeners();
+  }
+
+  // ── Sleep timer ───────────────────────────────────────────────────────
+  Timer? _sleepTimer;
+  DateTime? _sleepAt;
+  Duration? get sleepRemaining {
+    if (_sleepAt == null) return null;
+    final rem = _sleepAt!.difference(DateTime.now());
+    return rem.isNegative ? null : rem;
+  }
+  bool get hasSleepTimer => _sleepAt != null;
+
+  void setSleepTimer(int minutes) {
+    _sleepTimer?.cancel();
+    if (minutes <= 0) {
+      _sleepAt = null;
+      notifyListeners();
+      return;
+    }
+    _sleepAt = DateTime.now().add(Duration(minutes: minutes));
+    _sleepTimer = Timer(Duration(minutes: minutes), () async {
+      await _player.pause();
+      _sleepAt = null;
+      notifyListeners();
+    });
+    // Tick chaque minute pour mettre à jour le temps restant
+    Timer.periodic(const Duration(minutes: 1), (t) {
+      if (_sleepAt == null) { t.cancel(); return; }
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepAt = null;
+    notifyListeners();
+  }
+
+  // ── Historique ────────────────────────────────────────────────────────
+  final List<Song> _history = [];
+  List<Song> get history => List.unmodifiable(_history);
+
+  void _addToHistory(Song song) {
+    _history.removeWhere((s) => s.hash == song.hash);
+    _history.insert(0, song);
+    if (_history.length > 50) _history.removeLast();
+  }
+
   @override
   void dispose() {
+    _sleepTimer?.cancel();
     _player.dispose();
     super.dispose();
   }
