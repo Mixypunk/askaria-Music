@@ -6,6 +6,8 @@ import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import '../main.dart';
 import '../services/api_service.dart';
+import '../models/album.dart';
+import 'artist_screen.dart';
 import 'package:http/http.dart' as http;
 
 class PlayerScreen extends StatefulWidget {
@@ -323,12 +325,33 @@ class _PlayerPage extends StatelessWidget {
             leading: const Icon(Icons.album_rounded, color: Colors.white70),
             title: const Text("Aller à l'album",
                 style: TextStyle(color: Colors.white)),
-            onTap: () => Navigator.pop(ctx)),
+            onTap: () {
+              Navigator.pop(ctx); // fermer le sheet
+              // Fermer le player et naviguer vers l'album
+              final album = Album(
+                hash: song.albumHash,
+                title: song.album,
+                artist: song.artist,
+                artistHash: song.artistHash,
+                image: song.image ?? '',
+              );
+              Navigator.of(ctx).push(MaterialPageRoute(
+                builder: (_) => AlbumScreen(album: album)));
+            }),
           ListTile(
             leading: const Icon(Icons.person_rounded, color: Colors.white70),
             title: const Text("Aller à l'artiste",
                 style: TextStyle(color: Colors.white)),
-            onTap: () => Navigator.pop(ctx)),
+            onTap: () {
+              Navigator.pop(ctx);
+              final artist = Artist(
+                hash: song.artistHash,
+                name: song.artist,
+                image: '${song.artistHash}.webp',
+              );
+              Navigator.of(ctx).push(MaterialPageRoute(
+                builder: (_) => ArtistScreen(artist: artist)));
+            }),
         ]),
       ),
     );

@@ -306,11 +306,9 @@ class _AlbumCard extends StatelessWidget {
     );
   }
 
-  Future<void> _openAlbum(BuildContext ctx) async {
-    final tracks = await SwingApiService().getAlbumTracks(album.hash);
-    if (ctx.mounted && tracks.isNotEmpty)
-      ctx.read<PlayerProvider>()
-          .playSong(tracks.first, queue: tracks, index: 0);
+  void _openAlbum(BuildContext ctx) {
+    Navigator.push(ctx, MaterialPageRoute(
+      builder: (_) => AlbumScreen(album: album)));
   }
 }
 
