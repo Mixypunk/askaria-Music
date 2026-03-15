@@ -351,19 +351,6 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   // ── Favourites ────────────────────────────────────────────────────────
-  final Set<String> _favourites = {};
-  bool isFavourite(String hash) => _favourites.contains(hash);
-
-  Future<void> toggleFavourite(String hash) async {
-    final was = _favourites.contains(hash);
-    was ? _favourites.remove(hash) : _favourites.add(hash);
-    notifyListeners();
-    final ok = await _api.toggleFavourite(hash);
-    if (!ok) {
-      was ? _favourites.add(hash) : _favourites.remove(hash);
-      notifyListeners();
-    }
-  }
 
   @override
   void dispose() {
