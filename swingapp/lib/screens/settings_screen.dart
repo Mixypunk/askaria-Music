@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../services/color_service.dart';
 import '../widgets/artwork_widget.dart';
+
 import '../providers/player_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -49,8 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   int _artCacheSize() {
-    // Accès au cache LRU de artwork_widget
-    try { return (_artCache as dynamic)._map.length * 50; } catch (_) { return 0; }
+    try { return artCache._map.length * 50; } catch (_) { return 0; }
   }
 
   @override

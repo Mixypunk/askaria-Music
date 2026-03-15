@@ -31,7 +31,7 @@ class _ImageCache {
   }
 }
 
-final _artCache = _ImageCache();
+final artCache = _ImageCache();
 // Évite les requêtes en double pour la même URL
 final _inFlight = <String, Future<Uint8List?>>{};
 
@@ -81,7 +81,7 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
     final url = '${api.baseUrl}/img/thumbnail/${widget.hash}';
 
     // Vérifier le cache d'abord
-    final cached = _artCache.get(url);
+    final cached = artCache.get(url);
     if (cached != null) {
       if (mounted) setState(() { _bytes = cached; _loading = false; });
       return;
@@ -104,7 +104,7 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
         headers: api.authHeaders,
       ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-        _artCache.put(url, response.bodyBytes);
+        artCache.put(url, response.bodyBytes);
         return response.bodyBytes;
       }
     } catch (_) {}
