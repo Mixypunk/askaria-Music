@@ -15,7 +15,8 @@
         android:label="AskaSound"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true">
 
         <activity
             android:name=".MainActivity"
@@ -35,7 +36,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Service audio arrière-plan (just_audio_background) -->
+        <!-- Service audio arrière-plan -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:exported="true"
@@ -45,7 +46,6 @@
             </intent-filter>
         </service>
 
-        <!-- Récepteur boutons média (casque, Bluetooth, notification) -->
         <receiver
             android:name="com.ryanheise.audioservice.MediaButtonReceiver"
             android:exported="true">
@@ -58,6 +58,7 @@
             android:name="flutterEmbedding"
             android:value="2"/>
 
+        <!-- FileProvider : sert l'APK à l'installeur Android -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

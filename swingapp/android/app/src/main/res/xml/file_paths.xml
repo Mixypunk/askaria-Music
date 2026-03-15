@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <external-cache-path name="external_cache" path="." />
+    <!-- Cache interne -->
     <cache-path name="cache" path="." />
+    <!-- Cache externe (nécessaire pour servir l'APK à l'installeur) -->
+    <external-cache-path name="external_cache" path="." />
+    <!-- Fichiers externes -->
+    <external-files-path name="external_files" path="." />
+    <!-- Fichiers internes -->
+    <files-path name="files" path="." />
 </paths>
