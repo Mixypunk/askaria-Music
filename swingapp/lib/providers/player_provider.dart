@@ -16,7 +16,7 @@ class PlayerProvider extends ChangeNotifier {
   final _random = Random();
 
   List<Song> _queue = [];
-  List<int> _shuffleOrder = [];
+  List<int> _shuffleOrder = []; // indices shufflés
   int _currentIndex = -1;
   bool _isPlaying = false;
   bool _isLoading = false;
@@ -27,6 +27,7 @@ class PlayerProvider extends ChangeNotifier {
   String? _error;
 
   // Lyrics
+  String? _lyrics;
   bool _lyricsLoading = false;
   bool _lyricsSynced = false;
   List<Map<String, dynamic>>? _syncedLines;
@@ -36,57 +37,52 @@ class PlayerProvider extends ChangeNotifier {
   DynamicColors _dynamicColors = DynamicColors.fallback();
   DynamicColors get dynamicColors => _dynamicColors;
 
-  // Favourites
-  final Set<String> _favourites = {};
-
-  // ── Getters ────────────────────────────────────────────────────────────
-  List<Song> get queue        => _queue;
-  int get currentIndex        => _currentIndex;
-  Song? get currentSong       => _currentIndex >= 0 && _currentIndex < _queue.length
+  // Getters
+  List<Song> get queue => _queue;
+  int get currentIndex => _currentIndex;
+  Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
       ? _queue[_currentIndex] : null;
-  bool get isPlaying          => _isPlaying;
-  bool get isLoading          => _isLoading;
-  Duration get position       => _position;
-  Duration get duration       => _duration;
-  RepeatMode get repeatMode   => _repeatMode;
-  bool get shuffle            => _shuffle;
-  bool get lyricsLoading      => _lyricsLoading;
-  bool get lyricsSynced       => _lyricsSynced;
-  List<Map<String, dynamic>>? get syncedLines  => _syncedLines;
-  List<String>? get unsyncedLines              => _unsyncedLines;
-  String? get error           => _error;
-  bool isFavourite(String h)  => _favourites.contains(h);
+  bool get isPlaying => _isPlaying;
+  bool get isLoading => _isLoading;
+  Duration get position => _position;
+  Duration get duration => _duration;
+  RepeatMode get repeatMode => _repeatMode;
+  bool get shuffle => _shuffle;
+  String? get lyrics => _lyrics;
+  bool get lyricsLoading => _lyricsLoading;
+  bool get lyricsSynced => _lyricsSynced;
+  List<Map<String, dynamic>>? get syncedLines => _syncedLines;
+  List<String>? get unsyncedLines => _unsyncedLines;
+  String? get error => _error;
 
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds : 0.0;
 
-  // ── Init ───────────────────────────────────────────────────────────────
   PlayerProvider() {
     _player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
-                   state.processingState == ProcessingState.buffering;
+          state.processingState == ProcessingState.buffering;
       if (state.processingState == ProcessingState.completed) {
         _onTrackComplete();
       }
       notifyListeners();
     });
-
     _player.positionStream.listen((pos) {
       _position = pos;
       notifyListeners();
     });
-
     _player.durationStream.listen((dur) {
       _duration = dur ?? Duration.zero;
       notifyListeners();
     });
   }
 
-  // ── Shuffle ────────────────────────────────────────────────────────────
+  // ── Shuffle order ──────────────────────────────────────────────────────
   void _buildShuffleOrder() {
     _shuffleOrder = List.generate(_queue.length, (i) => i);
     _shuffleOrder.shuffle(_random);
+    // Met la chanson courante en premier
     if (_currentIndex >= 0) {
       _shuffleOrder.remove(_currentIndex);
       _shuffleOrder.insert(0, _currentIndex);
@@ -94,6 +90,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   int get _shufflePos {
+    if (_shuffleOrder.isEmpty) return 0;
     final pos = _shuffleOrder.indexOf(_currentIndex);
     return pos < 0 ? 0 : pos;
   }
@@ -119,32 +116,29 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _loadAndPlay() async {
     if (currentSong == null) return;
     _error = null;
-    final song = currentSong!;
-
     try {
-      final streamUrl = _api.getStreamUrl(song.hash, filepath: song.filepath);
-      final artUrl    = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
-
-      final source = AudioSource.uri(
-        Uri.parse(streamUrl),
-        headers: _api.authHeaders,
-        // Tag MediaItem pour la notification arrière-plan
-        tag: MediaItem(
-          id:      song.hash,
-          title:   song.title,
-          artist:  song.artist,
-          album:   song.album,
-          artUri:  Uri.parse(artUrl),
+      final song = currentSong!;
+      final url    = _api.getStreamUrl(song.hash, filepath: song.filepath);
+      final artUrl = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
+      debugPrint('🎵 Stream: $url');
+      await _player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(url),
+          headers: _api.authHeaders,
+          tag: MediaItem(
+            id:     song.hash,
+            title:  song.title,
+            artist: song.artist,
+            album:  song.album,
+            artUri: Uri.parse(artUrl),
+          ),
         ),
       );
-
-      debugPrint('🎵 Stream: $streamUrl');
-      await _player.setAudioSource(source);
       await _player.play();
       notifyListeners();
     } catch (e) {
       _error = 'Erreur: $e';
-      debugPrint('❌ Stream error: $e');
+      debugPrint('Stream error: $e');
       notifyListeners();
     }
   }
@@ -161,6 +155,8 @@ class PlayerProvider extends ChangeNotifier {
         _nextTrack(loop: true);
         return;
       case RepeatMode.off:
+        // Comportement Spotify : toujours passer à la suivante,
+        // boucler sauf si une seule chanson dans la file
         _nextTrack(loop: _queue.length > 1);
         return;
     }
@@ -168,19 +164,27 @@ class PlayerProvider extends ChangeNotifier {
 
   void _nextTrack({required bool loop}) {
     if (_shuffle) {
-      final nextPos = _shufflePos + 1;
+      final pos = _shufflePos;
+      final nextPos = pos + 1;
       if (nextPos >= _shuffleOrder.length) {
-        if (!loop) return;
-        _buildShuffleOrder();
-        _currentIndex = _shuffleOrder[0];
-      } else {
-        _currentIndex = _shuffleOrder[nextPos];
+        if (loop) {
+          _buildShuffleOrder();
+          _currentIndex = _shuffleOrder[0];
+          _loadAndPlay();
+          _fetchLyrics();
+          _fetchColors();
+        }
+        return;
       }
+      _currentIndex = _shuffleOrder[nextPos];
     } else {
       final next = _currentIndex + 1;
       if (next >= _queue.length) {
-        if (!loop) return;
-        _currentIndex = 0;
+        if (loop) {
+          _currentIndex = 0;
+        } else {
+          return;
+        }
       } else {
         _currentIndex = next;
       }
@@ -192,7 +196,8 @@ class PlayerProvider extends ChangeNotifier {
 
   void _prevTrack() {
     if (_shuffle) {
-      final prevPos = (_shufflePos - 1 + _shuffleOrder.length) % _shuffleOrder.length;
+      final pos = _shufflePos;
+      final prevPos = (pos - 1 + _shuffleOrder.length) % _shuffleOrder.length;
       _currentIndex = _shuffleOrder[prevPos];
     } else {
       _currentIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
@@ -205,16 +210,17 @@ class PlayerProvider extends ChangeNotifier {
   // ── Controls ───────────────────────────────────────────────────────────
   Future<void> playPause() async {
     if (_isPlaying) await _player.pause();
-    else            await _player.play();
+    else await _player.play();
   }
 
   Future<void> next() async {
     if (_queue.isEmpty) return;
-    _nextTrack(loop: _queue.length > 1);
+    _nextTrack(loop: _repeatMode == RepeatMode.all);
   }
 
   Future<void> previous() async {
     if (_queue.isEmpty) return;
+    // Si > 3s : retour au début de la chanson
     if (_position.inSeconds > 3) {
       await _player.seek(Duration.zero);
       return;
@@ -222,10 +228,10 @@ class PlayerProvider extends ChangeNotifier {
     _prevTrack();
   }
 
-  Future<void> seek(Duration pos) async => _player.seek(pos);
+  Future<void> seek(Duration position) async => await _player.seek(position);
 
   void toggleRepeat() {
-    _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % 3];
+    _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % RepeatMode.values.length];
     notifyListeners();
   }
 
@@ -235,19 +241,20 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Queue ──────────────────────────────────────────────────────────────
+  // ── Queue management ───────────────────────────────────────────────────
   void addToQueue(Song song) {
-    if (_queue.contains(song)) return;
-    _queue.add(song);
-    if (_shuffle) _shuffleOrder.add(_queue.length - 1);
-    notifyListeners();
+    if (!_queue.contains(song)) {
+      _queue.add(song);
+      if (_shuffle) _shuffleOrder.add(_queue.length - 1);
+      notifyListeners();
+    }
   }
 
   void addNextInQueue(Song song) {
     _queue.remove(song);
-    final at = (_currentIndex + 1).clamp(0, _queue.length);
-    _queue.insert(at, song);
-    if (at <= _currentIndex) _currentIndex++;
+    final insertAt = (_currentIndex + 1).clamp(0, _queue.length);
+    _queue.insert(insertAt, song);
+    if (insertAt <= _currentIndex) _currentIndex++;
     if (_shuffle) _buildShuffleOrder();
     notifyListeners();
   }
@@ -260,13 +267,13 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void reorderQueue(int oldIdx, int newIdx) {
-    if (oldIdx < newIdx) newIdx--;
-    final song = _queue.removeAt(oldIdx);
-    _queue.insert(newIdx, song);
-    if (oldIdx == _currentIndex)                              _currentIndex = newIdx;
-    else if (oldIdx < _currentIndex && newIdx >= _currentIndex) _currentIndex--;
-    else if (oldIdx > _currentIndex && newIdx <= _currentIndex) _currentIndex++;
+  void reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) newIndex--;
+    final song = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, song);
+    if (oldIndex == _currentIndex) _currentIndex = newIndex;
+    else if (oldIndex < _currentIndex && newIndex >= _currentIndex) _currentIndex--;
+    else if (oldIndex > _currentIndex && newIndex <= _currentIndex) _currentIndex++;
     if (_shuffle) _buildShuffleOrder();
     notifyListeners();
   }
@@ -274,22 +281,25 @@ class PlayerProvider extends ChangeNotifier {
   // ── Dynamic colors ─────────────────────────────────────────────────────
   Future<void> _fetchColors() async {
     if (currentSong == null) return;
-    final key = currentSong!.image ?? currentSong!.hash;
+    final song = currentSong!;
+    final cacheKey = song.image ?? song.hash;
     try {
-      final r = await http.get(
-        Uri.parse('${_api.baseUrl}/img/thumbnail/$key'),
-        headers: _api.authHeaders,
-      ).timeout(const Duration(seconds: 6));
-      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
-        _dynamicColors = await ColorService.fromBytes(key, r.bodyBytes);
+      final url = '${_api.baseUrl}/img/thumbnail/$cacheKey';
+      final r = await http.get(Uri.parse(url), headers: _api.authHeaders)
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
+        _dynamicColors = await ColorService.fromBytes(cacheKey, r.bodyBytes);
         notifyListeners();
       }
     } catch (_) {}
   }
 
+  bool get mounted => true; // Provider est toujours actif tant qu'il n'est pas dispose
+
   // ── Lyrics ─────────────────────────────────────────────────────────────
   Future<void> _fetchLyrics() async {
     if (currentSong == null) return;
+    _lyrics = null;
     _syncedLines = null;
     _unsyncedLines = null;
     _lyricsSynced = false;
@@ -305,21 +315,45 @@ class PlayerProvider extends ChangeNotifier {
       _lyricsSynced = result['synced'] == true;
       final raw = result['lyrics'];
       if (_lyricsSynced && raw is List) {
-        _syncedLines = (raw as List).map((e) => {
-          'time': (e['time'] as num).toInt(),
-          'text': (e['text'] ?? '').toString(),
-        }).toList();
+        _syncedLines = List<Map<String, dynamic>>.from(
+          raw.map((e) => {
+            'time': (e['time'] as num).toInt(),
+            'text': (e['text'] ?? '').toString(),
+          }),
+        );
+        _lyrics = 'synced';
       } else if (raw is List) {
-        _unsyncedLines = (raw as List).map((e) => e.toString()).toList();
+        _unsyncedLines = List<String>.from(raw.map((e) => e.toString()));
+        _lyrics = _unsyncedLines!.join("\n");
       } else if (raw is String) {
-        _unsyncedLines = raw.split('\n');
+        _lyrics = raw;
       }
     }
+
     _lyricsLoading = false;
     notifyListeners();
   }
 
-  // ── Favourites ─────────────────────────────────────────────────────────
+  // ── Favourites ────────────────────────────────────────────────────────
+  final Set<String> _favourites = {};
+
+  bool isFavourite(String hash) => _favourites.contains(hash);
+
+  Future<void> toggleFavourite(String hash) async {
+    final wasLiked = _favourites.contains(hash);
+    if (wasLiked) { _favourites.remove(hash); } else { _favourites.add(hash); }
+    notifyListeners();
+    final ok = await _api.toggleFavourite(hash);
+    if (!ok) {
+      if (wasLiked) { _favourites.add(hash); } else { _favourites.remove(hash); }
+      notifyListeners();
+    }
+  }
+
+  // ── Favourites ────────────────────────────────────────────────────────
+  final Set<String> _favourites = {};
+  bool isFavourite(String hash) => _favourites.contains(hash);
+
   Future<void> toggleFavourite(String hash) async {
     final was = _favourites.contains(hash);
     was ? _favourites.remove(hash) : _favourites.add(hash);

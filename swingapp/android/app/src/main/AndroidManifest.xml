@@ -18,6 +18,7 @@
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true">
 
+        <!-- MainActivity hérite de AudioServiceActivity — OBLIGATOIRE pour just_audio_background -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -36,7 +37,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Service audio arrière-plan -->
+        <!-- Service audio arrière-plan (just_audio_background) -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:exported="true"
@@ -46,6 +47,7 @@
             </intent-filter>
         </service>
 
+        <!-- Boutons média (casque, Bluetooth, notification) -->
         <receiver
             android:name="com.ryanheise.audioservice.MediaButtonReceiver"
             android:exported="true">
@@ -54,11 +56,9 @@
             </intent-filter>
         </receiver>
 
-        <meta-data
-            android:name="flutterEmbedding"
-            android:value="2"/>
+        <meta-data android:name="flutterEmbedding" android:value="2"/>
 
-        <!-- FileProvider : sert l'APK à l'installeur Android -->
+        <!-- FileProvider pour l'installation APK -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

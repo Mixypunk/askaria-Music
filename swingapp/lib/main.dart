@@ -87,21 +87,6 @@ Future<void> main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  // Initialiser le service audio arrière-plan
-  // Le try/catch évite l'écran noir si le plugin échoue
-  try {
-    await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.mixypunk.askasound.channel.audio',
-      androidNotificationChannelName: 'AskaSound',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
-      notificationColor: const Color(0xFF121212),
-      androidNotificationIcon: 'mipmap/ic_launcher',
-    );
-  } catch (e) {
-    debugPrint('JustAudioBackground init error (non-fatal): $e');
-  }
-
   // Démarrer l'app immédiatement avec un splash — l'auth se fait en arrière-plan
   runApp(const _SplashWrapper());
 }
@@ -124,6 +109,19 @@ class _SplashWrapperState extends State<_SplashWrapper> {
   }
 
   Future<void> _init() async {
+    // Init arrière-plan audio
+    try {
+      await JustAudioBackground.init(
+        androidNotificationChannelId: 'com.mixypunk.askasound.channel.audio',
+        androidNotificationChannelName: 'AskaSound',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+        notificationColor: const Color(0xFF121212),
+        androidNotificationIcon: 'mipmap/ic_launcher',
+      );
+    } catch (e) {
+      debugPrint('JustAudioBackground init error: \$e');
+    }
     try {
       await SwingApiService().loadSettings();
       _logged = await SwingApiService().checkAuth()

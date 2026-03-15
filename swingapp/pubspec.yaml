@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Audio
+  # Audio + arrière-plan
   just_audio: ^0.9.36
   just_audio_background: ^0.0.1-beta.11
 
