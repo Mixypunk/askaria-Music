@@ -114,7 +114,9 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return NestedScrollView(
+    return Scaffold(
+      backgroundColor: Sp.bg,
+      body: NestedScrollView(
       headerSliverBuilder: (_, __) => [
         SliverAppBar(
           floating: true,
@@ -189,8 +191,9 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
                     _ArtistsList(artists: _artists),
                     const _FavouritesList(),
                   ],
-                ),
-    );
+                ),         // TabBarView
+      ),           // body: NestedScrollView
+    );             // Scaffold
   }
 }
 

@@ -312,7 +312,7 @@ class _PlayerPage extends StatelessWidget {
                         ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                           content: Text(ok
                             ? 'Ajouté à « ${pl.name} »'
-                            : 'Erreur lors de l'ajout'),
+                            : 'Erreur lors de l\'ajout'),
                           behavior: SnackBarBehavior.floating));
                       }
                     });

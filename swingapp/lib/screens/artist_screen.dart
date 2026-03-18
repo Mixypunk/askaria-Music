@@ -595,7 +595,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
           const Divider(color: Colors.white12, height: 1),
           ListTile(
             leading: const Icon(Icons.play_arrow_rounded, color: Colors.white70),
-            title: const Text('Lire à partir d'ici',
+            title: const Text('Lire à partir d\'ici',
               style: TextStyle(color: Colors.white)),
             onTap: () {
               Navigator.pop(ctx);
@@ -1332,7 +1332,7 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
         const Divider(color: Colors.white12, height: 1),
         ListTile(
           leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
-          title: const Text('Ajouter à la file d'attente',
+          title: const Text('Ajouter à la file d\'attente',
             style: TextStyle(color: Colors.white)),
           onTap: () {
             ctx.read<PlayerProvider>().addNextInQueue(widget.song);
@@ -1370,7 +1370,7 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
                 ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                   content: Text(ok
                     ? 'Ajouté à « ${pl.name} »'
-                    : 'Erreur lors de l'ajout'),
+                    : 'Erreur lors de l\'ajout'),
                   behavior: SnackBarBehavior.floating));
               }
             }))),
