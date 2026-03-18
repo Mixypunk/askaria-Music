@@ -247,6 +247,83 @@ class _PlayerPage extends StatelessWidget {
     return '${d.inMinutes}min';
   }
 
+  Future<void> _showAddToPlaylist(BuildContext ctx, song) async {
+    // Utiliser le cache du provider
+    final player = ctx.read<PlayerProvider>();
+    final playlists = await player.getCachedPlaylists();
+    if (!ctx.mounted) return;
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: const Color(0xFF282828),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(children: [
+              Container(width: 36, height: 4, margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2))),
+              const Text('Ajouter à une playlist',
+                style: TextStyle(color: Colors.white, fontSize: 16,
+                    fontWeight: FontWeight.bold)),
+            ])),
+          const Divider(color: Colors.white12, height: 1),
+          if (playlists.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Aucune playlist disponible',
+                style: TextStyle(color: Colors.white54)))
+          else
+            SizedBox(
+              height: playlists.length > 4 ? 250 : null,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: playlists.length,
+                itemBuilder: (_, i) {
+                  final pl = playlists[i];
+                  return ListTile(
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: NetImage(
+                        url: '${SwingApiService().baseUrl}/img/playlist/${pl.id}.webp',
+                        width: 44, height: 44,
+                        headers: SwingApiService().authHeaders,
+                        borderRadius: BorderRadius.circular(4),
+                        placeholder: Container(width: 44, height: 44,
+                          color: Sp.card, child: const Icon(
+                              Icons.queue_music_rounded,
+                              color: Colors.white38, size: 20)))),
+                    title: Text(pl.name,
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 14),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                      '${pl.trackCount} titre${pl.trackCount != 1 ? "s" : ""}',
+                      style: const TextStyle(color: Colors.white54,
+                          fontSize: 12)),
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      final ok = await SwingApiService()
+                          .addTracksToPlaylist(pl.id, [song.hash]);
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                          content: Text(ok
+                            ? 'Ajouté à « ${pl.name} »'
+                            : 'Erreur lors de l'ajout'),
+                          behavior: SnackBarBehavior.floating));
+                      }
+                    });
+                },
+              )),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
   void _showSleepTimer(BuildContext ctx, PlayerProvider player) {
     showModalBottomSheet(
       context: ctx,
@@ -425,6 +502,15 @@ class _PlayerPage extends StatelessWidget {
                   ? 'Retirer des favoris' : 'Ajouter aux favoris',
               style: const TextStyle(color: Colors.white)),
             onTap: () { player.toggleFavourite(song.hash); Navigator.pop(ctx); }),
+          ListTile(
+            leading: const Icon(Icons.playlist_add_rounded,
+                color: Colors.white70),
+            title: const Text('Ajouter à une playlist',
+              style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(ctx);
+              _showAddToPlaylist(ctx, song);
+            }),
           ListTile(
             leading: Icon(Icons.bedtime_rounded,
               color: player.hasSleepTimer ? Colors.blueAccent : Colors.white70),

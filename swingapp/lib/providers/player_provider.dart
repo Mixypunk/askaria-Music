@@ -383,6 +383,30 @@ class PlayerProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ── Cache playlists (évite les appels API répétés) ───────────────────
+  List<dynamic> _cachedPlaylists = [];
+  DateTime? _playlistsCachedAt;
+
+  Future<List<dynamic>> getCachedPlaylists() async {
+    final now = DateTime.now();
+    // Rafraîchir si pas encore chargé ou si > 60 secondes
+    if (_cachedPlaylists.isEmpty ||
+        _playlistsCachedAt == null ||
+        now.difference(_playlistsCachedAt!) > const Duration(seconds: 60)) {
+      try {
+        _cachedPlaylists = await _api.getPlaylists();
+        _playlistsCachedAt = now;
+      } catch (_) {}
+    }
+    return _cachedPlaylists;
+  }
+
+  /// Invalider le cache (après création/suppression de playlist)
+  void invalidatePlaylistsCache() {
+    _cachedPlaylists = [];
+    _playlistsCachedAt = null;
+  }
+
   // ── Sleep timer ───────────────────────────────────────────────────────
   Timer? _sleepTimer;
   DateTime? _sleepAt;

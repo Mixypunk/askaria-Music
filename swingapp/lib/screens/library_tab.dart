@@ -33,11 +33,59 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));
     _load();
   }
 
   @override
   void dispose() { _tabCtrl.dispose(); super.dispose(); }
+
+  Future<void> _createPlaylist() async {
+    final nameCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Sp.card,
+        title: const Text('Nouvelle playlist',
+          style: TextStyle(color: Colors.white, fontSize: 18)),
+        content: Container(
+          decoration: BoxDecoration(color: Sp.bg,
+              borderRadius: BorderRadius.circular(8)),
+          child: TextField(
+            controller: nameCtrl,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            decoration: const InputDecoration(
+              hintText: 'Nom de la playlist',
+              hintStyle: TextStyle(color: Colors.white38),
+              prefixIcon: Icon(Icons.queue_music_rounded,
+                  color: Colors.white38, size: 20),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 14)),
+          )),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler',
+              style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+            child: Text('Créer',
+              style: TextStyle(color: Sp.g2, fontWeight: FontWeight.bold))),
+        ],
+      ));
+    if (confirmed != true || nameCtrl.text.trim().isEmpty) return;
+    final pl = await SwingApiService()
+        .createPlaylist(nameCtrl.text.trim());
+    if (pl != null && mounted) {
+      context.read<PlayerProvider>().invalidatePlaylistsCache();
+      setState(() => _playlists.insert(0, pl));
+      // Ouvrir directement la playlist créée
+      final result = await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => PlaylistScreen(playlist: pl)));
+      if (result == 'deleted') {
+        setState(() => _playlists.removeWhere((p) => p.id == pl.id));
+      }
+    }
+  }
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
@@ -119,6 +167,12 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
           ),
         ),
       ],
+      floatingActionButton: _tabCtrl.index == 0
+          ? FloatingActionButton(
+              onPressed: _createPlaylist,
+              backgroundColor: Sp.g2,
+              child: const Icon(Icons.add_rounded, color: Colors.white))
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator(
               color: Colors.white, strokeWidth: 2))
@@ -127,7 +181,10 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
               : TabBarView(
                   controller: _tabCtrl,
                   children: [
-                    _PlaylistsList(playlists: _playlists),
+                    _PlaylistsList(
+                      playlists: _playlists,
+                      onDeleted: (id) => setState(
+                          () => _playlists.removeWhere((p) => p.id == id))),
                     _AlbumsList(albums: _albums),
                     _ArtistsList(artists: _artists),
                     const _FavouritesList(),
@@ -140,7 +197,8 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
 // ── Playlists ──────────────────────────────────────────────────────────────────
 class _PlaylistsList extends StatelessWidget {
   final List<Playlist> playlists;
-  const _PlaylistsList({required this.playlists});
+  final void Function(String id)? onDeleted;
+  const _PlaylistsList({required this.playlists, this.onDeleted});
   @override
   Widget build(BuildContext ctx) {
     if (playlists.isEmpty) return const _EmptyView(
@@ -148,14 +206,17 @@ class _PlaylistsList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 100),
       itemCount: playlists.length,
-      itemBuilder: (ctx, i) => _PlaylistTile(playlist: playlists[i]),
+      itemBuilder: (ctx, i) => _PlaylistTile(
+        playlist: playlists[i],
+        onDeleted: onDeleted),
     );
   }
 }
 
 class _PlaylistTile extends StatelessWidget {
   final Playlist playlist;
-  const _PlaylistTile({required this.playlist});
+  final void Function(String id)? onDeleted;
+  const _PlaylistTile({required this.playlist, this.onDeleted});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
@@ -176,8 +237,15 @@ class _PlaylistTile extends StatelessWidget {
         style: const TextStyle(color: Colors.white54, fontSize: 13)),
       trailing: const Icon(Icons.chevron_right_rounded,
           color: Colors.white38, size: 20),
-      onTap: () => Navigator.push(ctx, MaterialPageRoute(
-        builder: (_) => PlaylistScreen(playlist: playlist))),
+      onTap: () async {
+        final result = await Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => PlaylistScreen(playlist: playlist)));
+        if (result == 'deleted' && ctx.mounted) {
+          // Remonter l'info au parent (_PlaylistsList → _LibraryTabState)
+          // via le callback onDeleted
+          onDeleted?.call(playlist.id);
+        }
+      },
     );
   }
 }
