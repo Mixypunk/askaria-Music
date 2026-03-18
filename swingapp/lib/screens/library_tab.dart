@@ -116,6 +116,12 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
     super.build(context);
     return Scaffold(
       backgroundColor: Sp.bg,
+      floatingActionButton: _tabCtrl.index == 0
+          ? FloatingActionButton(
+              onPressed: _createPlaylist,
+              backgroundColor: Sp.g2,
+              child: const Icon(Icons.add_rounded, color: Colors.white))
+          : null,
       body: NestedScrollView(
       headerSliverBuilder: (_, __) => [
         SliverAppBar(
@@ -169,12 +175,6 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
           ),
         ),
       ],
-      floatingActionButton: _tabCtrl.index == 0
-          ? FloatingActionButton(
-              onPressed: _createPlaylist,
-              backgroundColor: Sp.g2,
-              child: const Icon(Icons.add_rounded, color: Colors.white))
-          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator(
               color: Colors.white, strokeWidth: 2))
