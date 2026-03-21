@@ -171,6 +171,7 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
               Tab(text: 'Playlists ${_playlists.isNotEmpty ? "(${_playlists.length})" : ""}'),
               Tab(text: 'Albums ${_albums.isNotEmpty ? "(${_albums.length})" : ""}'),
               Tab(text: 'Artistes ${_artists.isNotEmpty ? "(${_artists.length})" : ""}'),
+              Tab(text: 'Favoris'),   // ← cette ligne manque
             ],
           ),
         ),
