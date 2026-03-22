@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
@@ -5,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
@@ -84,6 +86,7 @@ class PlayerProvider extends ChangeNotifier {
           artist: currentSong!.artist ?? '',
           artUrl: artUrl,
           isPlaying: state.playing,
+          authToken: _api.accessToken,
         );
       }
       notifyListeners();
@@ -151,7 +154,11 @@ class PlayerProvider extends ChangeNotifier {
         artist:    song.artist ?? '',
         artUrl:    artUrl,
         isPlaying: true,
+        authToken: _api.accessToken,
       );
+      // Télécharger la pochette en cache local pour la notification Android
+      // (Android bloque les artUri HTTP depuis les media sessions)
+      final localArtUri = await _cacheArtwork(artUrl, song.image ?? song.hash);
       debugPrint('🎵 Stream: $url');
       await _player.setAudioSource(
         AudioSource.uri(
@@ -162,7 +169,7 @@ class PlayerProvider extends ChangeNotifier {
             title:  song.title,
             artist: song.artist,
             album:  song.album,
-            artUri: Uri.parse(artUrl),
+            artUri: localArtUri,
           ),
         ),
       );
@@ -558,6 +565,37 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+
+  // Cache local pour les pochettes (notification Android)
+  final Map<String, Uri> _artCache = {};
+
+  Future<Uri> _cacheArtwork(String url, String hash) async {
+    if (_artCache.containsKey(hash)) return _artCache[hash]!;
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File('\${dir.path}/art_\$hash.jpg');
+      if (await file.exists()) {
+        final uri = file.uri;
+        _artCache[hash] = uri;
+        return uri;
+      }
+      // Télécharger avec le token auth
+      final r = await http.get(
+        Uri.parse(url),
+        headers: _api.authHeaders,
+      ).timeout(const Duration(seconds: 8));
+      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
+        await file.writeAsBytes(r.bodyBytes);
+        final uri = file.uri;
+        _artCache[hash] = uri;
+        return uri;
+      }
+    } catch (e) {
+      debugPrint('cacheArtwork error: \$e');
+    }
+    // Fallback : URI HTTP directe (peut ne pas s'afficher dans la notification)
+    return Uri.parse(url);
+  }
 
   @override
   void dispose() {

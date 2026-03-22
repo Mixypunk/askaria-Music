@@ -26,6 +26,7 @@ class AskariaWidget : AppWidgetProvider() {
         const val KEY_ARTIST   = "widget_artist"
         const val KEY_PLAYING  = "widget_playing"
         const val KEY_ART_URL  = "widget_art_url"
+        const val KEY_TOKEN    = "widget_auth_token"
 
         fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
@@ -64,6 +65,7 @@ class AskariaWidget : AppWidgetProvider() {
         val artist  = prefs.getString(KEY_ARTIST,  "Aucun titre en cours") ?: "Aucun titre"
         val playing = prefs.getBoolean(KEY_PLAYING, false)
         val artUrl  = prefs.getString(KEY_ART_URL, null)
+        val token   = prefs.getString(KEY_TOKEN, null)
 
         val views = RemoteViews(ctx.packageName, R.layout.askaria_widget)
 
@@ -96,7 +98,7 @@ class AskariaWidget : AppWidgetProvider() {
         if (artUrl != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val bmp = loadBitmap(artUrl)
+                    val bmp = loadBitmap(artUrl, token)
                     if (bmp != null) {
                         views.setImageViewBitmap(R.id.widget_artwork, bmp)
                         mgr.updateAppWidget(id, views)
@@ -115,10 +117,13 @@ class AskariaWidget : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
-    private fun loadBitmap(url: String): Bitmap? {
+    private fun loadBitmap(url: String, token: String?): Bitmap? {
         val conn = URL(url).openConnection() as HttpURLConnection
-        conn.connectTimeout = 5000
-        conn.readTimeout    = 5000
+        conn.connectTimeout = 6000
+        conn.readTimeout    = 6000
+        if (!token.isNullOrEmpty()) {
+            conn.setRequestProperty("Authorization", "Bearer $token")
+        }
         return try {
             conn.connect()
             if (conn.responseCode == 200)

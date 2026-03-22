@@ -56,10 +56,11 @@ class MainActivity : AudioServiceActivity() {
                 if (call.method == "updateWidget") {
                     val intent = Intent(WidgetReceiver.ACTION_UPDATE).apply {
                         setPackage(packageName)
-                        putExtra("title",   call.argument<String>("title")   ?: "")
-                        putExtra("artist",  call.argument<String>("artist")  ?: "")
-                        putExtra("art_url", call.argument<String>("art_url") ?: "")
-                        putExtra("playing", call.argument<Boolean>("playing") ?: false)
+                        putExtra("title",      call.argument<String>("title")      ?: "")
+                        putExtra("artist",     call.argument<String>("artist")     ?: "")
+                        putExtra("art_url",    call.argument<String>("art_url")    ?: "")
+                        putExtra("auth_token", call.argument<String>("auth_token") ?: "")
+                        putExtra("playing",    call.argument<Boolean>("playing")   ?: false)
                     }
                     sendBroadcast(intent)
                     result.success(true)

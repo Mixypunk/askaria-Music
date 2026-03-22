@@ -39,16 +39,18 @@ class WidgetService {
     required String artist,
     required String artUrl,
     required bool isPlaying,
+    String? authToken,
   }) async {
     try {
       await _channel.invokeMethod('updateWidget', {
-        'title':   title,
-        'artist':  artist,
-        'art_url': artUrl,
-        'playing': isPlaying,
+        'title':      title,
+        'artist':     artist,
+        'art_url':    artUrl,
+        'playing':    isPlaying,
+        'auth_token': authToken ?? '',
       });
     } catch (e) {
-      debugPrint('Widget update error: $e');
+      debugPrint('Widget update error: \$e');
     }
   }
 }

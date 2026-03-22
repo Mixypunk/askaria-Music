@@ -119,10 +119,14 @@ class _SplashWrapperState extends State<_SplashWrapper> {
       await JustAudioBackground.init(
         androidNotificationChannelId: 'com.mixypunk.askaria.channel.audio',
         androidNotificationChannelName: 'Askaria Music',
-        androidNotificationOngoing: true,
+        // false = permet d'afficher les boutons prev/next dans la notification
+        androidNotificationOngoing: false,
         androidStopForegroundOnPause: true,
-        notificationColor: const Color(0xFF121212),
+        notificationColor: const Color(0xFF1A1A2E),
         androidNotificationIcon: 'mipmap/ic_launcher',
+        // Afficher les boutons prev/next dans la notification
+        androidEnableMediaStyle: true,
+        androidSkipIntervalMinutes: 0,
       );
     } catch (e) {
       debugPrint('JustAudioBackground init error: \$e');

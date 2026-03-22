@@ -22,9 +22,10 @@ class WidgetReceiver : BroadcastReceiver() {
             val prefs: SharedPreferences =
                 ctx.getSharedPreferences(AskariaWidget.PREFS, Context.MODE_PRIVATE)
 
-            intent.getStringExtra("title")?.let   { prefs.edit().putString(AskariaWidget.KEY_TITLE, it).apply() }
-            intent.getStringExtra("artist")?.let  { prefs.edit().putString(AskariaWidget.KEY_ARTIST, it).apply() }
-            intent.getStringExtra("art_url")?.let { prefs.edit().putString(AskariaWidget.KEY_ART_URL, it).apply() }
+            intent.getStringExtra("title")?.let      { prefs.edit().putString(AskariaWidget.KEY_TITLE,  it).apply() }
+            intent.getStringExtra("artist")?.let     { prefs.edit().putString(AskariaWidget.KEY_ARTIST, it).apply() }
+            intent.getStringExtra("art_url")?.let    { prefs.edit().putString(AskariaWidget.KEY_ART_URL, it).apply() }
+            intent.getStringExtra("auth_token")?.let { prefs.edit().putString(AskariaWidget.KEY_TOKEN,   it).apply() }
             val playing = intent.getBooleanExtra("playing", false)
             prefs.edit().putBoolean(AskariaWidget.KEY_PLAYING, playing).apply()
 
