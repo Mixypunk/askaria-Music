@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
@@ -66,6 +67,7 @@ class PlayerProvider extends ChangeNotifier {
 
   PlayerProvider() {
     _loadFavourites();
+    _restoreQueue();
     _player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
@@ -128,7 +130,7 @@ class PlayerProvider extends ChangeNotifier {
       final song = currentSong!;
       final prefs   = await SharedPreferences.getInstance();
       final quality  = prefs.getString('audio_quality') ?? 'high';
-      final url      = _api.getStreamUrl(song.hash,
+      final url      = await _api.buildStreamUrl(song.hash,
           filepath: song.filepath, quality: quality);
       _addToHistory(song);
       final artUrl = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
@@ -149,9 +151,15 @@ class PlayerProvider extends ChangeNotifier {
       await _player.play();
       notifyListeners();
     } catch (e) {
-      _error = 'Erreur: $e';
-      debugPrint('Stream error: $e');
-      notifyListeners();
+      _error = e.toString().contains('Connection refused')
+          ? 'Serveur inaccessible — vérifiez la connexion'
+          : e.toString().contains('404')
+              ? 'Fichier audio introuvable sur le serveur'
+              : e.toString().contains('401')
+                  ? 'Session expirée — reconnectez-vous'
+                  : 'Erreur de lecture : \${e.toString().split(':').last.trim()}';
+      debugPrint('Stream error: \$e');
+      if (mounted) notifyListeners();
     }
   }
 
@@ -304,21 +312,24 @@ class PlayerProvider extends ChangeNotifier {
 
   // ── Dynamic colors ─────────────────────────────────────────────────────
   Future<void> _fetchColors() async {
-    if (currentSong == null) return;
+    if (currentSong == null || !mounted) return;
     final song = currentSong!;
     final cacheKey = song.image ?? song.hash;
     try {
       final url = '${_api.baseUrl}/img/thumbnail/$cacheKey';
       final r = await http.get(Uri.parse(url), headers: _api.authHeaders)
           .timeout(const Duration(seconds: 6));
+      // Verifier mounted apres l'await (le provider peut avoir ete dispose)
       if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
         _dynamicColors = await ColorService.fromBytes(cacheKey, r.bodyBytes);
-        notifyListeners();
+        if (mounted) notifyListeners();
       }
     } catch (_) {}
   }
 
-  bool get mounted => true; // Provider est toujours actif tant qu'il n'est pas dispose
+  bool _disposed = false;
+
+  bool get mounted => !_disposed;
 
   // ── Lyrics ─────────────────────────────────────────────────────────────
   Future<void> _fetchLyrics() async {
@@ -409,6 +420,7 @@ class PlayerProvider extends ChangeNotifier {
 
   // ── Sleep timer ───────────────────────────────────────────────────────
   Timer? _sleepTimer;
+  Timer? _periodicTimer;  // Timer de tick pour le sleep timer
   DateTime? _sleepAt;
   Duration? get sleepRemaining {
     if (_sleepAt == null) return null;
@@ -431,8 +443,9 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
     });
     // Tick chaque minute pour mettre à jour le temps restant
-    Timer.periodic(const Duration(minutes: 1), (t) {
-      if (_sleepAt == null) { t.cancel(); return; }
+    _periodicTimer?.cancel();  // Annuler l'ancien avant d'en creer un nouveau
+    _periodicTimer = Timer.periodic(const Duration(minutes: 1), (t) {
+      if (_sleepAt == null) { t.cancel(); _periodicTimer = null; return; }
       notifyListeners();
     });
     notifyListeners();
@@ -440,18 +453,73 @@ class PlayerProvider extends ChangeNotifier {
 
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
     _sleepAt = null;
     notifyListeners();
   }
 
   // ── Persistance queue ─────────────────────────────────────────────────
+
+  /// Restaure la derniere queue et position au demarrage
+  Future<void> _restoreQueue() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedIndex = prefs.getInt('queue_index') ?? 0;
+      final savedPosition = prefs.getInt('queue_position') ?? 0;
+
+      // Restauration depuis JSON (plus rapide que charger 5000 titres)
+      final queueJson = prefs.getString('queue_json');
+      if (queueJson == null || queueJson.isEmpty) return;
+
+      final List<dynamic> decoded = json.decode(queueJson) as List<dynamic>;
+      final restored = decoded
+          .map((e) => Song.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (restored.isEmpty) return;
+
+      _queue = restored;
+      _currentIndex = savedIndex.clamp(0, restored.length - 1);
+
+      // Charger le titre sans le jouer (juste mettre a jour l'UI)
+      final song = _queue[_currentIndex];
+      final artUrl = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
+      await _player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath)),
+          headers: _api.authHeaders,
+          tag: MediaItem(
+            id:     song.hash,
+            title:  song.title,
+            artist: song.artist,
+            album:  song.album,
+            artUri: Uri.parse(artUrl),
+          ),
+        ),
+      );
+      // Seek a la position sauvegardee
+      if (savedPosition > 0) {
+        await _player.seek(Duration(seconds: savedPosition));
+      }
+      if (mounted) notifyListeners();
+      debugPrint('Queue restauree : \${restored.length} titres, index \$_currentIndex');
+    } catch (e) {
+      debugPrint('Erreur restauration queue: \$e');
+    }
+  }
+
   Future<void> _persistQueue() async {
     if (_queue.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Sauvegarder les hashes + index courant + position
-      final hashes = _queue.map((s) => s.hash).toList();
-      await prefs.setStringList('queue_hashes', hashes);
+      // Sauvegarder les objets Song complets en JSON (restauration rapide)
+      final queueJson = json.encode(_queue.map((s) => {
+        'trackhash': s.hash, 'hash': s.hash, 'title': s.title,
+        'artist': s.artist, 'album': s.album, 'albumhash': s.albumHash,
+        'artisthash': s.artistHash, 'duration': s.duration,
+        'filepath': s.filepath, 'image': s.image,
+      }).toList());
+      await prefs.setString('queue_json', queueJson);
       await prefs.setInt('queue_index', _currentIndex);
       await prefs.setInt('queue_position', _position.inSeconds);
     } catch (_) {}
@@ -471,7 +539,9 @@ class PlayerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _sleepTimer?.cancel();
+    _periodicTimer?.cancel();
     _player.dispose();
     super.dispose();
   }

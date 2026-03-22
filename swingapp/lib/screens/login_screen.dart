@@ -24,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: const Icon(Icons.music_note_rounded, size: 80, color: Colors.white),
         ),
         const SizedBox(height: 24),
-        const Text('Millions de titres.\nGratuit sur AskaSound.',
+        const Text('Votre musique.\nPartout, chez vous.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Sp.white, fontSize: 24,
               fontWeight: FontWeight.bold, height: 1.3)),
@@ -87,25 +87,40 @@ class _QrTabState extends State<_QrTab> {
 
   Future<void> _onDetect(BarcodeCapture c) async {
     if (!_scanning || _loading) return;
-    final raw = c.barcodes.first.rawValue;
-    if (raw == null) return;
+    final raw = c.barcodes.firstOrNull?.rawValue;
+    if (raw == null || raw.trim().isEmpty) return;
     setState(() { _scanning = false; _loading = true; _error = null; });
-    final parts = raw.trim().split(' ');
-    if (parts.length < 2) {
-      setState(() { _loading = false; _error = 'QR invalide'; _scanning = true; });
+
+    // Format attendu: "{serverUrl} {code}"
+    // Robuste : on cherche le dernier espace comme separateur
+    final trimmed = raw.trim();
+    final lastSpace = trimmed.lastIndexOf(' ');
+    if (lastSpace <= 0) {
+      setState(() { _loading = false; _error = 'QR invalide — format inconnu'; _scanning = true; });
       return;
     }
-    final ok = await SwingApiService().pairWithCode(parts[0], parts[1]);
+    final serverUrl = trimmed.substring(0, lastSpace);
+    final code      = trimmed.substring(lastSpace + 1);
+
+    if (serverUrl.isEmpty || code.isEmpty) {
+      setState(() { _loading = false; _error = 'QR invalide — données manquantes'; _scanning = true; });
+      return;
+    }
+
+    final ok = await SwingApiService().pairWithCode(serverUrl, code);
     if (!mounted) return;
-    if (ok) Navigator.of(context).pushReplacementNamed('/root');
-    else setState(() { _loading = false; _error = 'Échec du pairing'; _scanning = true; });
+    if (ok) {
+      Navigator.of(context).pushReplacementNamed('/root');
+    } else {
+      setState(() { _loading = false; _error = 'Échec du pairing — vérifiez le serveur'; _scanning = true; });
+    }
   }
 
   @override
   Widget build(BuildContext ctx) => Padding(
     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
     child: Column(children: [
-      Text('Settings → Pair device sur Swing Music',
+      Text('Paramètres → Appairer un appareil sur Askaria',
         textAlign: TextAlign.center,
         style: const TextStyle(color: Sp.white70, fontSize: 13)),
       const SizedBox(height: 16),

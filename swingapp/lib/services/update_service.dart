@@ -113,7 +113,7 @@ class UpdateService {
     // pour que FileProvider puisse y accéder
     final dir = await getExternalStorageDirectory()
         ?? await getTemporaryDirectory();
-    final path = '${dir.path}/AskaSound-${info.version}.apk';
+    final path = '${dir.path}/Askaria-${info.version}.apk';
 
     final file = File(path);
     if (await file.exists()) await file.delete();

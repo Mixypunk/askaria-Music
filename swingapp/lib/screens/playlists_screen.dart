@@ -60,7 +60,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                       const SizedBox(height: 16),
                       const Text('Aucune playlist', style: TextStyle(color: AppColors.textSecondary)),
                       const SizedBox(height: 8),
-                      Text('Crée des playlists dans Swing Music',
+                      Text('Crée des playlists dans Askaria',
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ]))
                   : RefreshIndicator(

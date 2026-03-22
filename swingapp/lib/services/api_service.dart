@@ -16,6 +16,8 @@ class SwingApiService {
   final _secure = const FlutterSecureStorage();
   String? _accessToken;
   String? _refreshToken;
+  String? _streamToken;
+  DateTime? _streamTokenExpiry;
 
   String get baseUrl => _baseUrl;
   bool get isLoggedIn => _accessToken != null;
@@ -25,6 +27,29 @@ class SwingApiService {
     'Content-Type': 'application/json',
     if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
   };
+
+  /// Retourne un token court (15min) dédié au streaming audio.
+  /// Évite d'exposer l'access token principal dans les URLs.
+  Future<String> _getStreamToken() async {
+    final now = DateTime.now();
+    // Réutiliser si encore valide (marge de 2 minutes)
+    if (_streamToken != null &&
+        _streamTokenExpiry != null &&
+        _streamTokenExpiry!.isAfter(now.add(const Duration(minutes: 2)))) {
+      return _streamToken!;
+    }
+    try {
+      final r = await _authedGet(Uri.parse('$_baseUrl/auth/stream-token'));
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body);
+        _streamToken = data['stream_token'] as String?;
+        _streamTokenExpiry = now.add(const Duration(minutes: 13));
+        if (_streamToken != null) return _streamToken!;
+      }
+    } catch (_) {}
+    // Fallback : access token si stream-token indispo
+    return _accessToken ?? '';
+  }
 
   // ── SETTINGS ───────────────────────────────────────────────────────────
   Future<void> loadSettings() async {
@@ -80,7 +105,11 @@ class SwingApiService {
         }
       }
       return false;
-    } catch (_) {
+    } on TimeoutException {
+      debugPrint('Login timeout — serveur inaccessible');
+      return false;
+    } catch (e) {
+      debugPrint('Login error: $e');
       return false;
     }
   }
@@ -461,18 +490,33 @@ class SwingApiService {
   }
 
   // ── STREAM / IMAGES ────────────────────────────────────────────────────
-  // Format officiel: {baseUrl}file/{trackhash}/legacy?filepath={encodedPath}
-  String getStreamUrl(String trackHash,
-      {String? filepath, String quality = 'high'}) {
-    // Paramètre bitrate selon la qualité choisie
+  // Format officiel: {baseUrl}file/{trackhash}/legacy
+  // Utilise le stream token (courte durée) plutôt que l'access token
+  Future<String> buildStreamUrl(String trackHash,
+      {String? filepath, String quality = 'high'}) async {
     final bitrate = quality == 'low' ? '96'
                   : quality == 'medium' ? '192'
-                  : '0'; // 0 = qualité originale (lossless si dispo)
+                  : '0';
+    final token = await _getStreamToken();
     if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);
-      return '$_baseUrl/file/$trackHash/legacy?filepath=$encoded&bitrate=$bitrate';
+      return '$_baseUrl/file/$trackHash/legacy?filepath=$encoded&bitrate=$bitrate&token=$token';
     }
-    return '$_baseUrl/file/$trackHash/legacy?bitrate=$bitrate';
+    return '$_baseUrl/file/$trackHash/legacy?bitrate=$bitrate&token=$token';
+  }
+
+  // Compatibilité sync (utilisé dans les endroits qui ne peuvent pas await)
+  String getStreamUrl(String trackHash,
+      {String? filepath, String quality = 'high'}) {
+    final bitrate = quality == 'low' ? '96'
+                  : quality == 'medium' ? '192'
+                  : '0';
+    final token = _streamToken ?? _accessToken ?? '';
+    if (filepath != null && filepath.isNotEmpty) {
+      final encoded = Uri.encodeComponent(filepath);
+      return '$_baseUrl/file/$trackHash/legacy?filepath=$encoded&bitrate=$bitrate&token=$token';
+    }
+    return '$_baseUrl/file/$trackHash/legacy?bitrate=$bitrate&token=$token';
   }
 
   // Format officiel: {baseUrl}img/thumbnail/{track.image}

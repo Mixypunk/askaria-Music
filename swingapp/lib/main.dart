@@ -116,8 +116,8 @@ class _SplashWrapperState extends State<_SplashWrapper> {
     // Init arrière-plan audio
     try {
       await JustAudioBackground.init(
-        androidNotificationChannelId: 'com.mixypunk.askasound.channel.audio',
-        androidNotificationChannelName: 'AskaSound',
+        androidNotificationChannelId: 'com.mixypunk.askaria.channel.audio',
+        androidNotificationChannelName: 'Askaria Music',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
         notificationColor: const Color(0xFF121212),
@@ -160,19 +160,17 @@ class _SplashScreen extends StatelessWidget {
         body: Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ShaderMask(
-              shaderCallback: (b) => kGradV.createShader(b),
-              child: const Icon(Icons.music_note_rounded,
-                  size: 72, color: Colors.white),
+            // Logo Askaria depuis les assets réseau (ou fallback icône)
+            Image.network(
+              'https://askaria-music.duckdns.org/static/logo.webp',
+              width: 200,
+              errorBuilder: (_, __, ___) => ShaderMask(
+                shaderCallback: (b) => kGradV.createShader(b),
+                child: const Icon(Icons.music_note_rounded,
+                    size: 72, color: Colors.white),
+              ),
             ),
-            const SizedBox(height: 24),
-            ShaderMask(
-              shaderCallback: (b) => kGrad.createShader(b),
-              child: const Text('AskaSound',
-                style: TextStyle(color: Colors.white,
-                    fontSize: 28, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 40),
             const SizedBox(
               width: 24, height: 24,
               child: CircularProgressIndicator(
@@ -191,7 +189,7 @@ class _App extends StatelessWidget {
   const _App(this.logged);
   @override
   Widget build(BuildContext ctx) => MaterialApp(
-    title: 'AskaSound',
+    title: 'Askaria',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: false,
