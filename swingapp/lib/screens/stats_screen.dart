@@ -226,7 +226,7 @@ class _StatsScreenState extends State<StatsScreen>
               const Padding(
                 padding: EdgeInsets.only(top: 60),
                 child: Center(child: Text('Aucune écoute sur cette période',
-                    style: TextStyle(color: Sp.white54))),
+                    style: TextStyle(color: Sp.white40))),
               ),
           ],
         ),
@@ -238,7 +238,7 @@ class _StatsScreenState extends State<StatsScreen>
   Widget _buildHistory() {
     if (_history.isEmpty) {
       return const Center(child: Text('Aucun historique',
-          style: TextStyle(color: Sp.white54)));
+          style: TextStyle(color: Sp.white40)));
     }
     final player = context.read<PlayerProvider>();
     return ListView.builder(
