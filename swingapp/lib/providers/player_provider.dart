@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
+import '../services/widget_service.dart';
 
 enum RepeatMode { off, all, one }
 
@@ -75,6 +76,16 @@ class PlayerProvider extends ChangeNotifier {
       if (state.processingState == ProcessingState.completed) {
         _onTrackComplete();
       }
+      // Sync état play/pause avec le widget
+      if (currentSong != null) {
+        final artUrl = '\${_api.baseUrl}/img/thumbnail/\${currentSong!.image ?? currentSong!.hash}';
+        WidgetService.instance.update(
+          title: currentSong!.title,
+          artist: currentSong!.artist ?? '',
+          artUrl: artUrl,
+          isPlaying: state.playing,
+        );
+      }
       notifyListeners();
     });
     _player.positionStream.listen((pos) {
@@ -133,7 +144,14 @@ class PlayerProvider extends ChangeNotifier {
       final url      = await _api.buildStreamUrl(song.hash,
           filepath: song.filepath, quality: quality);
       _addToHistory(song);
-      final artUrl = '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
+      final artUrl = '\${_api.baseUrl}/img/thumbnail/\${song.image ?? song.hash}';
+      // Mettre à jour le widget écran d'accueil
+      WidgetService.instance.update(
+        title:     song.title,
+        artist:    song.artist ?? '',
+        artUrl:    artUrl,
+        isPlaying: true,
+      );
       debugPrint('🎵 Stream: $url');
       await _player.setAudioSource(
         AudioSource.uri(

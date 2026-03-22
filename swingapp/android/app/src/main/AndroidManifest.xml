@@ -68,5 +68,30 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"/>
         </provider>
+
+        <!-- Widget Askaria — écran d'accueil -->
+        <receiver
+            android:name=".AskariaWidget"
+            android:exported="true"
+            android:label="Askaria Player">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="com.mixypunk.askasound.WIDGET_PREV"/>
+                <action android:name="com.mixypunk.askasound.WIDGET_PLAY"/>
+                <action android:name="com.mixypunk.askasound.WIDGET_NEXT"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/askaria_widget_info"/>
+        </receiver>
+
+        <!-- Receiver pour les mises à jour depuis Flutter -->
+        <receiver
+            android:name=".WidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.mixypunk.askasound.WIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

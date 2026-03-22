@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/player_provider.dart';
 import 'services/api_service.dart';
+import 'services/widget_service.dart';
 import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
@@ -135,6 +136,17 @@ class _SplashWrapperState extends State<_SplashWrapper> {
       _logged = false;
     }
     if (mounted) setState(() => _ready = true);
+  }
+
+  void _setupWidgetActions(PlayerProvider player) {
+    WidgetService.instance.onAction = (action) {
+      switch (action) {
+        case 'prev': player.previous(); break;
+        case 'play': player.playPause(); break;
+        case 'next': player.next(); break;
+      }
+    };
+    WidgetService.instance.startListening();
   }
 
   @override
