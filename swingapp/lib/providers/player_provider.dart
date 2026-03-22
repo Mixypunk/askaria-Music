@@ -151,13 +151,17 @@ class PlayerProvider extends ChangeNotifier {
       await _player.play();
       notifyListeners();
     } catch (e) {
-      _error = e.toString().contains('Connection refused')
-          ? 'Serveur inaccessible — vérifiez la connexion'
-          : e.toString().contains('404')
-              ? 'Fichier audio introuvable sur le serveur'
-              : e.toString().contains('401')
-                  ? 'Session expirée — reconnectez-vous'
-                  : 'Erreur de lecture : \${e.toString().split(':').last.trim()}';
+      final msg = e.toString();
+      if (msg.contains('Connection refused')) {
+        _error = 'Serveur inaccessible — vérifiez la connexion';
+      } else if (msg.contains('404')) {
+        _error = 'Fichier audio introuvable sur le serveur';
+      } else if (msg.contains('401')) {
+        _error = 'Session expirée — reconnectez-vous';
+      } else {
+        final detail = msg.contains(':') ? msg.split(':').last.trim() : msg;
+        _error = 'Erreur de lecture : \$detail';
+      }
       debugPrint('Stream error: \$e');
       if (mounted) notifyListeners();
     }
