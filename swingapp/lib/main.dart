@@ -7,6 +7,7 @@ import 'services/widget_service.dart';
 import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/profile_screen.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
 // ── Palette ────────────────────────────────────────────────────────────────────
@@ -226,8 +227,9 @@ class _App extends StatelessWidget {
     ),
     initialRoute: logged ? '/root' : '/login',
     routes: {
-      '/login': (_) => const LoginScreen(),
-      '/root':  (_) => const RootScreen(),
+      '/login':   (_) => const LoginScreen(),
+      '/root':    (_) => const RootScreen(),
+      '/profile': (_) => const ProfileScreen(),
     },
     builder: (ctx, child) => _UpdateChecker(child: child!),
   );

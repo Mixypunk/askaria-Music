@@ -10,6 +10,7 @@ import '../widgets/artwork_widget.dart';
 import '../providers/player_provider.dart';
 import 'package:provider/provider.dart';
 import 'stats_screen.dart';
+import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -198,6 +199,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 28),
 
         // ── COMPTE ───────────────────────────────────────────────
+        _sectionTitle('MON PROFIL'),
+        const SizedBox(height: 10),
+        _card(_tile('Modifier mon profil', 'Photo, nom, email, bio',
+            Icons.manage_accounts_rounded,
+            () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const ProfileScreen())))),
+        const SizedBox(height: 28),
+
         _sectionTitle('COMPTE'),
         const SizedBox(height: 10),
         GestureDetector(
