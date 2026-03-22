@@ -79,9 +79,71 @@ class PlayerProvider extends ChangeNotifier {
   double _volume = 1.0;
   double get volume => _volume;
 
+  // ── Crossfade ──────────────────────────────────────────────────────────────
+  int _crossfadeSeconds = 0;   // 0 = désactivé
+  Timer? _crossfadeTimer;
+  bool _crossfading = false;
+
+  int get crossfadeSeconds => _crossfadeSeconds;
+
+  Future<void> setCrossfade(int seconds) async {
+    _crossfadeSeconds = seconds.clamp(0, 12);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('crossfade_seconds', _crossfadeSeconds);
+    notifyListeners();
+  }
+
+  Future<void> _loadCrossfade() async {
+    final prefs = await SharedPreferences.getInstance();
+    _crossfadeSeconds = prefs.getInt('crossfade_seconds') ?? 0;
+  }
+
+  /// Démarre le fondu sortant et enchaîne sur le titre suivant.
+  /// Appelé [_crossfadeSeconds] secondes avant la fin du titre.
+  Future<void> _startCrossfade() async {
+    if (_crossfading || _crossfadeSeconds <= 0) return;
+    if (!_player.hasNext && _repeatMode != RepeatMode.all) return;
+    _crossfading = true;
+
+    final steps    = _crossfadeSeconds * 20;  // 20 ticks/s
+    final interval = const Duration(milliseconds: 50);
+    final startVol = _volume;
+    int tick = 0;
+
+    _crossfadeTimer?.cancel();
+    _crossfadeTimer = Timer.periodic(interval, (t) async {
+      tick++;
+      final ratio = tick / steps;
+      if (ratio >= 1.0 || !mounted) {
+        t.cancel();
+        _crossfading = false;
+        // Passer au titre suivant et remettre le volume
+        await _player.setVolume(0);
+        await next();
+        // Fade in
+        await _fadeIn(startVol);
+        return;
+      }
+      // Fade out progressif
+      await _player.setVolume(startVol * (1.0 - ratio));
+    });
+  }
+
+  Future<void> _fadeIn(double targetVolume) async {
+    const steps    = 30;
+    const interval = Duration(milliseconds: 50);
+    for (int i = 0; i <= steps; i++) {
+      if (!mounted) return;
+      await _player.setVolume(targetVolume * (i / steps));
+      await Future.delayed(interval);
+    }
+    await _player.setVolume(targetVolume);
+  }
+
   PlayerProvider() {
     _initPlayer();
     _loadFavourites();
+    _loadCrossfade();
     _restoreQueue();
   }
 
@@ -115,6 +177,14 @@ class PlayerProvider extends ChangeNotifier {
 
     _player.positionStream.listen((pos) {
       _position = pos;
+      // Déclencher le crossfade N secondes avant la fin
+      if (_crossfadeSeconds > 0 &&
+          !_crossfading &&
+          _duration.inSeconds > _crossfadeSeconds + 2 &&
+          pos.inSeconds >= _duration.inSeconds - _crossfadeSeconds &&
+          _isPlaying) {
+        _startCrossfade();
+      }
       if (mounted) notifyListeners();
     });
 
@@ -235,6 +305,10 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> next() async {
     if (_queue.isEmpty) return;
+    _crossfadeTimer?.cancel();
+    _crossfading = false;
+    // Restaurer le volume avant de passer au titre suivant
+    if (_player.volume < _volume) await _player.setVolume(_volume);
     if (_shuffle) {
       final idx = _random.nextInt(_queue.length);
       await _player.seek(Duration.zero, index: idx);
@@ -248,6 +322,9 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> previous() async {
     if (_queue.isEmpty) return;
+    _crossfadeTimer?.cancel();
+    _crossfading = false;
+    if (_player.volume < _volume) await _player.setVolume(_volume);
     if (_position.inSeconds > 3) {
       await _player.seek(Duration.zero);
       return;
@@ -575,6 +652,7 @@ class PlayerProvider extends ChangeNotifier {
     _disposed = true;
     _sleepTimer?.cancel();
     _periodicTimer?.cancel();
+    _crossfadeTimer?.cancel();
     _player.dispose();
     super.dispose();
   }

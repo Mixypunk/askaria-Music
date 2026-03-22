@@ -143,6 +143,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             )),
           ),
+          const Divider(color: Colors.white12, height: 1, indent: 16),
+          // Crossfade
+          Consumer<PlayerProvider>(builder: (_, player, __) => Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(children: [
+                const Icon(Icons.swap_horiz_rounded, color: Sp.white70, size: 20),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('Crossfade',
+                  style: TextStyle(color: Sp.white, fontSize: 15))),
+                Text(
+                  player.crossfadeSeconds == 0
+                    ? 'Désactivé'
+                    : '${player.crossfadeSeconds}s',
+                  style: const TextStyle(color: Sp.white70, fontSize: 13)),
+              ])),
+            SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                activeTrackColor: Sp.g2,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: Colors.white,
+                overlayColor: Sp.g2.withOpacity(0.2),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14)),
+              child: Slider(
+                value: player.crossfadeSeconds.toDouble(),
+                min: 0, max: 12, divisions: 12,
+                label: player.crossfadeSeconds == 0
+                    ? 'Désactivé' : '${player.crossfadeSeconds}s',
+                onChanged: (v) => player.setCrossfade(v.round()))),
+          ])),
         ])),
         const SizedBox(height: 28),
 
