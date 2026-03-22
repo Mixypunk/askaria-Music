@@ -189,14 +189,20 @@ class _InfoSection extends StatefulWidget {
 }
 
 class _InfoSectionState extends State<_InfoSection> {
-  late final _usernameCtrl = TextEditingController(
-      text: widget.profile['username'] ?? '');
-  late final _emailCtrl = TextEditingController(
-      text: widget.profile['email'] ?? '');
-  late final _bioCtrl = TextEditingController(
-      text: widget.profile['bio'] ?? '');
-  String? _birthDate = widget.profile['birth_date'] as String?;
+  late final TextEditingController _usernameCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _bioCtrl;
+  String? _birthDate;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameCtrl = TextEditingController(text: widget.profile['username'] ?? '');
+    _emailCtrl    = TextEditingController(text: widget.profile['email']    ?? '');
+    _bioCtrl      = TextEditingController(text: widget.profile['bio']      ?? '');
+    _birthDate    = widget.profile['birth_date'] as String?;
+  }
 
   @override
   void dispose() {
