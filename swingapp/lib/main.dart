@@ -124,9 +124,6 @@ class _SplashWrapperState extends State<_SplashWrapper> {
         androidStopForegroundOnPause: true,
         notificationColor: const Color(0xFF1A1A2E),
         androidNotificationIcon: 'mipmap/ic_launcher',
-        // Afficher les boutons prev/next dans la notification
-        androidEnableMediaStyle: true,
-        androidSkipIntervalMinutes: 0,
       );
     } catch (e) {
       debugPrint('JustAudioBackground init error: \$e');
