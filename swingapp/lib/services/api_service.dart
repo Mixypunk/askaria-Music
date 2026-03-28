@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/song.dart';
@@ -692,4 +694,96 @@ class SwingApiService {
   }
 
   String getAvatarUrl(int userId) => '$_baseUrl/users/me/avatar/$userId';
+
+
+  Future<List<double>?> getWaveform(String hash) async {
+    try {
+      final r = await _authedGet(Uri.parse('$_baseUrl/waveform/$hash'));
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body) as Map<String, dynamic>;
+        final peaks = data['peaks'] as List?;
+        return peaks?.map((v) => (v as num).toDouble()).toList();
+      }
+    } catch (_) {}
+    return null;
+  }
+  // ── TÉLÉCHARGEMENT OFFLINE ───────────────────────────────────────────────────
+  String getDownloadUrl(String hash) => '$_baseUrl/download/$hash';
+
+  Future<String?> downloadTrack(Song song, {
+    void Function(int received, int total)? onProgress,
+  }) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final offlineDir = Directory('${dir.path}/offline');
+      await offlineDir.create(recursive: true);
+
+      final ext = song.filepath.split('.').last.toLowerCase();
+      final safe = '${song.hash}.$ext';
+      final file = File('${offlineDir.path}/$safe');
+
+      if (await file.exists()) return file.path;
+
+      final uri = Uri.parse(getDownloadUrl(song.hash));
+      final req  = await HttpClient().getUrl(uri);
+      req.headers.set('Authorization', 'Bearer $_accessToken');
+      final resp = await req.close();
+
+      if (resp.statusCode != 200) return null;
+
+      final total   = resp.contentLength;
+      int received  = 0;
+      final sink    = file.openWrite();
+      await for (final chunk in resp) {
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress?.call(received, total);
+      }
+      await sink.close();
+      return file.path;
+    } catch (e) {
+      debugPrint('downloadTrack error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> isDownloaded(String hash, String filepath) async {
+    try {
+      final dir  = await getApplicationDocumentsDirectory();
+      final ext  = filepath.split('.').last.toLowerCase();
+      final file = File('${dir.path}/offline/$hash.$ext');
+      return file.existsSync();
+    } catch (_) { return false; }
+  }
+
+  Future<String?> getOfflinePath(String hash, String filepath) async {
+    try {
+      final dir  = await getApplicationDocumentsDirectory();
+      final ext  = filepath.split('.').last.toLowerCase();
+      final file = File('${dir.path}/offline/$hash.$ext');
+      return file.existsSync() ? file.path : null;
+    } catch (_) { return null; }
+  }
+
+  Future<List<Map<String, dynamic>>> getDownloadedTracks() async {
+    try {
+      final dir      = await getApplicationDocumentsDirectory();
+      final offlineDir = Directory('${dir.path}/offline');
+      if (!offlineDir.existsSync()) return [];
+      return offlineDir
+          .listSync()
+          .whereType<File>()
+          .map((f) => {'path': f.path, 'hash': f.path.split('/').last.split('.').first})
+          .toList();
+    } catch (_) { return []; }
+  }
+
+  Future<void> deleteOfflineTrack(String hash, String filepath) async {
+    try {
+      final dir  = await getApplicationDocumentsDirectory();
+      final ext  = filepath.split('.').last.toLowerCase();
+      final file = File('${dir.path}/offline/$hash.$ext');
+      if (file.existsSync()) await file.delete();
+    } catch (_) {}
+  }
 }

@@ -1,7 +1,7 @@
 name: askaria
 description: Askaria — Votre serveur de musique personnel
 publish_to: 'none'
-version: 1.0.77+77
+version: 1.0.79+79
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

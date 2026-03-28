@@ -8,6 +8,7 @@ import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/eq_screen.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
 // ── Palette ────────────────────────────────────────────────────────────────────
@@ -230,6 +231,7 @@ class _App extends StatelessWidget {
       '/login':   (_) => const LoginScreen(),
       '/root':    (_) => const RootScreen(),
       '/profile': (_) => const ProfileScreen(),
+      '/eq':      (_) => const EqScreen(),
     },
     builder: (ctx, child) => _UpdateChecker(child: child!),
   );

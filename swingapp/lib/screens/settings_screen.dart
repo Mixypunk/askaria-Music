@@ -10,6 +10,8 @@ import '../widgets/artwork_widget.dart';
 import '../providers/player_provider.dart';
 import 'package:provider/provider.dart';
 import 'stats_screen.dart';
+import 'eq_screen.dart';
+import 'downloads_screen.dart';
 import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -91,6 +93,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         // ── AUDIO ────────────────────────────────────────────────
         _sectionTitle('AUDIO'),
+        const SizedBox(height: 10),
+        _card(_tile('Égaliseur (EQ)', 'Presets : Rock, Jazz, Bass Boost…',
+            Icons.equalizer_rounded,
+            () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const EqScreen())))),
+        const SizedBox(height: 10),
         const SizedBox(height: 10),
         _card(Column(children: [
           // Volume global
@@ -231,6 +239,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 28),
 
         // ── COMPTE ───────────────────────────────────────────────
+        _sectionTitle('HORS-LIGNE'),
+        const SizedBox(height: 10),
+        _card(_tile('Téléchargements', 'Gérer les titres hors-ligne',
+            Icons.download_done_rounded,
+            () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const DownloadsScreen())))),
+        const SizedBox(height: 28),
+
         _sectionTitle('MON PROFIL'),
         const SizedBox(height: 10),
         _card(_tile('Modifier mon profil', 'Photo, nom, email, bio',

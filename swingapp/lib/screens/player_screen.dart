@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
+import '../widgets/waveform_seekbar.dart';
 import '../main.dart';
 import '../services/api_service.dart';
+import 'downloads_screen.dart';
 import '../models/album.dart';
 import 'artist_screen.dart';
 import 'package:http/http.dart' as http;
@@ -474,6 +476,36 @@ class _PlayerPage extends StatelessWidget {
     );
   }
 
+  Future<void> _downloadSong(dynamic song) async {
+    final api = SwingApiService();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+      content: Text('Téléchargement de \${song.title}…'),
+      duration: const Duration(seconds: 60),
+      behavior: SnackBarBehavior.floating));
+
+    final path = await api.downloadTrack(song);
+
+    messenger.hideCurrentSnackBar();
+    if (!mounted) return;
+    if (path != null) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('\${song.title} téléchargé !'),
+        backgroundColor: Sp.card,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Voir',
+          textColor: Sp.g2,
+          onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const DownloadsScreen())))));
+    } else {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Échec du téléchargement'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating));
+    }
+  }
+
   void _showMoreSheet(BuildContext ctx, PlayerProvider player, song, Color accent) {
     showModalBottomSheet(
       context: ctx,
@@ -487,6 +519,11 @@ class _PlayerPage extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(color: Colors.white24,
                 borderRadius: BorderRadius.circular(2))),
+          ListTile(
+            leading: const Icon(Icons.download_rounded, color: Colors.white70),
+            title: const Text('Télécharger',
+                style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(ctx); _downloadSong(song); }),
           ListTile(
             leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
             title: const Text('Ajouter à la file',
@@ -770,7 +807,7 @@ class _PlayerPage extends StatelessWidget {
   }
 }
 
-// ── Progress bar ───────────────────────────────────────────────────────────────
+// ── Progress bar avec waveform ───────────────────────────────────────────────
 class _ProgressBar extends StatelessWidget {
   final PlayerProvider player;
   final Color accent;
@@ -778,32 +815,14 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext ctx) {
-    final v = player.progress.clamp(0.0, 1.0);
-    return GestureDetector(
-      onHorizontalDragUpdate: (d) {
-        final box = ctx.findRenderObject() as RenderBox?;
-        if (box == null) return;
-        final frac = (d.localPosition.dx / box.size.width).clamp(0.0, 1.0);
-        player.seek(Duration(milliseconds:
-            (frac * player.duration.inMilliseconds).round()));
-      },
-      child: SizedBox(height: 28, child: Stack(alignment: Alignment.center, children: [
-        Container(height: 4, decoration: BoxDecoration(
-          color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-        Align(alignment: Alignment.centerLeft,
-          child: FractionallySizedBox(widthFactor: v,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: 4,
-              decoration: BoxDecoration(
-                color: accent, borderRadius: BorderRadius.circular(2))))),
-        Align(alignment: Alignment(v * 2 - 1, 0),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 14, height: 14,
-            decoration: BoxDecoration(color: accent, shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: accent.withOpacity(0.7), blurRadius: 6)]))),
-      ])),
+    if (player.currentSong == null) return const SizedBox.shrink();
+    return WaveformSeekbar(
+      songHash: player.currentSong!.hash,
+      progress: player.progress.clamp(0.0, 1.0),
+      position: player.position,
+      duration: player.duration,
+      onSeek: (v) => player.seek(
+          Duration(milliseconds: (v * player.duration.inMilliseconds).round())),
     );
   }
 }

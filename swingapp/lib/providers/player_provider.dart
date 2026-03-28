@@ -12,6 +12,7 @@ import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
 import '../services/widget_service.dart';
+import '../services/eq_service.dart';
 
 enum RepeatMode { off, all, one }
 
@@ -148,6 +149,9 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void _initPlayer() {
+    // Initialiser l'égaliseur (Android uniquement)
+    EqService.instance.init(_player);
+
     // Écouter l'index courant — just_audio gère le passage automatique entre titres
     _player.currentIndexStream.listen((idx) {
       if (idx != null && idx != _currentIndex && idx < _queue.length) {
