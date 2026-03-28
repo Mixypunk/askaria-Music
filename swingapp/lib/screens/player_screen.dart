@@ -335,7 +335,6 @@ class _PlayerPage extends StatelessWidget {
       behavior: SnackBarBehavior.floating));
     final path = await api.downloadTrack(song);
     messenger.hideCurrentSnackBar();
-    if (!mounted) return;
     if (path != null) {
       messenger.showSnackBar(SnackBar(
         content: Text('\${song.title} téléchargé !'),
@@ -344,7 +343,7 @@ class _PlayerPage extends StatelessWidget {
         action: SnackBarAction(
           label: 'Voir',
           textColor: Sp.g2,
-          onPressed: () => Navigator.push(context,
+          onPressed: () => Navigator.push(ctx,
               MaterialPageRoute(builder: (_) => const DownloadsScreen())))));
     } else {
       messenger.showSnackBar(const SnackBar(
