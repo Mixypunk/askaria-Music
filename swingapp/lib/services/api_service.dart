@@ -718,7 +718,7 @@ class SwingApiService {
       final offlineDir = Directory('${dir.path}/offline');
       await offlineDir.create(recursive: true);
 
-      final ext = song.filepath.split('.').last.toLowerCase();
+      final ext = (song.filepath ?? '').split('.').last.toLowerCase();
       final safe = '${song.hash}.$ext';
       final file = File('${offlineDir.path}/$safe');
 
@@ -750,7 +750,7 @@ class SwingApiService {
   Future<bool> isDownloaded(String hash, String filepath) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
-      final ext  = filepath.split('.').last.toLowerCase();
+      final ext  = (filepath ?? '').split('.').last.toLowerCase();
       final file = File('${dir.path}/offline/$hash.$ext');
       return file.existsSync();
     } catch (_) { return false; }
@@ -759,7 +759,7 @@ class SwingApiService {
   Future<String?> getOfflinePath(String hash, String filepath) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
-      final ext  = filepath.split('.').last.toLowerCase();
+      final ext  = (filepath ?? '').split('.').last.toLowerCase();
       final file = File('${dir.path}/offline/$hash.$ext');
       return file.existsSync() ? file.path : null;
     } catch (_) { return null; }
@@ -781,7 +781,7 @@ class SwingApiService {
   Future<void> deleteOfflineTrack(String hash, String filepath) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
-      final ext  = filepath.split('.').last.toLowerCase();
+      final ext  = (filepath ?? '').split('.').last.toLowerCase();
       final file = File('${dir.path}/offline/$hash.$ext');
       if (file.existsSync()) await file.delete();
     } catch (_) {}

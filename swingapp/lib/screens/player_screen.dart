@@ -326,6 +326,34 @@ class _PlayerPage extends StatelessWidget {
     );
   }
 
+  Future<void> _downloadSong(BuildContext ctx, dynamic song) async {
+    final api = SwingApiService();
+    final messenger = ScaffoldMessenger.of(ctx);
+    messenger.showSnackBar(SnackBar(
+      content: Text('Téléchargement de \${song.title}…'),
+      duration: const Duration(seconds: 60),
+      behavior: SnackBarBehavior.floating));
+    final path = await api.downloadTrack(song);
+    messenger.hideCurrentSnackBar();
+    if (!mounted) return;
+    if (path != null) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('\${song.title} téléchargé !'),
+        backgroundColor: Sp.card,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Voir',
+          textColor: Sp.g2,
+          onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const DownloadsScreen())))));
+    } else {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Échec du téléchargement'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating));
+    }
+  }
+
   void _showSleepTimer(BuildContext ctx, PlayerProvider player) {
     showModalBottomSheet(
       context: ctx,
@@ -476,36 +504,6 @@ class _PlayerPage extends StatelessWidget {
     );
   }
 
-  Future<void> _downloadSong(dynamic song) async {
-    final api = SwingApiService();
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(
-      content: Text('Téléchargement de \${song.title}…'),
-      duration: const Duration(seconds: 60),
-      behavior: SnackBarBehavior.floating));
-
-    final path = await api.downloadTrack(song);
-
-    messenger.hideCurrentSnackBar();
-    if (!mounted) return;
-    if (path != null) {
-      messenger.showSnackBar(SnackBar(
-        content: Text('\${song.title} téléchargé !'),
-        backgroundColor: Sp.card,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Voir',
-          textColor: Sp.g2,
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const DownloadsScreen())))));
-    } else {
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Échec du téléchargement'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating));
-    }
-  }
-
   void _showMoreSheet(BuildContext ctx, PlayerProvider player, song, Color accent) {
     showModalBottomSheet(
       context: ctx,
@@ -523,7 +521,7 @@ class _PlayerPage extends StatelessWidget {
             leading: const Icon(Icons.download_rounded, color: Colors.white70),
             title: const Text('Télécharger',
                 style: TextStyle(color: Colors.white)),
-            onTap: () { Navigator.pop(ctx); _downloadSong(song); }),
+            onTap: () { Navigator.pop(ctx); _downloadSong(ctx, song); }),
           ListTile(
             leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
             title: const Text('Ajouter à la file',
