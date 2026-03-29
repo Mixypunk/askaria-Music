@@ -725,21 +725,24 @@ class SwingApiService {
       if (await file.exists()) return file.path;
 
       final uri = Uri.parse(getDownloadUrl(song.hash));
-      final req  = await HttpClient().getUrl(uri);
-      req.headers.set('Authorization', 'Bearer $_accessToken');
-      final resp = await req.close();
+      final req  = http.Request('GET', uri);
+      req.headers['Authorization'] = 'Bearer $_accessToken';
 
-      if (resp.statusCode != 200) return null;
+      final client   = http.Client();
+      final streamed = await client.send(req);
 
-      final total   = resp.contentLength;
-      int received  = 0;
-      final sink    = file.openWrite();
-      await for (final chunk in resp) {
+      if (streamed.statusCode != 200) { client.close(); return null; }
+
+      final total  = streamed.contentLength ?? -1;
+      int received = 0;
+      final sink   = file.openWrite();
+      await for (final chunk in streamed.stream) {
         sink.add(chunk);
         received += chunk.length;
         onProgress?.call(received, total);
       }
       await sink.close();
+      client.close();
       return file.path;
     } catch (e) {
       debugPrint('downloadTrack error: $e');

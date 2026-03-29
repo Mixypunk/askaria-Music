@@ -17,7 +17,7 @@ import '../services/eq_service.dart';
 enum RepeatMode { off, all, one }
 
 class PlayerProvider extends ChangeNotifier {
-  final AudioPlayer _player = AudioPlayer();
+  late final AudioPlayer _player;
   final SwingApiService _api = SwingApiService();
   final _random = Random();
 
@@ -149,8 +149,21 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void _initPlayer() {
-    // Initialiser l'égaliseur (Android uniquement)
-    EqService.instance.init(_player);
+    // Créer le player avec l'EQ dans le pipeline (Android uniquement)
+    // L'EQ DOIT être dans le constructeur — impossible à ajouter après
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      _player = AudioPlayer(
+        audioPipeline: AudioPipeline(
+          androidAudioEffects: [EqService.instance.equalizer],
+        ),
+      );
+    } else {
+      _player = AudioPlayer();
+    }
+    // Charger les réglages EQ après init
+    _player.playbackEventStream.first.then((_) {
+      EqService.instance.loadSettings();
+    }).catchError((_) {});
 
     // Écouter l'index courant — just_audio gère le passage automatique entre titres
     _player.currentIndexStream.listen((idx) {

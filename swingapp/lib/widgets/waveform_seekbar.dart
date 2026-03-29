@@ -68,9 +68,7 @@ class _WaveformSeekbarState extends State<WaveformSeekbar> {
   Widget build(BuildContext context) {
     final progress = _dragProgress ?? widget.progress;
 
-    return Column(children: [
-      // Waveform
-      GestureDetector(
+    return GestureDetector(
         onHorizontalDragUpdate: (d) {
           final box = context.findRenderObject() as RenderBox;
           final local = box.globalToLocal(d.globalPosition);
@@ -104,20 +102,7 @@ class _WaveformSeekbarState extends State<WaveformSeekbar> {
         ),
       ),
 
-      // Temps
-      const SizedBox(height: 4),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(_fmt(widget.position),
-                style: const TextStyle(color: Sp.white40, fontSize: 11)),
-            Text(_fmt(widget.duration),
-                style: const TextStyle(color: Sp.white40, fontSize: 11)),
-          ]),
-      ),
-    ]);
+    );
   }
 }
 

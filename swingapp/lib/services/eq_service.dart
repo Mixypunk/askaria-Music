@@ -38,77 +38,62 @@ class EqService extends ChangeNotifier {
   static EqService get instance => _instance ??= EqService._();
   EqService._();
 
-  AndroidEqualizer? _eq;
-  bool _supported = false;
+  // L'equalizer doit être créé AVANT l'AudioPlayer
+  // et passé dans AudioPipeline au constructeur
+  final AndroidEqualizer _eq = AndroidEqualizer();
+
+  bool _supported = defaultTargetPlatform == TargetPlatform.android;
   bool _enabled   = false;
   int  _presetIdx = 0;
   List<double> _gains = [];
+  List<String> _labels = [];
 
   bool get enabled    => _enabled;
   bool get supported  => _supported;
   int  get presetIdx  => _presetIdx;
-  List<double> get gains => List.unmodifiable(_gains);
+  List<double>   get gains   => List.unmodifiable(_gains);
+  List<String>   get labels  => List.unmodifiable(_labels);
   List<EqPreset> get presets => kEqPresets;
-  String get presetName => kEqPresets[_presetIdx].name;
-  AndroidEqualizer? get equalizer => _eq;
+  String get presetName      => kEqPresets[_presetIdx].name;
 
-  Future<void> init(AudioPlayer player) async {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+  // Retourne l'equalizer à passer dans AudioPipeline
+  AndroidEqualizer get equalizer => _eq;
+
+  // Appeler APRÈS qu'une source audio a été chargée
+  Future<void> loadSettings() async {
+    if (!_supported) return;
     try {
-      _eq = AndroidEqualizer();
-      _supported = true;
-      // Lire le nombre de bandes après un court délai (player doit avoir une source)
-      await Future.delayed(const Duration(milliseconds: 500));
-      await _loadPrefs();
-    } catch (e) {
-      debugPrint("EQ init error: \$e");
-      _supported = false;
-    }
-  }
+      final params = await _eq.parameters;
+      final bands  = params.bands;
+      _labels = bands.map((b) {
+        final hz = b.centerFrequency.round();
+        return hz >= 1000
+            ? "\${(hz/1000).toStringAsFixed(hz % 1000 == 0 ? 0 : 1)}k"
+            : "\$hz";
+      }).toList();
 
-  Future<void> _loadPrefs() async {
-    if (_eq == null) return;
-    try {
-      final prefs  = await SharedPreferences.getInstance();
-      _enabled     = prefs.getBool("eq_enabled")  ?? false;
-      _presetIdx   = prefs.getInt("eq_preset")    ?? 0;
-      final raw    = prefs.getString("eq_gains");
-
-      // Récupérer les bandes disponibles
-      final params = await _eq!.parameters;
-      final n      = params.bands.length;
-      _gains = List<double>.filled(n, 0.0);
+      final prefs = await SharedPreferences.getInstance();
+      _enabled    = prefs.getBool("eq_enabled")  ?? false;
+      _presetIdx  = prefs.getInt("eq_preset")    ?? 0;
+      final raw   = prefs.getString("eq_gains");
 
       if (raw != null) {
-        final list = (jsonDecode(raw) as List)
-            .map((v) => (v as num).toDouble()).toList();
-        if (list.length == n) {
-          _gains = list;
-        } else {
-          _gains = kEqPresets[_presetIdx].forBands(n);
-        }
+        final list = (jsonDecode(raw) as List).map((v) => (v as num).toDouble()).toList();
+        _gains = list.length == bands.length
+            ? list
+            : kEqPresets[_presetIdx].forBands(bands.length);
       } else {
-        _gains = kEqPresets[_presetIdx].forBands(n);
+        _gains = kEqPresets[_presetIdx].forBands(bands.length);
       }
       await _applyGains();
       notifyListeners();
     } catch (e) {
-      debugPrint("EQ loadPrefs: \$e");
+      debugPrint("EQ loadSettings: \$e");
+      _supported = false;
     }
   }
 
-  Future<List<String>> getBandLabels() async {
-    if (_eq == null) return [];
-    try {
-      final params = await _eq!.parameters;
-      return params.bands.map((b) {
-        final hz = b.centerFrequency.round();
-        return hz >= 1000
-            ? "\${(hz / 1000).toStringAsFixed(hz % 1000 == 0 ? 0 : 1)}k"
-            : "\$hz";
-      }).toList();
-    } catch (_) { return []; }
-  }
+  Future<List<String>> getBandLabels() async => _labels;
 
   Future<void> setEnabled(bool v) async {
     _enabled = v;
@@ -120,7 +105,7 @@ class EqService extends ChangeNotifier {
 
   Future<void> setPreset(int idx) async {
     _presetIdx = idx.clamp(0, kEqPresets.length - 1);
-    _gains     = kEqPresets[_presetIdx].forBands(_gains.length);
+    _gains     = kEqPresets[_presetIdx].forBands(_gains.isEmpty ? 5 : _gains.length);
     await _applyGains();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("eq_preset", _presetIdx);
@@ -138,11 +123,11 @@ class EqService extends ChangeNotifier {
   }
 
   Future<void> _applyGains() async {
-    if (_eq == null) return;
+    if (!_supported) return;
     try {
-      final params = await _eq!.parameters;
+      final params = await _eq.parameters;
       final bands  = params.bands;
-      await _eq!.setEnabled(_enabled);
+      await _eq.setEnabled(_enabled);
       for (int i = 0; i < bands.length && i < _gains.length; i++) {
         await bands[i].setGain(_enabled ? _gains[i] : 0.0);
       }
