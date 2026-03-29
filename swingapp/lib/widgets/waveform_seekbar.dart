@@ -58,11 +58,6 @@ class _WaveformSeekbarState extends State<WaveformSeekbar> {
     _loading = false;
   }
 
-  String _fmt(Duration d) {
-    final m = d.inMinutes;
-    final s = d.inSeconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,8 +95,6 @@ class _WaveformSeekbarState extends State<WaveformSeekbar> {
                   ),
                 ),
         ),
-      ),
-
     );
   }
 }
