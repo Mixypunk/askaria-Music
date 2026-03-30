@@ -160,10 +160,17 @@ class PlayerProvider extends ChangeNotifier {
     } else {
       _player = AudioPlayer();
     }
-    // Charger les réglages EQ après init
+    // Charger les réglages EQ — deux déclencheurs pour fiabilité :
+    // 1. Dès la première source audio
     _player.playbackEventStream.first.then((_) {
       EqService.instance.loadSettings();
     }).catchError((_) {});
+    // 2. Fallback après 2s si aucun event (player idle au démarrage)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (EqService.instance.gains.isEmpty) {
+        EqService.instance.loadSettings();
+      }
+    });
 
     // Écouter l'index courant — just_audio gère le passage automatique entre titres
     _player.currentIndexStream.listen((idx) {

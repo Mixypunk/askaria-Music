@@ -1,7 +1,7 @@
 name: askaria
 description: Askaria — Votre serveur de musique personnel
 publish_to: 'none'
-version: 1.0.79+79
+version: 1.0.81+81
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -40,6 +40,9 @@ dependencies:
 
   # Sélection photo profil
   image_picker: ^1.0.7
+
+  # Partage de titre
+  share_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:

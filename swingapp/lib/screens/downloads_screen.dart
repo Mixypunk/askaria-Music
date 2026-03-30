@@ -140,7 +140,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 }
 
-class _DownloadTile extends StatelessWidget {
+class _DownloadTile extends StatefulWidget {
   final File file;
   final String hash;
   final String size;
@@ -148,10 +148,31 @@ class _DownloadTile extends StatelessWidget {
   final void Function(Song) onPlay;
 
   const _DownloadTile({required this.file, required this.hash,
-      required this.size, required this.onDelete, required this.onPlay});
+      required this.size, required this.onDelete, required this.onPlay,
+      super.key});
+
+  @override
+  State<_DownloadTile> createState() => _DownloadTileState();
+}
+
+class _DownloadTileState extends State<_DownloadTile> {
+  Map<String, dynamic>? _meta;
+
+  @override
+  void initState() {
+    super.initState();
+    SwingApiService().getOfflineMeta(widget.hash).then((m) {
+      if (mounted && m != null) setState(() => _meta = m);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final title  = _meta?['title']  as String? ?? widget.hash;
+    final artist = _meta?['artist'] as String? ?? '';
+    final image  = _meta?['image']  as String? ?? widget.hash;
+    final dur    = _meta?['duration'] as int? ?? 0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
@@ -160,34 +181,39 @@ class _DownloadTile extends StatelessWidget {
           color: Sp.card,
           borderRadius: BorderRadius.circular(10)),
         child: Row(children: [
-          ArtworkWidget(key: ValueKey(hash), hash: hash, size: 44,
+          ArtworkWidget(key: ValueKey(image), hash: image, size: 44,
               borderRadius: BorderRadius.circular(4)),
           const SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(hash, maxLines: 1, overflow: TextOverflow.ellipsis,
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Sp.white, fontSize: 13,
                     fontWeight: FontWeight.w500)),
-              Text(size, style: const TextStyle(
-                  color: Sp.white40, fontSize: 11)),
+              Text(artist.isNotEmpty ? '$artist • ${widget.size}' : widget.size,
+                style: const TextStyle(color: Sp.white40, fontSize: 11)),
             ])),
-          // Bouton lecture
           IconButton(
             icon: const Icon(Icons.play_circle_outline_rounded,
                 color: Sp.g2, size: 28),
             onPressed: () {
               final song = Song(
-                hash: hash, title: hash, artist: '',
-                album: '', filepath: file.path,
-                albumHash: '', artistHash: '', duration: 0);
-              onPlay(song);
+                hash:       widget.hash,
+                title:      title,
+                artist:     artist,
+                album:      _meta?['album'] as String? ?? '',
+                filepath:   widget.file.path,
+                albumHash:  '',
+                artistHash: '',
+                duration:   dur,
+                image:      image,
+              );
+              widget.onPlay(song);
             }),
-          // Bouton supprimer
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded,
                 color: Colors.redAccent, size: 22),
-            onPressed: onDelete),
+            onPressed: widget.onDelete),
         ]),
       ),
     );

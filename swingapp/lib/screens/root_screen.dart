@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/player_provider.dart';
+import '../services/widget_service.dart';
 import '../widgets/mini_player.dart';
 import 'home_tab.dart';
 import 'search_tab.dart';
@@ -20,6 +21,23 @@ class _RootScreenState extends State<RootScreen> {
   final _tabs = const [HomeTab(), SearchTab(), LibraryTab()];
 
   DateTime? _lastBack;
+
+  @override
+  void initState() {
+    super.initState();
+    // Connecter les boutons du widget Android au PlayerProvider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final player = context.read<PlayerProvider>();
+      WidgetService.instance.onAction = (action) {
+        switch (action) {
+          case 'prev': player.previous(); break;
+          case 'play': player.playPause(); break;
+          case 'next': player.next(); break;
+        }
+      };
+      WidgetService.instance.startListening();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

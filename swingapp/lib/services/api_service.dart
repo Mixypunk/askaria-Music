@@ -696,6 +696,25 @@ class SwingApiService {
   String getAvatarUrl(int userId) => '$_baseUrl/users/me/avatar/$userId';
 
 
+
+  // ── RADIO ─────────────────────────────────────────────────────────────────
+  Future<List<Song>> getRadio(String seedHash, {int limit = 30}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/radio/$seedHash')
+          .replace(queryParameters: {'limit': '$limit'});
+      final r = await _authedGet(uri);
+      if (r.statusCode == 200) {
+        final data  = json.decode(r.body) as Map<String, dynamic>;
+        final items = (data['tracks'] as List?) ?? [];
+        return items
+            .map((e) => Song.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('getRadio error: $e');
+    }
+    return [];
+  }
   Future<List<double>?> getWaveform(String hash) async {
     try {
       final r = await _authedGet(Uri.parse('$_baseUrl/waveform/$hash'));
@@ -743,11 +762,42 @@ class SwingApiService {
       }
       await sink.close();
       client.close();
+
+      // Sauvegarder les métadonnées pour affichage dans Downloads screen
+      await _saveOfflineMeta(song, file.path);
+
       return file.path;
     } catch (e) {
       debugPrint('downloadTrack error: $e');
       return null;
     }
+  }
+
+  Future<void> _saveOfflineMeta(Song song, String filePath) async {
+    try {
+      final dir     = await getApplicationDocumentsDirectory();
+      final metaFile = File('${dir.path}/offline/${song.hash}.meta.json');
+      final meta = {
+        'hash':       song.hash,
+        'title':      song.title,
+        'artist':     song.artist ?? '',
+        'album':      song.album  ?? '',
+        'duration':   song.duration,
+        'image':      song.image  ?? '',
+        'filepath':   filePath,
+        'downloaded': DateTime.now().toIso8601String(),
+      };
+      await metaFile.writeAsString(json.encode(meta));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> getOfflineMeta(String hash) async {
+    try {
+      final dir      = await getApplicationDocumentsDirectory();
+      final metaFile = File('${dir.path}/offline/$hash.meta.json');
+      if (!metaFile.existsSync()) return null;
+      return json.decode(metaFile.readAsStringSync()) as Map<String, dynamic>;
+    } catch (_) { return null; }
   }
 
   Future<bool> isDownloaded(String hash, String filepath) async {
