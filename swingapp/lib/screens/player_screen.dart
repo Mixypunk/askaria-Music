@@ -147,17 +147,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                     Navigator.of(context).pop();
                   }
                 },
-                onHorizontalDragEnd: (d) {
-                  // Swipe ←→ uniquement sur la page Player (pas Paroles/Queue)
-                  if (_page != 0) return;
-                  final v = d.primaryVelocity ?? 0;
-                  final player = context.read<PlayerProvider>();
-                  if (v < -600) {
-                    player.next();
-                  } else if (v > 600) {
-                    player.previous();
-                  }
-                },
                 child: SafeArea(child: Column(children: [
 
                 // Top bar : flèche bas + titre album + indicateurs de page
@@ -522,22 +511,6 @@ class _PlayerPage extends StatelessWidget {
     );
   }
 
-  Future<void> _startRadio(BuildContext ctx, PlayerProvider player, dynamic song) async {
-    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-      content: Text('Génération de la radio…'),
-      duration: Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating));
-    final tracks = await SwingApiService().getRadio(song.hash);
-    if (tracks.isEmpty) {
-      if (mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-        content: Text('Pas assez de titres pour la radio'),
-        behavior: SnackBarBehavior.floating));
-      return;
-    }
-    // Jouer le premier titre avec toute la radio comme queue
-    if (mounted) player.playSong(tracks.first, queue: tracks, index: 0);
-  }
-
   void _showMoreSheet(BuildContext ctx, PlayerProvider player, song, Color accent) {
     showModalBottomSheet(
       context: ctx,
@@ -551,11 +524,6 @@ class _PlayerPage extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(color: Colors.white24,
                 borderRadius: BorderRadius.circular(2))),
-          ListTile(
-            leading: const Icon(Icons.radio_rounded, color: Colors.white70),
-            title: const Text('Lancer la radio',
-                style: TextStyle(color: Colors.white)),
-            onTap: () { Navigator.pop(ctx); _startRadio(ctx, player, song); }),
           ListTile(
             leading: const Icon(Icons.download_rounded, color: Colors.white70),
             title: const Text('Télécharger',
