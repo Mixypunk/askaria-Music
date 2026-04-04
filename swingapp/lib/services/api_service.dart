@@ -199,17 +199,24 @@ class SwingApiService {
   }
 
   Future<bool> checkAuth() async {
+    // Pas de token du tout → login obligatoire
     if (_accessToken == null) return false;
     try {
-      final response = await _authedGet(Uri.parse('$_baseUrl/auth/user'));
+      final response = await _authedGet(Uri.parse('$_baseUrl/auth/user'))
+          .timeout(const Duration(seconds: 6));
       if (response.statusCode == 200) return true;
-      // Essayer le refresh si 401
       if (response.statusCode == 401) {
         return await _refreshAccessToken();
       }
       return false;
+    } on TimeoutException catch (_) {
+      // Timeout = serveur inaccessible mais token présent → mode offline
+      debugPrint('checkAuth timeout — mode offline');
+      return true;
     } catch (_) {
-      return false;
+      // Toute autre erreur réseau (SocketException, etc.) → mode offline si token présent
+      debugPrint('checkAuth network error — mode offline');
+      return true;
     }
   }
 
@@ -696,6 +703,25 @@ class SwingApiService {
   String getAvatarUrl(int userId) => '$_baseUrl/users/me/avatar/$userId';
 
 
+
+  // ── RADIO ─────────────────────────────────────────────────────────────────
+  Future<List<Song>> getRadio(String seedHash, {int limit = 30}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/radio/$seedHash')
+          .replace(queryParameters: {'limit': '$limit'});
+      final r = await _authedGet(uri);
+      if (r.statusCode == 200) {
+        final data  = json.decode(r.body) as Map<String, dynamic>;
+        final items = (data['tracks'] as List?) ?? [];
+        return items
+            .map((e) => Song.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('getRadio error: $e');
+    }
+    return [];
+  }
   Future<List<double>?> getWaveform(String hash) async {
     try {
       final r = await _authedGet(Uri.parse('$_baseUrl/waveform/$hash'));

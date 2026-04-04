@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
+import '../services/theme_notifier.dart';
+import '../services/network_quality_service.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../services/color_service.dart';
@@ -25,7 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _version = '';
   bool _saved = false;
   bool _notificationsEnabled = true;
-  String _audioQuality = 'high'; // low / medium / high
+  String _audioQuality = 'high';
+  bool _autoQuality = false; // low / medium / high
   int _cacheSize = 0; // en Mo
 
   @override
@@ -44,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _notificationsEnabled = prefs.getBool('notif_enabled') ?? true;
       _audioQuality = prefs.getString('audio_quality') ?? 'high';
+    _autoQuality   = NetworkQualityService.instance.autoQuality;
     });
   }
 
@@ -92,6 +96,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 28),
 
         // ── AUDIO ────────────────────────────────────────────────
+        _sectionTitle('APPARENCE'),
+        const SizedBox(height: 10),
+        _card(Consumer<ThemeNotifier>(
+          builder: (_, theme, __) => Column(children: [
+            ListTile(
+              leading: const Icon(Icons.dark_mode_rounded, color: Sp.white70, size: 20),
+              title: const Text('Thème', style: TextStyle(color: Sp.white, fontSize: 15)),
+              trailing: DropdownButtonHideUnderline(child: DropdownButton<ThemeMode>(
+                value: theme.mode,
+                dropdownColor: Sp.card,
+                style: const TextStyle(color: Sp.white, fontSize: 13),
+                items: const [
+                  DropdownMenuItem(value: ThemeMode.dark,   child: Text('Sombre')),
+                  DropdownMenuItem(value: ThemeMode.light,  child: Text('Clair')),
+                  DropdownMenuItem(value: ThemeMode.system, child: Text('Système')),
+                ],
+                onChanged: (v) { if (v != null) theme.setMode(v); },
+              )),
+            ),
+          ]),
+        )),
+        const SizedBox(height: 28),
+
         _sectionTitle('AUDIO'),
         const SizedBox(height: 10),
         _card(_tile('Égaliseur (EQ)', 'Presets : Rock, Jazz, Bass Boost…',
@@ -130,6 +157,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             )),
           const Divider(color: Colors.white12, height: 1, indent: 16),
           // Qualité audio
+          SwitchListTile(
+            secondary: const Icon(Icons.network_check_rounded, color: Sp.white70, size: 20),
+            title: const Text('Qualité auto (réseau)',
+                style: TextStyle(color: Sp.white, fontSize: 15)),
+            subtitle: const Text('WiFi → max, 4G → standard, 2G → éco',
+                style: TextStyle(color: Sp.white40, fontSize: 11)),
+            value: _autoQuality,
+            activeColor: Sp.g2,
+            onChanged: (v) async {
+              setState(() => _autoQuality = v);
+              await NetworkQualityService.instance.setAutoQuality(v);
+            },
+          ),
+          const Divider(color: Colors.white12, height: 1, indent: 16),
           ListTile(
             leading: const Icon(Icons.high_quality_rounded, color: Sp.white70, size: 20),
             title: const Text('Qualité de streaming',

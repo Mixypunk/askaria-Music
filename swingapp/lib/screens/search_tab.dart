@@ -74,12 +74,12 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
     }
 
     try {
-      // Lancer les 3 recherches en parallèle
+      // Lancer les 3 recherches en parallèle côté serveur
       final results = await Future.wait([
         SwingApiService().searchSongs(query),
         _searchAlbums(query),
         _searchArtists(query),
-      ]);
+      ]).timeout(const Duration(seconds: 8));
       if (mounted) setState(() {
         _tracks  = results[0] as List<Song>;
         _albums  = results[1] as List<Album>;
@@ -87,10 +87,26 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() {
-        _tracks = []; _albums = []; _artists = []; _loading = false;
-      });
+      // Fallback local — filtrer la queue du player en mémoire
+      if (mounted) _searchLocal(query);
     }
+  }
+
+  void _searchLocal(String query) {
+    final q = query.toLowerCase();
+    final player = context.read<PlayerProvider>();
+    final allSongs = player.queue;
+    final filtered = allSongs.where((s) =>
+      s.title.toLowerCase().contains(q) ||
+      s.artist.toLowerCase().contains(q) ||
+      (s.album).toLowerCase().contains(q)
+    ).toList();
+    setState(() {
+      _tracks  = filtered;
+      _albums  = [];
+      _artists = [];
+      _loading = false;
+    });
   }
 
   Future<List<Album>> _searchAlbums(String query) async {

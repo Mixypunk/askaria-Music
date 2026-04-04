@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/player_provider.dart';
 import 'services/api_service.dart';
+import 'services/theme_notifier.dart';
 import 'services/widget_service.dart';
 import 'services/update_service.dart';
 import 'screens/root_screen.dart';
@@ -131,12 +132,16 @@ class _SplashWrapperState extends State<_SplashWrapper> {
       debugPrint('JustAudioBackground init error: \$e');
     }
     try {
-      await SwingApiService().loadSettings();
-      _logged = await SwingApiService().checkAuth()
-          .timeout(const Duration(seconds: 8), onTimeout: () => false);
+      await ThemeNotifier.instance.load();
+      final api = SwingApiService();
+      await api.loadSettings();
+      // checkAuth retourne true même hors ligne si un token est présent
+      // (mode offline — l'user peut écouter les titres téléchargés)
+      _logged = await api.checkAuth();
     } catch (e) {
       debugPrint('Auth error: $e');
-      _logged = false;
+      // En cas d'erreur inattendue : connecté si token présent
+      _logged = SwingApiService().isLoggedIn;
     }
     if (mounted) setState(() => _ready = true);
   }
@@ -157,7 +162,10 @@ class _SplashWrapperState extends State<_SplashWrapper> {
     if (!_ready) return const _SplashScreen();
 
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => PlayerProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => PlayerProvider()),
+        ChangeNotifierProvider.value(value: ThemeNotifier.instance),
+      ],
       child: _App(_logged),
     );
   }
@@ -203,7 +211,8 @@ class _App extends StatelessWidget {
   final bool logged;
   const _App(this.logged);
   @override
-  Widget build(BuildContext ctx) => MaterialApp(
+  Widget build(BuildContext ctx) => Consumer<ThemeNotifier>(
+    builder: (ctx, theme, _) => MaterialApp(
     title: 'Askaria',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(

@@ -12,6 +12,7 @@ import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
 import '../services/widget_service.dart';
+import '../services/network_quality_service.dart';
 import '../services/eq_service.dart';
 
 enum RepeatMode { off, all, one }
@@ -223,17 +224,27 @@ class PlayerProvider extends ChangeNotifier {
 
   // ── Construction de la playlist ────────────────────────────────────────
   // Construit un AudioSource pour un titre (sync — utilise getStreamUrl)
+  // Si le fichier est stocké localement (offline), utilise le chemin local
   AudioSource _buildSource(Song song) {
-    final url = _api.getStreamUrl(song.hash, filepath: song.filepath);
+    final localPath = song.filepath;
+    final isLocal   = localPath != null &&
+        (localPath.startsWith('/') || localPath.startsWith('file://')) &&
+        !localPath.startsWith('/music');  // /music = NAS, pas local
+
+    final uri = isLocal
+        ? Uri.file(localPath)
+        : Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath));
+
+    final headers = isLocal ? <String, String>{} : _api.authHeaders;
+
     return AudioSource.uri(
-      Uri.parse(url),
-      headers: _api.authHeaders,
+      uri,
+      headers: headers,
       tag: MediaItem(
         id:     song.hash,
         title:  song.title,
         artist: song.artist ?? '',
         album:  song.album ?? '',
-        // artUri sera mis à jour de manière asynchrone via _cacheArtwork
         artUri: Uri.parse(
             '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}'),
       ),
