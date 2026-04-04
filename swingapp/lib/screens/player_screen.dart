@@ -529,13 +529,14 @@ class _PlayerPage extends StatelessWidget {
       behavior: SnackBarBehavior.floating));
     final tracks = await SwingApiService().getRadio(song.hash);
     if (tracks.isEmpty) {
-      if (mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+      if (!ctx.mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
         content: Text('Pas assez de titres pour la radio'),
         behavior: SnackBarBehavior.floating));
       return;
     }
     // Jouer le premier titre avec toute la radio comme queue
-    if (mounted) player.playSong(tracks.first, queue: tracks, index: 0);
+    if (ctx.mounted) player.playSong(tracks.first, queue: tracks, index: 0);
   }
 
   void _showMoreSheet(BuildContext ctx, PlayerProvider player, song, Color accent) {

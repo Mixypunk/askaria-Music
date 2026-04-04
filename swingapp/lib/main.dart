@@ -243,7 +243,8 @@ class _App extends StatelessWidget {
       '/eq':      (_) => const EqScreen(),
     },
     builder: (ctx, child) => _UpdateChecker(child: child!),
-  );
+  ),   // MaterialApp
+  );   // Consumer<ThemeNotifier>
 }
 
 // ── Vérification mise à jour ───────────────────────────────────────────────────
