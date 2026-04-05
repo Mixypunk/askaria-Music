@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
-import '../widgets/waveform_seekbar.dart';
 import '../main.dart';
 import '../services/api_service.dart';
 import 'downloads_screen.dart';
@@ -845,7 +844,7 @@ class _PlayerPage extends StatelessWidget {
   }
 }
 
-// ── Progress bar avec waveform ───────────────────────────────────────────────
+// ── Progress bar ─────────────────────────────────────────────────────────────
 class _ProgressBar extends StatelessWidget {
   final PlayerProvider player;
   final Color accent;
@@ -854,13 +853,27 @@ class _ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     if (player.currentSong == null) return const SizedBox.shrink();
-    return WaveformSeekbar(
-      songHash: player.currentSong!.hash,
-      progress: player.progress.clamp(0.0, 1.0),
-      position: player.position,
-      duration: player.duration,
-      onSeek: (v) => player.seek(
-          Duration(milliseconds: (v * player.duration.inMilliseconds).round())),
+    return SliderTheme(
+      data: SliderThemeData(
+        trackHeight: 4,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+        activeTrackColor: accent,
+        inactiveTrackColor: Colors.white24,
+        thumbColor: Colors.white,
+        overlayColor: accent.withOpacity(0.2)),
+      child: Slider(
+        min: 0.0,
+        max: player.duration.inMilliseconds.toDouble() > 0
+            ? player.duration.inMilliseconds.toDouble()
+            : 1.0,
+        value: player.position.inMilliseconds.toDouble().clamp(
+            0.0,
+            player.duration.inMilliseconds.toDouble() > 0
+                ? player.duration.inMilliseconds.toDouble()
+                : 1.0),
+        onChanged: (v) => player.seek(Duration(milliseconds: v.round())),
+      ),
     );
   }
 }
