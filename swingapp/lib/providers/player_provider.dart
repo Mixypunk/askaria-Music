@@ -317,9 +317,6 @@ class PlayerProvider extends ChangeNotifier {
     _fetchLyrics();
     _fetchColors();
     _persistQueue();
-
-    // Mettre à jour l'artUri en arrière-plan (sans bloquer la lecture)
-    _updateArtUri(song, _currentIndex);
     notifyListeners();
   }
 
