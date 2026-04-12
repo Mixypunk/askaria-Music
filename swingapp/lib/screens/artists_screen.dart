@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/artist.dart';
@@ -35,8 +35,8 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: AppColors.bg,
-          title: GradientText('Artistes', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          backgroundColor: Sp.bg,
+          title: GText('Artistes', s: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -53,7 +53,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                   ]),
                 ))
               : _artists.isEmpty
-                  ? const Center(child: Text('Aucun artiste', style: TextStyle(color: AppColors.textSecondary)))
+                  ? const Center(child: Text('Aucun artiste', style: TextStyle(color: Sp.white70)))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.builder(

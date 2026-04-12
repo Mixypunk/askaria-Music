@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/song.dart';
@@ -30,29 +30,29 @@ class _SongsScreenState extends State<SongsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Sp.bg,
       body: CustomScrollView(slivers: [
         SliverAppBar(
           floating: true,
-          backgroundColor: AppColors.bg,
-          title: GradientText('Ma Musique',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          backgroundColor: Sp.bg,
+          title: GText('Ma Musique',
+            s: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           actions: [
             if (_songs.isNotEmpty)
               IconButton(
-                icon: const GradientIcon(Icons.play_circle_fill_rounded, size: 34),
+                icon: const GIcon(Icons.play_circle_fill_rounded, size: 34),
                 onPressed: () => context.read<PlayerProvider>()
                     .playSong(_songs.first, queue: _songs, index: 0),
               ),
             IconButton(
-              icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
+              icon: const Icon(Icons.logout_rounded, color: Sp.white70),
               onPressed: () => _confirmLogout(context),
             ),
           ],
         ),
         if (_loading)
           const SliverFillRemaining(child: Center(
-            child: CircularProgressIndicator(color: AppColors.grad2)))
+            child: CircularProgressIndicator(color: Sp.g2)))
         else if (_error != null)
           SliverFillRemaining(child: _ErrorView(onRetry: _load))
         else
@@ -67,14 +67,14 @@ class _SongsScreenState extends State<SongsScreen> {
   void _confirmLogout(BuildContext context) => showDialog(
     context: context,
     builder: (_) => AlertDialog(
-      backgroundColor: AppColors.card,
+      backgroundColor: Sp.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text('Déconnexion', style: TextStyle(color: Colors.white)),
       content: const Text('Tu veux te déconnecter ?',
-          style: TextStyle(color: AppColors.textSecondary)),
+          style: TextStyle(color: Sp.white70)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler', style: TextStyle(color: AppColors.textSecondary))),
+            child: const Text('Annuler', style: TextStyle(color: Sp.white70))),
         TextButton(onPressed: () async {
           await SwingApiService().logout();
           if (context.mounted) Navigator.of(context).pushReplacementNamed('/login');
@@ -91,7 +91,7 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      const GradientIcon(Icons.wifi_off_rounded, size: 64),
+      const GIcon(Icons.wifi_off_rounded, size: 64),
       const SizedBox(height: 16),
       const Text('Erreur de connexion', style: TextStyle(color: Colors.white, fontSize: 16)),
       const SizedBox(height: 20),
@@ -99,7 +99,7 @@ class _ErrorView extends StatelessWidget {
         onTap: onRetry,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-          decoration: BoxDecoration(gradient: kGradient, borderRadius: BorderRadius.circular(24)),
+          decoration: BoxDecoration(gradient: kGrad, borderRadius: BorderRadius.circular(24)),
           child: const Text('Réessayer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       ),

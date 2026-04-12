@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/album.dart';
@@ -35,8 +35,8 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: AppColors.bg,
-          title: GradientText('Albums', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          backgroundColor: Sp.bg,
+          title: GText('Albums', s: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -44,19 +44,19 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
               ? Center(child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const GradientIcon(Icons.error_outline, size: 48),
+                    const GIcon(Icons.error_outline, size: 48),
                     const SizedBox(height: 12),
                     Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
                     const SizedBox(height: 16),
                     GestureDetector(onTap: _load, child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                    decoration: BoxDecoration(gradient: kGradient, borderRadius: BorderRadius.circular(20)),
+                    decoration: BoxDecoration(gradient: kGrad, borderRadius: BorderRadius.circular(20)),
                     child: const Text('Réessayer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   )),
                   ]),
                 ))
               : _albums.isEmpty
-                  ? const Center(child: Text('Aucun album', style: TextStyle(color: AppColors.textSecondary)))
+                  ? const Center(child: Text('Aucun album', style: TextStyle(color: Sp.white70)))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: GridView.builder(

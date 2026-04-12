@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../main.dart';
 import 'songs_screen.dart';
 import 'albums_screen.dart';
@@ -31,14 +31,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Sp.bg,
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const MiniPlayer(),
           Container(
-            color: AppColors.surface,
+            color: Sp.surface,
             child: SafeArea(
               top: false,
               child: Padding(
@@ -56,15 +56,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
                           if (active)
                             ShaderMask(
-                              shaderCallback: (b) => kGradient.createShader(b),
+                              shaderCallback: (b) => kGrad.createShader(b),
                               child: Icon(item.$2, size: 26, color: Colors.white),
                             )
                           else
-                            Icon(item.$1, size: 24, color: AppColors.textDisabled),
+                            Icon(item.$1, size: 24, color: Sp.white40),
                           const SizedBox(height: 4),
                           Text(item.$3, style: TextStyle(
                             fontSize: 10,
-                            color: active ? AppColors.grad2 : AppColors.textDisabled,
+                            color: active ? Sp.g2 : Sp.white40,
                             fontWeight: active ? FontWeight.w600 : FontWeight.normal,
                           )),
                         ]),

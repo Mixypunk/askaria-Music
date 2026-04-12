@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
@@ -26,16 +26,16 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Sp.bg,
       body: CustomScrollView(slivers: [
         SliverAppBar(
           floating: true,
-          backgroundColor: AppColors.bg,
+          backgroundColor: Sp.bg,
           titleSpacing: 16,
           title: Container(
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: Sp.card,
               borderRadius: BorderRadius.circular(14),
             ),
             child: TextField(
@@ -43,11 +43,11 @@ class _SearchScreenState extends State<SearchScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Titres, artistes, albums...',
-                hintStyle: const TextStyle(color: AppColors.textSecondary),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                hintStyle: const TextStyle(color: Sp.white70),
+                prefixIcon: const Icon(Icons.search_rounded, color: Sp.white70, size: 20),
                 suffixIcon: _ctrl.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
+                        icon: const Icon(Icons.clear, size: 18, color: Sp.white70),
                         onPressed: () { _ctrl.clear(); _search(''); })
                     : null,
                 border: InputBorder.none,
@@ -61,25 +61,25 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         if (_loading)
           const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator(color: AppColors.grad2)))
+            child: Center(child: CircularProgressIndicator(color: Sp.g2)))
         else if (_results.isEmpty && _query.isNotEmpty)
           SliverFillRemaining(child: Center(child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const GradientIcon(Icons.search_off_rounded, size: 56),
+              const GIcon(Icons.search_off_rounded, size: 56),
               const SizedBox(height: 16),
               Text('Aucun résultat pour "$_query"',
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style: const TextStyle(color: Sp.white70)),
             ],
           )))
         else if (_results.isEmpty)
           SliverFillRemaining(child: Center(child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const GradientIcon(Icons.search_rounded, size: 56),
+              const GIcon(Icons.search_rounded, size: 56),
               const SizedBox(height: 16),
               const Text('Cherche une musique, un artiste...',
-                style: TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: Sp.white70)),
             ],
           )))
         else

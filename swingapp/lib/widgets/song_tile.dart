@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
@@ -32,9 +32,9 @@ class SongTile extends StatelessWidget {
           if (showNumber)
             SizedBox(width: 40, child: Center(
               child: isCurrent
-                  ? const GradientIcon(Icons.equalizer_rounded, size: 18)
+                  ? const GIcon(Icons.equalizer_rounded, size: 18)
                   : Text('${(index ?? 0) + 1}',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      style: const TextStyle(color: Sp.white70, fontSize: 13)),
             ))
           else
             ArtworkWidget(
@@ -50,24 +50,24 @@ class SongTile extends StatelessWidget {
             children: [
               Text(song.title,
                 style: TextStyle(
-                  color: isCurrent ? AppColors.grad2 : Colors.white,
+                  color: isCurrent ? Sp.g2 : Colors.white,
                   fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
                   fontSize: 14,
                 ),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
               Text(song.artist,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(color: Sp.white70, fontSize: 12),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           )),
           // Duration + menu
           Text(song.formattedDuration,
-            style: const TextStyle(color: AppColors.textDisabled, fontSize: 12)),
+            style: const TextStyle(color: Sp.white40, fontSize: 12)),
           const SizedBox(width: 4),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textDisabled),
-            color: AppColors.cardHigh,
+            icon: const Icon(Icons.more_vert, size: 18, color: Sp.white40),
+            color: Sp.cardHi,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'next',  child: Text('Lire ensuite')),
@@ -79,14 +79,14 @@ class SongTile extends StatelessWidget {
                 p.addNextInQueue(song);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text('${song.title} → lire ensuite'),
-                  backgroundColor: AppColors.card,
+                  backgroundColor: Sp.card,
                   duration: const Duration(seconds: 2),
                 ));
               } else {
                 p.addToQueue(song);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text('${song.title} ajouté'),
-                  backgroundColor: AppColors.card,
+                  backgroundColor: Sp.card,
                   duration: const Duration(seconds: 2),
                 ));
               }

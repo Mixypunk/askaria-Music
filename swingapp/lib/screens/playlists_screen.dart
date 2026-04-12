@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/playlist.dart';
@@ -36,8 +36,8 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: AppColors.bg,
-          title: GradientText('Playlists', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          backgroundColor: Sp.bg,
+          title: GText('Playlists', s: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -58,7 +58,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                       Icon(Icons.queue_music_rounded, size: 64,
                           color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 16),
-                      const Text('Aucune playlist', style: TextStyle(color: AppColors.textSecondary)),
+                      const Text('Aucune playlist', style: TextStyle(color: Sp.white70)),
                       const SizedBox(height: 8),
                       Text('Crée des playlists dans Askaria',
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),

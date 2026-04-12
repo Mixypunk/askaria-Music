@@ -1,0 +1,155 @@
+﻿Analyzing swingapp...                                           
+
+warning - The declaration '_setupWidgetActions' isn't referenced - lib\main.dart:149:8 - unused_element
+   info - 'background' is deprecated and shouldn't be used. Use surface instead. This feature was deprecated after v3.18.0-0.1.pre - lib\main.dart:224:30 - deprecated_member_use
+warning - Unused import: '../services/network_quality_service.dart' - lib\providers\player_provider.dart:15:8 - unused_import
+warning - The left operand can't be null, so the right operand is never executed - lib\providers\player_provider.dart:246:32 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\providers\player_provider.dart:247:31 - dead_null_aware_expression
+warning - The declaration '_updateArtUri' isn't referenced - lib\providers\player_provider.dart:271:16 - unused_element
+warning - The left operand can't be null, so the right operand is never executed - lib\providers\player_provider.dart:284:34 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\providers\player_provider.dart:285:33 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\providers\player_provider.dart:449:33 - dead_null_aware_expression
+  error - Undefined name 'AppColors' - lib\screens\albums_screen.dart:38:28 - undefined_identifier
+  error - The method 'GradientText' isn't defined for the type '_AlbumsScreenState' - lib\screens\albums_screen.dart:39:18 - undefined_method
+  error - The name 'GradientIcon' isn't a class - lib\screens\albums_screen.dart:47:27 - creation_with_non_type
+  error - Undefined name 'kGradient' - lib\screens\albums_screen.dart:53:57 - undefined_identifier
+  error - Invalid constant value - lib\screens\albums_screen.dart:59:85 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\albums_screen.dart:59:85 - undefined_identifier
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\screens\albums_screen.dart:98:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\albums_screen.dart:108:91 - deprecated_member_use
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\screens\albums_screen.dart:160:66 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\albums_screen.dart:168:115 - deprecated_member_use
+   info - The import of '../models/artist.dart' is unnecessary because all of the used elements are also provided by the import of '../models/album.dart' - lib\screens\artist_screen.dart:7:8 - unnecessary_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\artist_screen.dart:955:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\artist_screen.dart:1221:44 - deprecated_member_use
+  error - Undefined name 'AppColors' - lib\screens\artists_screen.dart:38:28 - undefined_identifier
+  error - The method 'GradientText' isn't defined for the type '_ArtistsScreenState' - lib\screens\artists_screen.dart:39:18 - undefined_method
+  error - Invalid constant value - lib\screens\artists_screen.dart:56:87 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\artists_screen.dart:56:87 - undefined_identifier
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\screens\artists_screen.dart:69:78 - deprecated_member_use
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\screens\artists_screen.dart:137:54 - deprecated_member_use
+warning - A value for optional parameter 'key' isn't ever given - lib\screens\downloads_screen.dart:152:13 - unused_element_parameter
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\eq_screen.dart:146:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\eq_screen.dart:185:43 - deprecated_member_use
+  error - Undefined name 'AppColors' - lib\screens\home_screen.dart:34:24 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\home_screen.dart:41:20 - undefined_identifier
+  error - Undefined name 'kGradient' - lib\screens\home_screen.dart:59:54 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\home_screen.dart:63:60 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\home_screen.dart:67:45 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\home_screen.dart:67:63 - undefined_identifier
+   info - The import of '../models/artist.dart' is unnecessary because all of the used elements are also provided by the import of '../models/album.dart' - lib\screens\home_tab.dart:6:8 - unnecessary_import
+warning - Unused import: 'player_screen.dart' - lib\screens\home_tab.dart:10:8 - unused_import
+   info - The import of '../models/playlist.dart' is unnecessary because all of the used elements are also provided by the import of '../models/album.dart' - lib\screens\library_tab.dart:4:8 - unnecessary_import
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart' - lib\screens\player_screen.dart:2:8 - unnecessary_import
+warning - The declaration '_closeLyricsSheet' isn't referenced - lib\screens\player_screen.dart:94:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:128:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:137:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:137:77 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:410:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:439:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:512:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:655:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:675:66 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:678:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:681:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:702:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:714:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:740:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:742:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:753:63 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:770:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:789:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:815:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:828:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:833:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:838:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:864:30 - deprecated_member_use
+warning - A value for optional parameter 'scrollController' isn't ever given - lib\screens\player_screen.dart:887:12 - unused_element_parameter
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:981:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:998:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:1110:16 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:1134:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\player_screen.dart:1147:39 - deprecated_member_use
+  error - Undefined name 'AppColors' - lib\screens\playlists_screen.dart:39:28 - undefined_identifier
+  error - The method 'GradientText' isn't defined for the type '_PlaylistsScreenState' - lib\screens\playlists_screen.dart:40:18 - undefined_method
+  error - Invalid constant value - lib\screens\playlists_screen.dart:61:77 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\playlists_screen.dart:61:77 - undefined_identifier
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\screens\playlists_screen.dart:76:70 - deprecated_member_use
+warning - The declaration '_PlaylistArtwork' isn't referenced - lib\screens\playlists_screen.dart:157:7 - unused_element
+warning - A value for optional parameter 'size' isn't ever given - lib\screens\playlists_screen.dart:160:58 - unused_element_parameter
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\screens\playlists_screen.dart:174:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile_screen.dart:157:26 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile_screen.dart:159:45 - deprecated_member_use
+   info - 'dialogBackgroundColor' is deprecated and shouldn't be used. Use DialogThemeData.backgroundColor instead. This feature was deprecated after v3.27.0-0.1.pre - lib\screens\profile_screen.dart:248:11 - deprecated_member_use
+   info - 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre - lib\screens\root_screen.dart:46:7 - deprecated_member_use
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:29:24 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:33:28 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:38:22 - undefined_identifier
+  error - Invalid constant value - lib\screens\search_screen.dart:46:51 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:46:51 - undefined_identifier
+  error - Invalid constant value - lib\screens\search_screen.dart:47:69 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:47:69 - undefined_identifier
+  error - Invalid constant value - lib\screens\search_screen.dart:50:72 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:50:72 - undefined_identifier
+  error - Invalid constant value - lib\screens\search_screen.dart:64:67 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:64:67 - undefined_identifier
+  error - The name 'GradientIcon' isn't a class - lib\screens\search_screen.dart:69:21 - creation_with_non_type
+  error - Invalid constant value - lib\screens\search_screen.dart:72:47 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:72:47 - undefined_identifier
+  error - The name 'GradientIcon' isn't a class - lib\screens\search_screen.dart:79:21 - creation_with_non_type
+  error - Invalid constant value - lib\screens\search_screen.dart:82:41 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\search_screen.dart:82:41 - undefined_identifier
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\settings_screen.dart:152:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\settings_screen.dart:218:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\settings_screen.dart:306:58 - deprecated_member_use
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:33:24 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:37:28 - undefined_identifier
+  error - The method 'GradientText' isn't defined for the type '_SongsScreenState' - lib\screens\songs_screen.dart:38:18 - undefined_method
+  error - The name 'GradientIcon' isn't a class - lib\screens\songs_screen.dart:43:29 - creation_with_non_type
+  error - Invalid constant value - lib\screens\songs_screen.dart:48:61 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:48:61 - undefined_identifier
+  error - Invalid constant value - lib\screens\songs_screen.dart:55:53 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:55:53 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:70:24 - undefined_identifier
+  error - Invalid constant value - lib\screens\songs_screen.dart:74:35 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:74:35 - undefined_identifier
+  error - Invalid constant value - lib\screens\songs_screen.dart:77:66 - invalid_constant
+  error - Undefined name 'AppColors' - lib\screens\songs_screen.dart:77:66 - undefined_identifier
+  error - The name 'GradientIcon' isn't a class - lib\screens\songs_screen.dart:94:13 - creation_with_non_type
+  error - Undefined name 'kGradient' - lib\screens\songs_screen.dart:102:47 - undefined_identifier
+warning - Unnecessary cast - lib\screens\stats_screen.dart:78:24 - unnecessary_cast
+warning - Unnecessary cast - lib\screens\stats_screen.dart:79:24 - unnecessary_cast
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\stats_screen.dart:287:20 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\stats_screen.dart:289:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\stats_screen.dart:373:32 - deprecated_member_use
+   info - The import of '../models/artist.dart' is unnecessary because all of the used elements are also provided by the import of '../models/album.dart' - lib\services\api_service.dart:11:8 - unnecessary_import
+   info - The import of '../models/playlist.dart' is unnecessary because all of the used elements are also provided by the import of '../models/album.dart' - lib\services\api_service.dart:12:8 - unnecessary_import
+warning - The left operand can't be null, so the right operand is never executed - lib\services\api_service.dart:790:38 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\services\api_service.dart:791:38 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\services\api_service.dart:813:33 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\services\api_service.dart:822:33 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\services\api_service.dart:844:33 - dead_null_aware_expression
+warning - Unused import: 'package:flutter/foundation.dart' - lib\services\network_quality_service.dart:3:8 - unused_import
+warning - Unused import: '../main.dart' - lib\widgets\mini_player.dart:5:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\mini_player.dart:52:44 - deprecated_member_use
+  error - The name 'GradientIcon' isn't a class - lib\widgets\song_tile.dart:35:27 - creation_with_non_type
+  error - Invalid constant value - lib\widgets\song_tile.dart:37:53 - invalid_constant
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:37:53 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:53:38 - undefined_identifier
+  error - Invalid constant value - lib\widgets\song_tile.dart:60:47 - invalid_constant
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:60:47 - undefined_identifier
+  error - Invalid constant value - lib\widgets\song_tile.dart:66:43 - invalid_constant
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:66:43 - undefined_identifier
+  error - Invalid constant value - lib\widgets\song_tile.dart:69:64 - invalid_constant
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:69:64 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:70:20 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:82:36 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\widgets\song_tile.dart:89:36 - undefined_identifier
+
+flutter : 145 issues found. (ran in 2.1s)
+Au caractère Ligne:1 : 1
++ flutter analyze --no-pub 2>&1 | Out-File -Encoding utf8 analyze_outpu ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (145 issues found. (ran in 2.1s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
