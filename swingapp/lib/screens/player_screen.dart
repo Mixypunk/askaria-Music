@@ -54,13 +54,24 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<void> _loadBg(String imageField) async {
     if (_bgHash == imageField) return;
     _bgHash = imageField;
+    // Réutiliser le cache artCache (déjà téléchargé par ArtworkWidget ou _fetchColors)
+    final api = SwingApiService();
+    final url = '${api.baseUrl}/img/thumbnail/$imageField';
+    final cached = artCache.get(url);
+    if (cached != null) {
+      if (mounted) setState(() => _bgImage = cached);
+      return;
+    }
+    // Fallback : télécharger seulement si pas en cache
     try {
-      final api = SwingApiService();
       final r = await http.get(
-        Uri.parse('${api.baseUrl}/img/thumbnail/$imageField'),
+        Uri.parse(url),
         headers: api.authHeaders,
       ).timeout(const Duration(seconds: 6));
-      if (r.statusCode == 200 && mounted) setState(() => _bgImage = r.bodyBytes);
+      if (r.statusCode == 200 && mounted) {
+        artCache.put(url, r.bodyBytes);
+        setState(() => _bgImage = r.bodyBytes);
+      }
     } catch (_) {}
   }
 
@@ -103,7 +114,9 @@ class _PlayerScreenState extends State<PlayerScreen>
             style: TextStyle(color: Colors.white))));
 
       final dc = player.dynamicColors;
+      // Guard : ne lancer _loadBg et _animateTo que si la chanson a changé
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _loadBg(song.image ?? song.hash);
         _animateTo(dc.accent);
       });
@@ -935,7 +948,9 @@ class _LyricsPageState extends State<_LyricsPage> {
     );
   }
 
+  /// Calcule la ligne active — appelé uniquement par le listener, PAS dans build().
   void _sync() {
+    if (!mounted) return;
     final lines = widget.player.syncedLines;
     if (lines == null || lines.isEmpty) return;
     final pos = widget.player.position.inMilliseconds;
@@ -945,8 +960,28 @@ class _LyricsPageState extends State<_LyricsPage> {
     }
     if (idx != _line) {
       setState(() => _line = idx);
-      // Centrer après le rebuild
       WidgetsBinding.instance.addPostFrameCallback((_) => _centerLine(idx));
+    }
+  }
+
+  void _onPlayerUpdate() => _sync();
+
+  @override
+  void initState() {
+    super.initState();
+    // Listener — déclenché par le provider (déjà throttled à 500ms dans positionStream)
+    widget.player.addListener(_onPlayerUpdate);
+  }
+
+  @override
+  void didUpdateWidget(_LyricsPage old) {
+    super.didUpdateWidget(old);
+    if (old.player != widget.player) {
+      old.player.removeListener(_onPlayerUpdate);
+      widget.player.addListener(_onPlayerUpdate);
+    }
+    if (old.player.currentSong?.hash != widget.player.currentSong?.hash) {
+      _line = 0;
     }
   }
 
@@ -959,7 +994,7 @@ class _LyricsPageState extends State<_LyricsPage> {
       child: CircularProgressIndicator(color: accent, strokeWidth: 2));
 
     if (p.lyricsSynced && p.syncedLines != null && p.syncedLines!.isNotEmpty) {
-      _sync();
+      // _sync() N'EST PLUS appelé ici — listener dans initState gère ça
       return ListView.builder(
         controller: _scroll,
         // Padding haut/bas = moitié écran pour que la 1ère et dernière ligne
@@ -1004,6 +1039,7 @@ class _LyricsPageState extends State<_LyricsPage> {
 
   @override
   void dispose() {
+    widget.player.removeListener(_onPlayerUpdate);
     if (widget.scrollController == null) _internalScroll.dispose();
     super.dispose();
   }

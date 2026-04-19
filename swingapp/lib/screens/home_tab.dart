@@ -7,7 +7,6 @@ import '../models/artist.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
-import 'player_screen.dart';
 import 'settings_screen.dart';
 import 'artist_screen.dart';
 
@@ -34,7 +33,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     setState(() { _loading = true; _offline = false; });
     try {
       final results = await Future.wait([
-        SwingApiService().getSongs(limit: 500),   // Plus de limite à 50
+        SwingApiService().getSongs(limit: 50),   // Preview rapide — "Voir tous" charge le reste
         SwingApiService().getAlbums(limit: 20),
         SwingApiService().getArtists(limit: 20),
       ]).timeout(const Duration(seconds: 15));
@@ -360,7 +359,10 @@ class _SongRow extends StatelessWidget {
   const _SongRow({required this.song, required this.all, required this.idx});
   @override
   Widget build(BuildContext ctx) {
-    final isCurrent = ctx.watch<PlayerProvider>().currentSong == song;
+    // Selector : ne rebuild que si le hash de la chanson courante change
+    // (pas à chaque tick de position)
+    final isCurrent = ctx.select<PlayerProvider, bool>(
+        (p) => p.currentSong?.hash == song.hash);
     return GestureDetector(
       onTap: () => ctx.read<PlayerProvider>()
           .playSong(song, queue: all, index: idx),

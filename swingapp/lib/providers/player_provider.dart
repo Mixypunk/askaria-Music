@@ -38,6 +38,17 @@ class PlayerProvider extends ChangeNotifier {
   String? _error;
   bool _disposed = false;
 
+  // Throttle positionStream — évite des milliers de notifyListeners/min
+  DateTime _lastPositionNotify = DateTime.fromMillisecondsSinceEpoch(0);
+  static const _positionNotifyThrottle = Duration(milliseconds: 500);
+
+  // Debounce _persistQueue — évite d'écrire sur disque à chaque seekbar drag
+  Timer? _persistDebounce;
+
+  // Guard _updateWidget — évite les platform channels si rien n'a changé
+  String? _lastWidgetSongHash;
+  bool? _lastWidgetPlaying;
+
   // Lyrics
   String? _lyrics;
   bool _lyricsLoading = false;
@@ -210,7 +221,14 @@ class PlayerProvider extends ChangeNotifier {
           _isPlaying) {
         _startCrossfade();
       }
-      if (mounted) notifyListeners();
+      // Throttle : ne notifier l'UI qu'au max toutes les 500ms
+      // Les widgets qui ont besoin de la position exacte l'écoutent via StreamBuilder
+      if (!mounted) return;
+      final now = DateTime.now();
+      if (now.difference(_lastPositionNotify) >= _positionNotifyThrottle) {
+        _lastPositionNotify = now;
+        notifyListeners();
+      }
     });
 
     _player.durationStream.listen((dur) {
@@ -442,6 +460,12 @@ class PlayerProvider extends ChangeNotifier {
   void _updateWidget() {
     if (currentSong == null) return;
     final song = currentSong!;
+    // Guard : ne mettre à jour le widget que si le titre ou l'état a changé
+    final hashChanged = song.hash != _lastWidgetSongHash;
+    final playingChanged = _isPlaying != _lastWidgetPlaying;
+    if (!hashChanged && !playingChanged) return;
+    _lastWidgetSongHash = song.hash;
+    _lastWidgetPlaying = _isPlaying;
     final artUrl =
         '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
     WidgetService.instance.update(
@@ -659,18 +683,23 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> _persistQueue() async {
     if (_queue.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final queueJson = json.encode(_queue.map((s) => {
-        'trackhash': s.hash, 'hash': s.hash, 'title': s.title,
-        'artist': s.artist, 'album': s.album, 'albumhash': s.albumHash,
-        'artisthash': s.artistHash, 'duration': s.duration,
-        'filepath': s.filepath, 'image': s.image,
-      }).toList());
-      await prefs.setString('queue_json', queueJson);
-      await prefs.setInt('queue_index', _currentIndex);
-      await prefs.setInt('queue_position', _position.inSeconds);
-    } catch (_) {}
+    // Debounce : évite d'écrire sur disque à chaque tick de la seekbar
+    _persistDebounce?.cancel();
+    _persistDebounce = Timer(const Duration(seconds: 1), () async {
+      if (_disposed || _queue.isEmpty) return;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final queueJson = json.encode(_queue.map((s) => {
+          'trackhash': s.hash, 'hash': s.hash, 'title': s.title,
+          'artist': s.artist, 'album': s.album, 'albumhash': s.albumHash,
+          'artisthash': s.artistHash, 'duration': s.duration,
+          'filepath': s.filepath, 'image': s.image,
+        }).toList());
+        await prefs.setString('queue_json', queueJson);
+        await prefs.setInt('queue_index', _currentIndex);
+        await prefs.setInt('queue_position', _position.inSeconds);
+      } catch (_) {}
+    });
   }
 
   @override
@@ -679,6 +708,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepTimer?.cancel();
     _periodicTimer?.cancel();
     _crossfadeTimer?.cancel();
+    _persistDebounce?.cancel();
     _player.dispose();
     super.dispose();
   }

@@ -159,7 +159,9 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
         child: Image.memory(_bytes!,
           width: size, height: size,
           fit: BoxFit.cover,
-          gaplessPlayback: true), // évite le flash blanc entre images
+          cacheWidth: size.isFinite ? (size * 2).toInt() : null,
+          cacheHeight: size.isFinite ? (size * 2).toInt() : null,
+          gaplessPlayback: true),
       ),
     );
   }
@@ -254,7 +256,10 @@ class _NetImageState extends State<NetImage> {
     } else {
       child = Image.memory(_bytes!,
         width: widget.width, height: widget.height,
-        fit: widget.fit, gaplessPlayback: true);
+        fit: widget.fit,
+        cacheWidth: (widget.width * 2).toInt(),
+        cacheHeight: (widget.height * 2).toInt(),
+        gaplessPlayback: true);
     }
 
     if (widget.circular) {

@@ -10,23 +10,30 @@ class MiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Selector : ne rebuild que si currentSong change (pas à chaque position)
-    return Selector<PlayerProvider, bool>(
-      selector: (_, p) => p.currentSong != null,
-      builder: (ctx, hasSong, _) {
-        if (!hasSong) return const SizedBox.shrink();
-        return RepaintBoundary(child: _MiniPlayerContent());
+    // Selector minimal : ne rebuild que si currentSong.hash change (pas à chaque position)
+    return Selector<PlayerProvider, String?>(
+      selector: (_, p) => p.currentSong?.hash,
+      builder: (ctx, hash, _) {
+        if (hash == null) return const SizedBox.shrink();
+        return RepaintBoundary(child: _MiniPlayerShell(hash: hash));
       },
     );
   }
 }
 
-class _MiniPlayerContent extends StatelessWidget {
+/// Shell statique : ne rebuild que si la chanson change.
+/// Les sous-widgets progress et controls ont leurs propres Selectors.
+class _MiniPlayerShell extends StatelessWidget {
+  final String hash;
+  const _MiniPlayerShell({required this.hash});
+
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final song = player.currentSong!;
-    final accent = player.dynamicColors.accent;
+    final song = context.select<PlayerProvider, dynamic>((p) => p.currentSong);
+    if (song == null) return const SizedBox.shrink();
+
+    final accent = context.select<PlayerProvider, Color>(
+        (p) => p.dynamicColors.accent);
 
     return GestureDetector(
       onTap: () => Navigator.push(context, PageRouteBuilder(
@@ -40,6 +47,7 @@ class _MiniPlayerContent extends StatelessWidget {
       // Swipe gauche = suivant, swipe droite = précédent
       onHorizontalDragEnd: (d) {
         if (d.primaryVelocity == null) return;
+        final player = context.read<PlayerProvider>();
         if (d.primaryVelocity! < -300) player.next();
         if (d.primaryVelocity! >  300) player.previous();
       },
@@ -52,28 +60,18 @@ class _MiniPlayerContent extends StatelessWidget {
           border: Border.all(color: accent.withOpacity(0.12), width: 0.5),
         ),
         child: Stack(children: [
-          // Barre de progression
+          // ── Barre de progression — Selector isolé ────────────────
           Positioned(bottom: 0, left: 0, right: 0,
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-              child: RepaintBoundary(
-                child: SizedBox(height: 2,
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: player.progress.clamp(0.0, 1.0),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 400),
-                      color: accent),
-                  ),
-                ),
-              ),
+              child: RepaintBoundary(child: _MiniProgressBar(accent: accent)),
             ),
           ),
 
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
             child: Row(children: [
-              // Artwork
+              // Artwork — ne rebuild que si le hash change
               RepaintBoundary(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
@@ -87,7 +85,7 @@ class _MiniPlayerContent extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
-              // Titre / Artiste
+              // Titre / Artiste — ne rebuild que si song change
               Expanded(child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,40 +100,15 @@ class _MiniPlayerContent extends StatelessWidget {
                 ],
               )),
 
-              // Like
-              GestureDetector(
-                onTap: () => player.toggleFavourite(song.hash),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    player.isFavourite(song.hash)
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: player.isFavourite(song.hash) ? accent : Colors.white54,
-                    size: 22),
-                ),
-              ),
+              // Like — Selector sur isFavourite uniquement
+              _MiniLikeBtn(hash: song.hash, accent: accent),
 
-              // Play/Pause
-              GestureDetector(
-                onTap: player.playPause,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: player.isLoading
-                      ? SizedBox(width: 28, height: 28,
-                          child: CircularProgressIndicator(
-                              color: accent, strokeWidth: 2))
-                      : Icon(
-                          player.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.white, size: 32),
-                ),
-              ),
+              // Play/Pause — Selector isolé
+              const _MiniPlayBtn(),
 
-              // Next
+              // Next — statique
               GestureDetector(
-                onTap: player.next,
+                onTap: () => context.read<PlayerProvider>().next(),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
                   child: Icon(Icons.skip_next_rounded,
@@ -144,6 +117,74 @@ class _MiniPlayerContent extends StatelessWidget {
             ]),
           ),
         ]),
+      ),
+    );
+  }
+}
+
+// ── Progress bar isolée — Selector sur progress seulement ──────────────────────
+class _MiniProgressBar extends StatelessWidget {
+  final Color accent;
+  const _MiniProgressBar({required this.accent});
+  @override
+  Widget build(BuildContext context) {
+    final progress = context.select<PlayerProvider, double>(
+        (p) => p.progress.clamp(0.0, 1.0));
+    return SizedBox(
+      height: 2,
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: progress,
+        child: Container(color: accent),
+      ),
+    );
+  }
+}
+
+// ── Bouton play/pause isolé ─────────────────────────────────────────────────────
+class _MiniPlayBtn extends StatelessWidget {
+  const _MiniPlayBtn();
+  @override
+  Widget build(BuildContext context) {
+    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final isLoading = context.select<PlayerProvider, bool>((p) => p.isLoading);
+    final accent = context.select<PlayerProvider, Color>(
+        (p) => p.dynamicColors.accent);
+    return GestureDetector(
+      onTap: () => context.read<PlayerProvider>().playPause(),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: isLoading
+            ? SizedBox(width: 28, height: 28,
+                child: CircularProgressIndicator(
+                    color: accent, strokeWidth: 2))
+            : Icon(
+                isPlaying
+                    ? Icons.pause_rounded
+                    : Icons.play_arrow_rounded,
+                color: Colors.white, size: 32),
+      ),
+    );
+  }
+}
+
+// ── Bouton like isolé ───────────────────────────────────────────────────────────
+class _MiniLikeBtn extends StatelessWidget {
+  final String hash;
+  final Color accent;
+  const _MiniLikeBtn({required this.hash, required this.accent});
+  @override
+  Widget build(BuildContext context) {
+    final isFav = context.select<PlayerProvider, bool>(
+        (p) => p.isFavourite(hash));
+    return GestureDetector(
+      onTap: () => context.read<PlayerProvider>().toggleFavourite(hash),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          color: isFav ? accent : Colors.white54,
+          size: 22),
       ),
     );
   }

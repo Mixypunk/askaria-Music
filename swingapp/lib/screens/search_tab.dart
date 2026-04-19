@@ -74,16 +74,31 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
     }
 
     try {
-      // Lancer les 3 recherches en parallèle côté serveur
+      // Un seul appel searchTop retourne tracks + albums + artistes
+      // + appel songs en parallèle pour plus de titres
       final results = await Future.wait([
         SwingApiService().searchSongs(query),
-        _searchAlbums(query),
-        _searchArtists(query),
+        SwingApiService().searchTop(query),     // albums + artistes en un seul appel
       ]).timeout(const Duration(seconds: 8));
+
+      final songs = results[0] as List<Song>;
+      final topData = results[1] as Map<String, dynamic>;
+
+      List<Album> albums = [];
+      List<Artist> artists = [];
+      final rawAlbums = topData['albums'];
+      final rawArtists = topData['artists'];
+      if (rawAlbums is List && rawAlbums.isNotEmpty) {
+        albums = rawAlbums.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      if (rawArtists is List && rawArtists.isNotEmpty) {
+        artists = rawArtists.map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
+      }
+
       if (mounted) setState(() {
-        _tracks  = results[0] as List<Song>;
-        _albums  = results[1] as List<Album>;
-        _artists = results[2] as List<Artist>;
+        _tracks  = songs;
+        _albums  = albums;
+        _artists = artists;
         _loading = false;
       });
     } catch (_) {
@@ -107,28 +122,6 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
       _artists = [];
       _loading = false;
     });
-  }
-
-  Future<List<Album>> _searchAlbums(String query) async {
-    try {
-      final data = await SwingApiService().searchTop(query);
-      final raw = data['albums'] ?? [];
-      if (raw is List && raw.isNotEmpty) {
-        return raw.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  Future<List<Artist>> _searchArtists(String query) async {
-    try {
-      final data = await SwingApiService().searchTop(query);
-      final raw = data['artists'] ?? [];
-      if (raw is List && raw.isNotEmpty) {
-        return raw.map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
-      }
-    } catch (_) {}
-    return [];
   }
 
   @override
