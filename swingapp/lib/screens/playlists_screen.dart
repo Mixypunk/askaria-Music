@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/playlist.dart';
@@ -140,14 +140,54 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
               : _tracks.isEmpty
                   ? const Center(child: Text('Playlist vide'))
-                  : ListView.builder(
+                  : ReorderableListView.builder(
                       itemCount: _tracks.length,
-                      itemBuilder: (ctx, i) => SongTile(
-                        song: _tracks[i],
-                        onTap: () => context.read<PlayerProvider>().playSong(
-                          _tracks[i], queue: _tracks, index: i,
-                        ),
-                      ),
+                      onReorder: (oldIndex, newIndex) async {
+                        if (oldIndex < newIndex) {
+                          newIndex -= 1;
+                        }
+                        if (oldIndex == newIndex) return;
+
+                        setState(() {
+                          final song = _tracks.removeAt(oldIndex);
+                          _tracks.insert(newIndex, song);
+                        });
+                        
+                        final success = await SwingApiService().reorderPlaylist(
+                          widget.playlist.id, oldIndex, newIndex,
+                        );
+                        if (!success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Erreur lors de la modification de l\'ordre')),
+                          );
+                          _load(); // recharge en cas d'erreur
+                        }
+                      },
+                      proxyDecorator: (c, _, __) => Material(color: Colors.transparent, child: c),
+                      itemBuilder: (ctx, i) {
+                        final song = _tracks[i];
+                        return SongTile(
+                          key: ValueKey('${song.hash}_${i}'),
+                          song: song,
+                          onTap: () => context.read<PlayerProvider>().playSong(
+                            song, queue: _tracks, index: i,
+                          ),
+                          onRemove: () async {
+                            setState(() {
+                              _tracks.removeAt(i);
+                            });
+                            final success = await SwingApiService().removeTrackFromPlaylist(
+                              widget.playlist.id, song.hash, i,
+                            );
+                            if (!success && mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                 const SnackBar(content: Text('Erreur lors de la suppression')),
+                               );
+                               _load(); // recharge en cas d'erreur
+                            }
+                          },
+                        );
+                      },
                     ),
     );
   }

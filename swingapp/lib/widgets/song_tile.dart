@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
@@ -11,10 +11,12 @@ class SongTile extends StatelessWidget {
   final int? index;
   final bool showNumber;
   final VoidCallback? onTap;
+  final VoidCallback? onRemove;
 
   const SongTile({
     super.key, required this.song,
     this.queue, this.index, this.showNumber = false, this.onTap,
+    this.onRemove,
   });
 
   @override
@@ -69,11 +71,17 @@ class SongTile extends StatelessWidget {
             icon: const Icon(Icons.more_vert, size: 18, color: Sp.white40),
             color: Sp.cardHi,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'next',  child: Text('Lire ensuite')),
-              PopupMenuItem(value: 'queue', child: Text('Ajouter à la file')),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'next',  child: Text('Lire ensuite')),
+              const PopupMenuItem(value: 'queue', child: Text('Ajouter à la file')),
+              if (onRemove != null)
+                const PopupMenuItem(value: 'remove', child: Text('Retirer', style: TextStyle(color: Colors.redAccent))),
             ],
             onSelected: (v) {
+              if (v == 'remove') {
+                onRemove?.call();
+                return;
+              }
               final p = context.read<PlayerProvider>();
               if (v == 'next') {
                 p.addNextInQueue(song);
