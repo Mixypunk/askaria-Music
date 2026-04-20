@@ -401,13 +401,24 @@ class SwingApiService {
     return (tracks as List).map((e) => Song.fromJson(e)).toList();
   }
 
+  Future<List<Playlist>> getPublicPlaylists() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/playlists/public');
+      final response = await _authedGet(uri);
+      if (response.statusCode != 200) return [];
+      final data = json.decode(response.body);
+      final items = data['data'] ?? data['playlists'] ?? data['items'] ?? (data is List ? data : []);
+      return (items as List).map((e) => Playlist.fromJson(e)).toList();
+    } catch (_) { return []; }
+  }
+
   // ── PLAYLIST CRUD ─────────────────────────────────────────────────────
   /// Créer une nouvelle playlist
-  Future<Playlist?> createPlaylist(String name, {String description = ''}) async {
+  Future<Playlist?> createPlaylist(String name, {String description = '', bool isPublic = false}) async {
     try {
       final r = await _authedPost(
         Uri.parse('$_baseUrl/playlists/new'),
-        body: json.encode({'name': name, 'description': description}),
+        body: json.encode({'name': name, 'description': description, 'is_public': isPublic}),
       );
       if (r.statusCode == 200 || r.statusCode == 201) {
         final data = json.decode(r.body);
@@ -420,11 +431,12 @@ class SwingApiService {
 
   /// Renommer / modifier la description d'une playlist
   Future<bool> updatePlaylist(String playlistId,
-      {String? name, String? description}) async {
+      {String? name, String? description, bool? isPublic}) async {
     try {
       final body = <String, dynamic>{};
       if (name != null)        body['name']        = name;
       if (description != null) body['description'] = description;
+      if (isPublic != null)    body['is_public']   = isPublic;
       final r = await _authedPost(
         Uri.parse('$_baseUrl/playlists/$playlistId/update'),
         body: json.encode(body),

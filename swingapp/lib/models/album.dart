@@ -79,6 +79,7 @@ class Playlist {
   final String? description;
   final int trackCount;
   final String? imageHash;
+  final bool isPublic;
 
   const Playlist({
     required this.id,
@@ -86,6 +87,7 @@ class Playlist {
     this.description,
     this.trackCount = 0,
     this.imageHash,
+    this.isPublic = false,
   });
 
   factory Playlist.fromJson(Map<String, dynamic> j) => Playlist(
@@ -95,5 +97,6 @@ class Playlist {
     trackCount: j['count'] ?? j['trackcount'] ?? 0,
     // playlist image served at /img/playlist/{id}.webp
     imageHash: j['id']?.toString(),
+    isPublic: j['is_public'] == true || j['is_public'] == 1,
   );
 }
