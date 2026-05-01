@@ -35,6 +35,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   Uint8List? _bgImage;
   String? _bgHash;
 
+  // Guard pour ne déclencher _loadBg/_animateTo qu'au vrai changement de chanson
+  String? _lastSongHash;
 
   @override
   void initState() {
@@ -42,6 +44,21 @@ class _PlayerScreenState extends State<PlayerScreen>
     _pageController = PageController();
     _colorAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Lire une seule fois — pas de rebuild déclenché par ce read
+    final player = context.read<PlayerProvider>();
+    final song = player.currentSong;
+    if (song == null) return;
+    final hash = song.image ?? song.hash;
+    // Ne déclencher que si la chanson a vraiment changé
+    if (hash == _lastSongHash) return;
+    _lastSongHash = hash;
+    _loadBg(hash);
+    _animateTo(player.dynamicColors.accent);
   }
 
   @override
@@ -106,131 +123,154 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PlayerProvider>(builder: (ctx, player, _) {
-      final song = player.currentSong;
-      if (song == null) return const Scaffold(
-        backgroundColor: Sp.bg,
-        body: Center(child: Text('Aucune musique',
-            style: TextStyle(color: Colors.white))));
+    // Selector minimal : ne rebuild que si la chanson change (hash)
+    // Les sous-widgets dynamiques (position, isPlaying) ont leurs propres Selectors
+    return Selector<PlayerProvider, String?>(
+      selector: (_, p) => p.currentSong?.hash,
+      builder: (ctx, hash, _) {
+        if (hash == null) return const Scaffold(
+          backgroundColor: Sp.bg,
+          body: Center(child: Text('Aucune musique',
+              style: TextStyle(color: Colors.white))));
 
-      final dc = player.dynamicColors;
-      // Guard : ne lancer _loadBg et _animateTo que si la chanson a changé
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _loadBg(song.image ?? song.hash);
-        _animateTo(dc.accent);
-      });
+        // Lecture non-réactive (ne déclenche pas de rebuild)
+        final player = context.read<PlayerProvider>();
+        final song = player.currentSong!;
+        final dc = player.dynamicColors;
 
-      return AnimatedBuilder(
-        animation: _colorAnim,
-        builder: (ctx, _) {
-          final t = CurvedAnimation(parent: _colorAnim, curve: Curves.easeOut).value;
-          final accent = Color.lerp(_prevAccent, _currAccent, t) ?? _currAccent;
-          final dark = Color.lerp(
-            HSLColor.fromColor(_prevAccent).withLightness(0.15).toColor(),
-            dc.accentDark, t) ?? dc.accentDark;
+        // Déclencher _loadBg/_animateTo si la chanson vient de changer
+        // (didChangeDependencies ne suffit pas si le provider notifie après build)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final newHash = song.image ?? song.hash;
+          if (newHash != _lastSongHash) {
+            _lastSongHash = newHash;
+            _loadBg(newHash);
+            _animateTo(dc.accent);
+          }
+        });
 
-          return Scaffold(
-            backgroundColor: Sp.bg,
-            body: Stack(children: [
-              // ── Fond flouté ─────────────────────────────────────────
-              if (_bgImage != null)
-                Positioned.fill(child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-                  child: Image.memory(_bgImage!, fit: BoxFit.cover,
-                    color: Colors.black.withOpacity(0.58),
-                    colorBlendMode: BlendMode.darken)))
-              else
+        return AnimatedBuilder(
+          animation: _colorAnim,
+          builder: (ctx, _) {
+            final t = CurvedAnimation(parent: _colorAnim, curve: Curves.easeOut).value;
+            final accent = Color.lerp(_prevAccent, _currAccent, t) ?? _currAccent;
+            final dark = Color.lerp(
+              HSLColor.fromColor(_prevAccent).withLightness(0.15).toColor(),
+              dc.accentDark, t) ?? dc.accentDark;
+
+            return Scaffold(
+              backgroundColor: Sp.bg,
+              body: Stack(children: [
+                // ── Fond flouté ─────────────────────────────────────────
+                if (_bgImage != null)
+                  Positioned.fill(child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                    child: Image.memory(_bgImage!, fit: BoxFit.cover,
+                      color: Colors.black.withOpacity(0.58),
+                      colorBlendMode: BlendMode.darken)))
+                else
+                  Positioned.fill(child: Container(
+                    decoration: BoxDecoration(gradient: LinearGradient(
+                      colors: [dark, Sp.bg], begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(
-                    colors: [dark, Sp.bg], begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
-              Positioned.fill(child: Container(
-                decoration: BoxDecoration(gradient: LinearGradient(
-                  colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.4, 1.0])))),
+                    colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.4, 1.0])))),
 
-              // ── Contenu principal ────────────────────────────────────
-              GestureDetector(
-                onVerticalDragEnd: (d) {
-                  // Swipe bas rapide = fermer le player
-                  if ((d.primaryVelocity ?? 0) > 400) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                onHorizontalDragEnd: (d) {
-                  // Swipe ←→ uniquement sur la page Player (pas Paroles/Queue)
-                  if (_page != 0) return;
-                  final v = d.primaryVelocity ?? 0;
-                  final player = context.read<PlayerProvider>();
-                  if (v < -600) {
-                    player.next();
-                  } else if (v > 600) {
-                    player.previous();
-                  }
-                },
-                child: SafeArea(child: Column(children: [
+                // ── Contenu principal ────────────────────────────────────
+                GestureDetector(
+                  onVerticalDragEnd: (d) {
+                    if ((d.primaryVelocity ?? 0) > 400) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  onHorizontalDragEnd: (d) {
+                    if (_page != 0) return;
+                    final v = d.primaryVelocity ?? 0;
+                    final p = context.read<PlayerProvider>();
+                    if (v < -600) p.next();
+                    else if (v > 600) p.previous();
+                  },
+                  child: SafeArea(child: Column(children: [
 
-                // Top bar : flèche bas + titre album + indicateurs de page
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.keyboard_arrow_down_rounded,
-                          size: 32, color: Colors.white),
+                  // Top bar : flèche bas + titre album + indicateurs de page
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 32, color: Colors.white),
+                      ),
+                      Expanded(child: Column(children: [
+                        // Selector ciblé sur page + hasLyrics + lyricsLoading
+                        Selector<PlayerProvider, (bool, bool)>(
+                          selector: (_, p) => (p.hasLyrics, p.lyricsLoading),
+                          builder: (_, data, __) {
+                            final hasL = data.$1;
+                            final loadL = data.$2;
+                            return Column(children: [
+                              Text(
+                                _page == 0 ? 'EN LECTURE'
+                                : (hasL || loadL) && _page == 1
+                                    ? 'PAROLES'
+                                    : 'FILE D\'ATTENTE',
+                                style: const TextStyle(color: Colors.white70, fontSize: 10,
+                                    letterSpacing: 1.5, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Text(song.album, style: const TextStyle(
+                                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ]);
+                          },
+                        ),
+                      ])),
+                      // Indicateur de page
+                      Selector<PlayerProvider, (bool, bool)>(
+                        selector: (_, p) => (p.hasLyrics, p.lyricsLoading),
+                        builder: (_, data, __) => _PageDots(
+                          current: _page,
+                          accent: accent,
+                          count: (data.$1 || data.$2) ? 3 : 2),
+                      ),
+                    ]),
+                  ),
+
+                  // PageView dynamique
+                  Expanded(child: Selector<PlayerProvider, (bool, bool)>(
+                    selector: (_, p) => (p.hasLyrics, p.lyricsLoading),
+                    builder: (_, data, __) => PageView(
+                      controller: _pageController,
+                      onPageChanged: (p) => setState(() => _page = p),
+                      children: [
+                        // ── Page 0 : Player ────────────────────────────────
+                        _PlayerPage(
+                          player: player,
+                          song: song,
+                          accent: accent,
+                          onLyricsTap: _openLyricsSheet,
+                        ),
+                        // ── Page 1 : Paroles (seulement si dispo) ──────────
+                        if (data.$1 || data.$2)
+                          _LyricsPage(player: player, accent: accent),
+                        // ── Page 2 : File d'attente ────────────────────────
+                        _QueuePage(player: player, accent: accent),
+                      ],
                     ),
-                    Expanded(child: Column(children: [
-                      Text(
-                        _page == 0 ? 'EN LECTURE'
-                        : (player.hasLyrics || player.lyricsLoading) && _page == 1
-                            ? 'PAROLES'
-                            : 'FILE D\'ATTENTE',
-                        style: const TextStyle(color: Colors.white70, fontSize: 10,
-                            letterSpacing: 1.5, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text(song.album, style: const TextStyle(
-                          color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ])),
-                    // Indicateur de page (3 petits points)
-                    _PageDots(
-                      current: _page,
-                      accent: accent,
-                      count: (player.hasLyrics || player.lyricsLoading) ? 3 : 2),
-                  ]),
-                ),
-
-                // PageView dynamique : Paroles masquée si absentes
-                Expanded(child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (p) => setState(() => _page = p),
-                  children: [
-                    // ── Page 0 : Player ────────────────────────────────
-                    _PlayerPage(
-                      player: player,
-                      song: song,
-                      accent: accent,
-                      onLyricsTap: _openLyricsSheet,
-                    ),
-                    // ── Page 1 : Paroles (seulement si dispo) ──────────
-                    if (player.hasLyrics || player.lyricsLoading)
-                      _LyricsPage(player: player, accent: accent),
-                    // ── Page 2 : File d'attente ────────────────────────
-                    _QueuePage(player: player, accent: accent),
-                  ],
-                )),
-              ]),     // Column children
-              ),      // SafeArea(child: Column)
-              ),      // GestureDetector(child: SafeArea)
-            ]),       // Stack children
-          );          // Scaffold
-        },            // AnimatedBuilder builder
-      );              // AnimatedBuilder
-    });               // Consumer
-  }                   // build()
-}                     // class
+                  )),
+                ])),     // Column + SafeArea
+                ),        // GestureDetector
+              ]),         // Stack children
+            );            // Scaffold
+          },              // AnimatedBuilder builder
+        );                // AnimatedBuilder
+      },                  // Selector builder
+    );                    // Selector
+  }                       // build()
+}                         // class
 
 // ── Indicateur de page (3 points) ─────────────────────────────────────────────
 class _PageDots extends StatelessWidget {
@@ -745,15 +785,22 @@ class _PlayerPage extends StatelessWidget {
         ]),
         const SizedBox(height: 20),
 
-        // Progress bar dynamique
-        _ProgressBar(player: player, accent: accent),
+        // Progress bar dynamique — autonome avec son propre Selector
+        _ProgressBar(accent: accent),
         const SizedBox(height: 4),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(_fmt(player.position),
-            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
-          Text(_fmt(player.duration),
-            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
-        ]),
+        // Labels position/durée — Selector isolé
+        Selector<PlayerProvider, (Duration, Duration)>(
+          selector: (_, p) => (p.position, p.duration),
+          builder: (_, data, __) => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(_fmt(data.$1),
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
+              Text(_fmt(data.$2),
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
+            ],
+          ),
+        ),
         const SizedBox(height: 20),
 
         // Contrôles
@@ -857,36 +904,41 @@ class _PlayerPage extends StatelessWidget {
   }
 }
 
-// ── Progress bar ─────────────────────────────────────────────────────────────
+// ── Progress bar — autonome avec Selector sur position+duration uniquement ──────
+// Ne se rebuilde que toutes les 500ms (throttle du provider) sans dépendre
+// du Consumer parent.
 class _ProgressBar extends StatelessWidget {
-  final PlayerProvider player;
   final Color accent;
-  const _ProgressBar({required this.player, required this.accent});
+  const _ProgressBar({required this.accent});
 
   @override
   Widget build(BuildContext ctx) {
-    if (player.currentSong == null) return const SizedBox.shrink();
-    return SliderTheme(
-      data: SliderThemeData(
-        trackHeight: 4,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-        activeTrackColor: accent,
-        inactiveTrackColor: Colors.white24,
-        thumbColor: Colors.white,
-        overlayColor: accent.withOpacity(0.2)),
-      child: Slider(
-        min: 0.0,
-        max: player.duration.inMilliseconds.toDouble() > 0
-            ? player.duration.inMilliseconds.toDouble()
-            : 1.0,
-        value: player.position.inMilliseconds.toDouble().clamp(
-            0.0,
-            player.duration.inMilliseconds.toDouble() > 0
-                ? player.duration.inMilliseconds.toDouble()
-                : 1.0),
-        onChanged: (v) => player.seek(Duration(milliseconds: v.round())),
-      ),
+    return Selector<PlayerProvider, (Duration, Duration)>(
+      selector: (_, p) => (p.position, p.duration),
+      builder: (ctx, data, _) {
+        final pos = data.$1;
+        final dur = data.$2;
+        final maxMs = dur.inMilliseconds.toDouble() > 0
+            ? dur.inMilliseconds.toDouble()
+            : 1.0;
+        return SliderTheme(
+          data: SliderThemeData(
+            trackHeight: 4,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            activeTrackColor: accent,
+            inactiveTrackColor: Colors.white24,
+            thumbColor: Colors.white,
+            overlayColor: accent.withOpacity(0.2)),
+          child: Slider(
+            min: 0.0,
+            max: maxMs,
+            value: pos.inMilliseconds.toDouble().clamp(0.0, maxMs),
+            onChanged: (v) => ctx.read<PlayerProvider>()
+                .seek(Duration(milliseconds: v.round())),
+          ),
+        );
+      },
     );
   }
 }

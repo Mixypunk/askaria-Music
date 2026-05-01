@@ -61,15 +61,11 @@ class _RootScreenState extends State<RootScreen> {
       },
       child: Scaffold(
       backgroundColor: Sp.bg,
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 150),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        transitionBuilder: (child, anim) => FadeTransition(
-          opacity: anim, child: child),
-        child: KeyedSubtree(
-          key: ValueKey(_tab),
-          child: _tabs[_tab]),
+      // IndexedStack : tous les onglets restent montés en mémoire.
+      // Plus de destruction/recréation ni de re-appels API au changement d'onglet.
+      body: IndexedStack(
+        index: _tab,
+        children: _tabs,
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,

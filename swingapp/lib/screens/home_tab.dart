@@ -23,11 +23,31 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   bool _loading = true;
   bool _offline = false;
 
+  // Profil utilisateur — pour la PP dans l'avatar button
+  String? _username;
+  String? _avatarUrl;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final api  = SwingApiService();
+    final prof = await api.getMyProfile();
+    final uid  = prof['id'] as int?;
+    if (uid != null && mounted) {
+      setState(() {
+        _username  = prof['username'] as String?;
+        _avatarUrl = api.getAvatarUrl(uid);
+      });
+    }
+  }
 
   Future<void> _load() async {
     setState(() { _loading = true; _offline = false; });
@@ -190,16 +210,53 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
       builder: (_) => _AllSongsScreen(songs: _songs)));
   }
 
-  Widget _avatar() => GestureDetector(
-    onTap: () => Navigator.push(context,
-        MaterialPageRoute(builder: (_) => const SettingsScreen())),
-    child: Container(
-      width: 32, height: 32,
-      decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
-      child: const Icon(Icons.person_rounded, size: 18, color: Colors.white),
-    ),
+  Widget _avatar() {
+    final url      = _avatarUrl;
+    final username = _username ?? '';
+    final initial  = username.isNotEmpty ? username[0].toUpperCase() : '';
+
+    return GestureDetector(
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const SettingsScreen())),
+      child: Container(
+        width: 34, height: 34,
+        decoration: const BoxDecoration(
+          gradient: kGrad, shape: BoxShape.circle),
+        padding: const EdgeInsets.all(1.5),
+        child: ClipOval(
+          child: url != null
+              ? NetImage(
+                  url:      url,
+                  width:    34,
+                  height:   34,
+                  circular: true,
+                  headers:  SwingApiService().authHeaders,
+                  placeholder: _AvatarFallback(initial),
+                )
+              : _AvatarFallback(initial),
+        ),
+      ),
+    );
+  }
+}
+
+// Fallback initiale quand pas de photo de profil
+class _AvatarFallback extends StatelessWidget {
+  final String initial;
+  const _AvatarFallback(this.initial);
+  @override
+  Widget build(BuildContext context) => Container(
+    color: Sp.card,
+    child: initial.isEmpty
+        ? const Icon(Icons.person_rounded, size: 18, color: Colors.white)
+        : Center(child: Text(initial,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold))),
   );
 }
+
 
 // ── Écran "Tous les titres" ────────────────────────────────────────────────────
 class _AllSongsScreen extends StatelessWidget {
