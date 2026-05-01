@@ -219,21 +219,24 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
       onTap: () => Navigator.push(context,
           MaterialPageRoute(builder: (_) => const SettingsScreen())),
       child: Container(
-        width: 34, height: 34,
+        width: 36, height: 36,
         decoration: const BoxDecoration(
           gradient: kGrad, shape: BoxShape.circle),
-        padding: const EdgeInsets.all(1.5),
+        padding: const EdgeInsets.all(2),
         child: ClipOval(
-          child: url != null
-              ? NetImage(
-                  url:      url,
-                  width:    34,
-                  height:   34,
-                  circular: true,
-                  headers:  SwingApiService().authHeaders,
-                  placeholder: _AvatarFallback(initial),
-                )
-              : _AvatarFallback(initial),
+          child: SizedBox(
+            width: 32, height: 32,
+            child: url != null
+                ? NetImage(
+                    url:      url,
+                    width:    32,
+                    height:   32,
+                    circular: false,
+                    headers:  SwingApiService().authHeaders,
+                    placeholder: _AvatarFallback(initial),
+                  )
+                : _AvatarFallback(initial),
+          ),
         ),
       ),
     );
