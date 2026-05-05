@@ -10,6 +10,8 @@ import '../models/song.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
 import '../models/playlist.dart';
+import '../utils/app_error.dart';
+import 'database_manager.dart';
 
 class SwingApiService {
   static final SwingApiService _instance = SwingApiService._internal();
@@ -184,6 +186,17 @@ class SwingApiService {
     return r;
   }
 
+  /// Extraction sécurisée d'une liste depuis une réponse JSON (Map ou List)
+  List<dynamic> _parseItems(dynamic data, [List<String> keys = const ['items', 'data', 'results', 'tracks', 'albums', 'artists', 'playlists', 'users']]) {
+    if (data is List) return data;
+    if (data is Map) {
+      for (final k in keys) {
+        if (data[k] is List) return data[k] as List<dynamic>;
+      }
+    }
+    return [];
+  }
+
   // Requête POST avec retry automatique si 401
   Future<http.Response> _authedPost(Uri uri, {Object? body}) async {
     var r = await http.post(uri, headers: _headers, body: body)
@@ -229,8 +242,8 @@ class SwingApiService {
       ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final users = data['users'] ?? data['items'] ?? (data is List ? data : []);
-        return (users as List).map((u) => (u['username'] ?? u['name'] ?? '').toString()).toList();
+        final users = _parseItems(data, ['users', 'items']);
+        return users.map((u) => ((u as Map)['username'] ?? u['name'] ?? '').toString()).toList();
       }
     } catch (_) {}
     return [];
@@ -254,8 +267,8 @@ class SwingApiService {
       throw Exception('getSongs HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
-    final items = data['tracks'] ?? [];
-    return (items as List).map((e) => Song.fromJson(e)).toList();
+    final items = _parseItems(data, ['tracks', 'items']);
+    return items.map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   // ── SEARCH ─────────────────────────────────────────────────────────────
@@ -267,8 +280,8 @@ class SwingApiService {
       final response = await _authedGet(uri);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final tracks = data['tracks'] ?? data['results'] ?? (data is List ? data : []);
-        return (tracks as List).map((e) => Song.fromJson(e)).toList();
+        final tracks = _parseItems(data, ['tracks', 'results']);
+        return tracks.map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
       }
     } catch (_) {}
     return [];
@@ -288,22 +301,40 @@ class SwingApiService {
   }
 
   // ── ALBUMS ─────────────────────────────────────────────────────────────
-  Future<List<Album>> getAlbums({int start = 0, int limit = 500}) async {
-    final uri = Uri.parse('$_baseUrl/getall/albums').replace(
-      queryParameters: {
-        'start': '$start',
-        'limit': '$limit',
-        'sortby': 'created_date',
-        'reverse': '1',
-      },
-    );
-    final response = await _authedGet(uri);
-    if (response.statusCode != 200) {
-      throw Exception('getAlbums HTTP ${response.statusCode}');
+  Future<List<Album>> getAlbums({int start = 0, int limit = 500, bool forceRefresh = false}) async {
+    final cacheKey = 'albums_${start}_$limit';
+    final db = DatabaseManager();
+
+    if (!forceRefresh) {
+      final cached = await db.getCache(cacheKey);
+      if (cached != null) {
+        _syncAlbums(start, limit, cacheKey); // Arrière-plan
+        final items = _parseItems(cached, ['items', 'albums']);
+        return items.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
+      }
     }
-    final data = json.decode(response.body);
-    final items = data['items'] ?? data['albums'] ?? (data is List ? data : []);
-    return (items as List).map((e) => Album.fromJson(e)).toList();
+    return _syncAlbums(start, limit, cacheKey);
+  }
+
+  Future<List<Album>> _syncAlbums(int start, int limit, String cacheKey) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/getall/albums').replace(
+        queryParameters: {
+          'start': '$start',
+          'limit': '$limit',
+          'sortby': 'created_date',
+          'reverse': '1',
+        },
+      );
+      final response = await _authedGet(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await DatabaseManager().saveCache(cacheKey, data);
+        final items = _parseItems(data, ['items', 'albums']);
+        return items.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
   // POST /album avec {albumhash: hash}
@@ -313,35 +344,53 @@ class SwingApiService {
       throw Exception('Album tracks HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
-    final tracks = data is List ? data : (data['tracks'] ?? []);
-    return (tracks as List).map((e) => Song.fromJson(e)).toList();
+    final tracks = _parseItems(data, ['tracks']);
+    return tracks.map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   // ── ARTISTS ────────────────────────────────────────────────────────────
-  Future<List<Artist>> getArtists({int start = 0, int limit = 500}) async {
-    final uri = Uri.parse('$_baseUrl/getall/artists').replace(
-      queryParameters: {
-        'start': '$start',
-        'limit': '$limit',
-        'sortby': 'name',
-        'reverse': '0',
-      },
-    );
-    final response = await _authedGet(uri);
-    if (response.statusCode != 200) {
-      throw Exception('getArtists HTTP ${response.statusCode}');
+  Future<List<Artist>> getArtists({int start = 0, int limit = 500, bool forceRefresh = false}) async {
+    final cacheKey = 'artists_${start}_$limit';
+    final db = DatabaseManager();
+
+    if (!forceRefresh) {
+      final cached = await db.getCache(cacheKey);
+      if (cached != null) {
+        _syncArtists(start, limit, cacheKey); // Arrière-plan
+        final items = _parseItems(cached, ['items', 'artists']);
+        return items.map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
+      }
     }
-    final data = json.decode(response.body);
-    final items = data['items'] ?? data['artists'] ?? (data is List ? data : []);
-    return (items as List).map((e) => Artist.fromJson(e)).toList();
+    return _syncArtists(start, limit, cacheKey);
+  }
+
+  Future<List<Artist>> _syncArtists(int start, int limit, String cacheKey) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/getall/artists').replace(
+        queryParameters: {
+          'start': '$start',
+          'limit': '$limit',
+          'sortby': 'name',
+          'reverse': '0',
+        },
+      );
+      final response = await _authedGet(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await DatabaseManager().saveCache(cacheKey, data);
+        final items = _parseItems(data, ['items', 'artists']);
+        return items.map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
   Future<List<Song>> getArtistTracks(String artistHash) async {
     final response = await _authedGet(Uri.parse('$_baseUrl/artist/$artistHash/tracks'));
     if (response.statusCode != 200) return [];
     final data = json.decode(response.body);
-    final tracks = data is List ? data : (data['tracks'] ?? []);
-    return (tracks as List).map((e) => Song.fromJson(e)).toList();
+    final tracks = _parseItems(data, ['tracks']);
+    return tracks.map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   /// Cherche un artiste par nom — utile quand artistHash est vide
@@ -367,24 +416,41 @@ class SwingApiService {
           Uri.parse('$_baseUrl/artist/$artistHash/albums'));
       if (response.statusCode != 200) return [];
       final data = json.decode(response.body);
-      final items = data is List ? data : (data['albums'] ?? data['items'] ?? []);
-      return (items as List).map((e) => Album.fromJson(e)).toList();
+      final items = _parseItems(data, ['albums', 'items']);
+      return items.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
     } catch (_) { return []; }
   }
 
   // ── PLAYLISTS ──────────────────────────────────────────────────────────
-  Future<List<Playlist>> getPlaylists() async {
-    final uri = Uri.parse('$_baseUrl/playlists').replace(
-      queryParameters: {'start': '0', 'limit': '200', 'no_tracks': 'true'},
-    );
-    final response = await _authedGet(uri);
-    if (response.statusCode != 200) {
-      throw Exception('getPlaylists HTTP ${response.statusCode}');
+  Future<List<Playlist>> getPlaylists({bool forceRefresh = false}) async {
+    const cacheKey = 'playlists_all';
+    final db = DatabaseManager();
+
+    if (!forceRefresh) {
+      final cached = await db.getCache(cacheKey);
+      if (cached != null) {
+        _syncPlaylists(cacheKey);
+        final items = _parseItems(cached, ['data', 'playlists', 'items']);
+        return items.map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
+      }
     }
-    final data = json.decode(response.body);
-    // Server returns {"data": [...]}
-    final items = data['data'] ?? data['playlists'] ?? data['items'] ?? (data is List ? data : []);
-    return (items as List).map((e) => Playlist.fromJson(e)).toList();
+    return _syncPlaylists(cacheKey);
+  }
+
+  Future<List<Playlist>> _syncPlaylists(String cacheKey) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/playlists').replace(
+        queryParameters: {'start': '0', 'limit': '200', 'no_tracks': 'true'},
+      );
+      final response = await _authedGet(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await DatabaseManager().saveCache(cacheKey, data);
+        final items = _parseItems(data, ['data', 'playlists', 'items']);
+        return items.map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
   Future<List<Song>> getPlaylistTracks(String playlistId) async {
@@ -396,9 +462,8 @@ class SwingApiService {
       throw Exception('Playlist tracks HTTP ${response.statusCode}');
     }
     final data = json.decode(response.body);
-    // Server returns {info: ..., tracks: [...]}
-    final tracks = data['tracks'] ?? (data is List ? data : []);
-    return (tracks as List).map((e) => Song.fromJson(e)).toList();
+    final tracks = _parseItems(data, ['tracks']);
+    return tracks.map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<List<Playlist>> getPublicPlaylists() async {
@@ -407,8 +472,8 @@ class SwingApiService {
       final response = await _authedGet(uri);
       if (response.statusCode != 200) return [];
       final data = json.decode(response.body);
-      final items = data['data'] ?? data['playlists'] ?? data['items'] ?? (data is List ? data : []);
-      return (items as List).map((e) => Playlist.fromJson(e)).toList();
+      final items = _parseItems(data, ['data', 'playlists', 'items']);
+      return items.map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
     } catch (_) { return []; }
   }
 
@@ -425,7 +490,7 @@ class SwingApiService {
         final pl = data['playlist'] ?? data['data'] ?? data;
         if (pl is Map) return Playlist.fromJson(pl as Map<String, dynamic>);
       }
-    } catch (_) {}
+    } catch (_) { AppError.show("Impossible de créer la playlist"); }
     return null;
   }
 
@@ -442,7 +507,10 @@ class SwingApiService {
         body: json.encode(body),
       );
       return r.statusCode == 200;
-    } catch (_) { return false; }
+    } catch (_) { 
+      AppError.show("Impossible de modifier la playlist");
+      return false; 
+    }
   }
 
   /// Supprimer une playlist
@@ -453,7 +521,10 @@ class SwingApiService {
         body: json.encode({}),
       );
       return r.statusCode == 200;
-    } catch (_) { return false; }
+    } catch (_) { 
+      AppError.show("Impossible de supprimer la playlist");
+      return false; 
+    }
   }
 
   /// Ajouter des titres à une playlist
@@ -465,7 +536,10 @@ class SwingApiService {
         body: json.encode({'trackhashes': trackHashes}),
       );
       return r.statusCode == 200;
-    } catch (_) { return false; }
+    } catch (_) { 
+      AppError.show("Impossible d'ajouter à la playlist");
+      return false; 
+    }
   }
 
   /// Retirer un titre d'une playlist (par index dans la liste)
@@ -567,7 +641,10 @@ class SwingApiService {
         body: json.encode({'trackhash': trackHash}),
       );
       return r.statusCode == 200;
-    } catch (_) { return false; }
+    } catch (_) { 
+      AppError.show("Impossible de modifier les favoris");
+      return false; 
+    }
   }
 
   Future<List<Song>> getFavourites() async {
@@ -799,8 +876,8 @@ class SwingApiService {
       final meta = {
         'hash':       song.hash,
         'title':      song.title,
-        'artist':     song.artist ?? '',
-        'album':      song.album  ?? '',
+        'artist':     song.artist,
+        'album':      song.album,
         'duration':   song.duration,
         'image':      song.image  ?? '',
         'filepath':   filePath,
@@ -819,7 +896,7 @@ class SwingApiService {
     } catch (_) { return null; }
   }
 
-  Future<bool> isDownloaded(String hash, String filepath) async {
+  Future<bool> isDownloaded(String hash, String? filepath) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
       final ext  = (filepath ?? '').split('.').last.toLowerCase();
@@ -828,7 +905,7 @@ class SwingApiService {
     } catch (_) { return false; }
   }
 
-  Future<String?> getOfflinePath(String hash, String filepath) async {
+  Future<String?> getOfflinePath(String hash, String? filepath) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
       final ext  = (filepath ?? '').split('.').last.toLowerCase();

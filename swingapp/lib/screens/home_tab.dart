@@ -3,12 +3,10 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/song.dart';
 import '../models/album.dart';
-import '../models/artist.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import 'settings_screen.dart';
-import 'artist_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});

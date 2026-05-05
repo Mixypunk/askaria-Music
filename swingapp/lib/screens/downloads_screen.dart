@@ -148,8 +148,7 @@ class _DownloadTile extends StatefulWidget {
   final void Function(Song) onPlay;
 
   const _DownloadTile({required this.file, required this.hash,
-      required this.size, required this.onDelete, required this.onPlay,
-      super.key});
+      required this.size, required this.onDelete, required this.onPlay});
 
   @override
   State<_DownloadTile> createState() => _DownloadTileState();

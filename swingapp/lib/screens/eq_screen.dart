@@ -143,7 +143,7 @@ class _EqScreenState extends State<EqScreen> {
                                 inactiveTrackColor: Colors.white12,
                                 thumbColor: eq.enabled
                                     ? Colors.white : Colors.white24,
-                                overlayColor: Sp.g2.withOpacity(0.15),
+                                overlayColor: Sp.g2.withValues(alpha: 0.15),
                                 overlayShape: const RoundSliderOverlayShape(
                                     overlayRadius: 16)),
                               child: Slider(
@@ -182,7 +182,7 @@ class _EqScreenState extends State<EqScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.white12)),
                     child: const Row(

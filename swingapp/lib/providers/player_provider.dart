@@ -12,8 +12,11 @@ import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
 import '../services/widget_service.dart';
-import '../services/network_quality_service.dart';
 import '../services/eq_service.dart';
+import 'managers/color_manager.dart';
+import 'managers/timer_manager.dart';
+import 'managers/lyrics_manager.dart';
+import 'managers/queue_persistence_manager.dart';
 
 enum RepeatMode { off, all, one }
 
@@ -42,23 +45,16 @@ class PlayerProvider extends ChangeNotifier {
   DateTime _lastPositionNotify = DateTime.fromMillisecondsSinceEpoch(0);
   static const _positionNotifyThrottle = Duration(milliseconds: 500);
 
-  // Debounce _persistQueue — évite d'écrire sur disque à chaque seekbar drag
-  Timer? _persistDebounce;
+  final LyricsManager _lyricsManager = LyricsManager();
+  final ColorManager _colorManager = ColorManager();
+  final TimerManager _timerManager = TimerManager();
+  final QueuePersistenceManager _queueManager = QueuePersistenceManager();
 
   // Guard _updateWidget — évite les platform channels si rien n'a changé
   String? _lastWidgetSongHash;
   bool? _lastWidgetPlaying;
 
-  // Lyrics
-  String? _lyrics;
-  bool _lyricsLoading = false;
-  bool _lyricsSynced = false;
-  List<Map<String, dynamic>>? _syncedLines;
-  List<String>? _unsyncedLines;
-
-  // Dynamic color
-  DynamicColors _dynamicColors = DynamicColors.fallback();
-  DynamicColors get dynamicColors => _dynamicColors;
+  DynamicColors get dynamicColors => _colorManager.dynamicColors;
 
   // Getters
   List<Song> get queue => _queue;
@@ -74,15 +70,12 @@ class PlayerProvider extends ChangeNotifier {
   Duration get duration => _duration;
   RepeatMode get repeatMode => _repeatMode;
   bool get shuffle => _shuffle;
-  String? get lyrics => _lyrics;
-  bool get lyricsLoading => _lyricsLoading;
-  bool get lyricsSynced => _lyricsSynced;
-  List<Map<String, dynamic>>? get syncedLines => _syncedLines;
-  List<String>? get unsyncedLines => _unsyncedLines;
-  bool get hasLyrics =>
-      !_lyricsLoading &&
-      ((_syncedLines != null && _syncedLines!.isNotEmpty) ||
-          (_unsyncedLines != null && _unsyncedLines!.isNotEmpty));
+  String? get lyrics => _lyricsManager.lyrics;
+  bool get lyricsLoading => _lyricsManager.loading;
+  bool get lyricsSynced => _lyricsManager.synced;
+  List<Map<String, dynamic>>? get syncedLines => _lyricsManager.syncedLines;
+  List<String>? get unsyncedLines => _lyricsManager.unsyncedLines;
+  bool get hasLyrics => _lyricsManager.hasLyrics;
   String? get error => _error;
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
@@ -164,7 +157,19 @@ class PlayerProvider extends ChangeNotifier {
     _initPlayer();
     _loadFavourites();
     _loadCrossfade();
-    _restoreQueue();
+    _queueManager.restore((restoredQueue, index, position) async {
+      _queue = restoredQueue;
+      _currentIndex = index.clamp(0, restoredQueue.length - 1);
+      final sources = _queue.map(_buildSource).toList();
+      _playlist = ConcatenatingAudioSource(children: sources);
+      await _player.setAudioSource(
+        _playlist,
+        initialIndex:    _currentIndex,
+        initialPosition: Duration(seconds: position),
+      );
+      if (mounted) notifyListeners();
+    });
+    _cleanArtworkCache();
   }
 
   void _initPlayer() {
@@ -268,8 +273,8 @@ class PlayerProvider extends ChangeNotifier {
       tag: MediaItem(
         id:     song.hash,
         title:  song.title,
-        artist: song.artist ?? '',
-        album:  song.album ?? '',
+        artist: song.artist,
+        album:  song.album,
         artUri: Uri.parse(
             '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}'),
       ),
@@ -289,32 +294,6 @@ class PlayerProvider extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('_rebuildPlaylist error: $e');
-    }
-  }
-
-  // Mise à jour asynchrone de l'artUri dans le MediaItem (pour la notification)
-  Future<void> _updateArtUri(Song song, int index) async {
-    if (index < 0 || index >= _playlist.length) return;
-    try {
-      final artUrl =
-          '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
-      final localUri = await _cacheArtwork(artUrl, song.image ?? song.hash);
-      // Remplacer la source avec l'artUri local
-      final newSource = AudioSource.uri(
-        Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath)),
-        headers: _api.authHeaders,
-        tag: MediaItem(
-          id:     song.hash,
-          title:  song.title,
-          artist: song.artist ?? '',
-          album:  song.album ?? '',
-          artUri: localUri,
-        ),
-      );
-      await _playlist.removeRange(index, index + 1);
-      await _playlist.insert(index, newSource);
-    } catch (e) {
-      debugPrint('_updateArtUri error: $e');
     }
   }
 
@@ -477,7 +456,7 @@ class PlayerProvider extends ChangeNotifier {
         '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
     WidgetService.instance.update(
       title:     song.title,
-      artist:    song.artist ?? '',
+      artist:    song.artist,
       artUrl:    artUrl,
       isPlaying: _isPlaying,
       authToken: _api.accessToken,
@@ -508,57 +487,30 @@ class PlayerProvider extends ChangeNotifier {
     return Uri.parse(url);
   }
 
+  /// Supprime les pochettes temporaires datant de plus de 7 jours
+  /// pour éviter la fuite de stockage dans le dossier temporaire.
+  Future<void> _cleanArtworkCache() async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final cutoff = DateTime.now().subtract(const Duration(days: 7));
+      dir.listSync()
+          .whereType<File>()
+          .where((f) => f.path.contains('/art_') && f.path.endsWith('.jpg'))
+          .where((f) => f.statSync().modified.isBefore(cutoff))
+          .forEach((f) => f.deleteSync());
+    } catch (e) {
+      debugPrint('_cleanArtworkCache error: $e');
+    }
+  }
+
   // ── Dynamic colors ─────────────────────────────────────────────────────
   Future<void> _fetchColors() async {
-    if (currentSong == null || !mounted) return;
-    final song = currentSong!;
-    final cacheKey = song.image ?? song.hash;
-    try {
-      final url = '${_api.baseUrl}/img/thumbnail/$cacheKey';
-      final r = await http
-          .get(Uri.parse(url), headers: _api.authHeaders)
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
-        _dynamicColors = await ColorService.fromBytes(cacheKey, r.bodyBytes);
-        if (mounted) notifyListeners();
-      }
-    } catch (_) {}
+    await _colorManager.fetch(currentSong, notifyListeners, () => mounted);
   }
 
   // ── Lyrics ─────────────────────────────────────────────────────────────
   Future<void> _fetchLyrics() async {
-    if (currentSong == null) return;
-    _lyrics = null;
-    _syncedLines = null;
-    _unsyncedLines = null;
-    _lyricsSynced = false;
-    _lyricsLoading = true;
-    if (mounted) notifyListeners();
-
-    final result = await _api.getLyrics(
-      currentSong!.hash,
-      filepath: currentSong!.filepath,
-    );
-
-    if (result != null) {
-      _lyricsSynced = result['synced'] == true;
-      final raw = result['lyrics'];
-      if (_lyricsSynced && raw is List) {
-        _syncedLines = List<Map<String, dynamic>>.from(raw.map((e) => {
-          'time': (e['time'] as num).toInt(),
-          'text': (e['text'] ?? '').toString(),
-        }));
-        _lyrics = 'synced';
-      } else if (raw is List) {
-        _unsyncedLines = List<String>.from(raw.map((e) => e.toString()));
-        _lyrics = _unsyncedLines!.join('\n');
-      } else if (raw is String) {
-        _lyrics = raw;
-      }
-    }
-
-    _lyricsLoading = false;
-    if (mounted) notifyListeners();
+    await _lyricsManager.fetch(currentSong, notifyListeners);
   }
 
   // ── Favourites ─────────────────────────────────────────────────────────
@@ -608,39 +560,15 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   // ── Sleep timer ────────────────────────────────────────────────────────
-  Timer? _sleepTimer;
-  Timer? _periodicTimer;
-  DateTime? _sleepAt;
-  Duration? get sleepRemaining {
-    if (_sleepAt == null) return null;
-    final rem = _sleepAt!.difference(DateTime.now());
-    return rem.isNegative ? null : rem;
-  }
-  bool get hasSleepTimer => _sleepAt != null;
+  Duration? get sleepRemaining => _timerManager.remaining;
+  bool get hasSleepTimer => _timerManager.isActive;
 
   void setSleepTimer(int minutes) {
-    _sleepTimer?.cancel();
-    if (minutes <= 0) { _sleepAt = null; notifyListeners(); return; }
-    _sleepAt = DateTime.now().add(Duration(minutes: minutes));
-    _sleepTimer = Timer(Duration(minutes: minutes), () async {
-      await _player.pause();
-      _sleepAt = null;
-      notifyListeners();
-    });
-    _periodicTimer?.cancel();
-    _periodicTimer = Timer.periodic(const Duration(minutes: 1), (t) {
-      if (_sleepAt == null) { t.cancel(); _periodicTimer = null; return; }
-      notifyListeners();
-    });
-    notifyListeners();
+    _timerManager.setTimer(minutes, () async => await _player.pause(), notifyListeners);
   }
 
   void cancelSleepTimer() {
-    _sleepTimer?.cancel();
-    _periodicTimer?.cancel();
-    _periodicTimer = null;
-    _sleepAt = null;
-    notifyListeners();
+    _timerManager.cancel(notifyListeners);
   }
 
   // ── Historique ─────────────────────────────────────────────────────────
@@ -655,69 +583,16 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   // ── Persistance queue ──────────────────────────────────────────────────
-  Future<void> _restoreQueue() async {
-    try {
-      final prefs       = await SharedPreferences.getInstance();
-      final queueJson   = prefs.getString('queue_json');
-      final savedIndex  = prefs.getInt('queue_index') ?? 0;
-      final savedPos    = prefs.getInt('queue_position') ?? 0;
-      if (queueJson == null || queueJson.isEmpty) return;
-
-      final decoded = json.decode(queueJson) as List<dynamic>;
-      final restored = decoded
-          .map((e) => Song.fromJson(e as Map<String, dynamic>))
-          .toList();
-      if (restored.isEmpty) return;
-
-      _queue = restored;
-      _currentIndex = savedIndex.clamp(0, restored.length - 1);
-
-      // Construire une nouvelle ConcatenatingAudioSource directement
-      // (évite d'appeler addAll sur _playlist puis setAudioSource, ce qui
-      //  créerait une double-initialisation et pouvait provoquer un freeze)
-      final sources = _queue.map(_buildSource).toList();
-      _playlist = ConcatenatingAudioSource(children: sources);
-      await _player.setAudioSource(
-        _playlist,
-        initialIndex:    _currentIndex,
-        initialPosition: Duration(seconds: savedPos),
-      );
-
-      if (mounted) notifyListeners();
-      debugPrint('Queue restaurée : ${restored.length} titres, index $_currentIndex');
-    } catch (e) {
-      debugPrint('Erreur restauration queue: $e');
-    }
-  }
-
   Future<void> _persistQueue() async {
-    if (_queue.isEmpty) return;
-    // Debounce : évite d'écrire sur disque à chaque tick de la seekbar
-    _persistDebounce?.cancel();
-    _persistDebounce = Timer(const Duration(seconds: 1), () async {
-      if (_disposed || _queue.isEmpty) return;
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final queueJson = json.encode(_queue.map((s) => {
-          'trackhash': s.hash, 'hash': s.hash, 'title': s.title,
-          'artist': s.artist, 'album': s.album, 'albumhash': s.albumHash,
-          'artisthash': s.artistHash, 'duration': s.duration,
-          'filepath': s.filepath, 'image': s.image,
-        }).toList());
-        await prefs.setString('queue_json', queueJson);
-        await prefs.setInt('queue_index', _currentIndex);
-        await prefs.setInt('queue_position', _position.inSeconds);
-      } catch (_) {}
-    });
+    _queueManager.persist(_queue, _currentIndex, _position, _disposed);
   }
 
   @override
   void dispose() {
     _disposed = true;
-    _sleepTimer?.cancel();
-    _periodicTimer?.cancel();
+    _timerManager.dispose();
+    _queueManager.dispose();
     _crossfadeTimer?.cancel();
-    _persistDebounce?.cancel();
     _player.dispose();
     super.dispose();
   }

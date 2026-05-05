@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/song.dart';
 import '../models/album.dart';
-import '../models/artist.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
@@ -952,7 +951,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       blurRadius: 30, offset: const Offset(0, 10))]),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -1218,7 +1217,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                         if (selected)
                           Positioned.fill(child: Container(
                             decoration: BoxDecoration(
-                              color: Sp.g2.withOpacity(0.7),
+                              color: Sp.g2.withValues(alpha: 0.7),
                               borderRadius: BorderRadius.circular(4)),
                             child: const Icon(Icons.check_rounded,
                                 color: Colors.white, size: 22))),

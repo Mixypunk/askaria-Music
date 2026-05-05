@@ -12,6 +12,8 @@ import 'screens/profile_screen.dart';
 import 'screens/eq_screen.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
+final GlobalKey<ScaffoldMessengerState> globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 // ── Palette ────────────────────────────────────────────────────────────────────
 class Sp {
   static const bg      = Color(0xFF121212);
@@ -146,16 +148,6 @@ class _SplashWrapperState extends State<_SplashWrapper> {
     if (mounted) setState(() => _ready = true);
   }
 
-  void _setupWidgetActions(PlayerProvider player) {
-    WidgetService.instance.onAction = (action) {
-      switch (action) {
-        case 'prev': player.previous(); break;
-        case 'play': player.playPause(); break;
-        case 'next': player.next(); break;
-      }
-    };
-    WidgetService.instance.startListening();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,13 +207,15 @@ class _App extends StatelessWidget {
     builder: (ctx, theme, _) => MaterialApp(
     title: 'Askaria',
     debugShowCheckedModeBanner: false,
+    scaffoldMessengerKey: globalMessengerKey,
     theme: ThemeData(
       useMaterial3: false,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: Sp.bg,
       colorScheme: const ColorScheme.dark(
         primary: Sp.g2, secondary: Sp.g3,
-        surface: Sp.surface, background: Sp.bg,
+        surface: Sp.bg,
+        surfaceContainerHighest: Sp.surface,
       ),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: Sp.white),
