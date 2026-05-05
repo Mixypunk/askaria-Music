@@ -113,7 +113,7 @@ class PlayerProvider extends ChangeNotifier {
 
   /// Démarre le fondu sortant et enchaîne sur le titre suivant.
   /// Appelé [_crossfadeSeconds] secondes avant la fin du titre.
-  Future<void> _startCrossfade() async {
+  void _startCrossfade() {
     if (_crossfading || _crossfadeSeconds <= 0) return;
     if (!_player.hasNext && _repeatMode != RepeatMode.all) return;
     _crossfading = true;
@@ -122,35 +122,42 @@ class PlayerProvider extends ChangeNotifier {
     final interval = const Duration(milliseconds: 50);
     final startVol = _volume;
     int tick = 0;
+    bool transitioning = false; // évite les appels concurrents dans le timer
 
     _crossfadeTimer?.cancel();
-    _crossfadeTimer = Timer.periodic(interval, (t) async {
+    _crossfadeTimer = Timer.periodic(interval, (t) {
+      if (!mounted) { t.cancel(); _crossfading = false; return; }
       tick++;
       final ratio = tick / steps;
-      if (ratio >= 1.0 || !mounted) {
+      if (ratio >= 1.0) {
         t.cancel();
         _crossfading = false;
-        // Passer au titre suivant et remettre le volume
-        await _player.setVolume(0);
-        await next();
-        // Fade in
-        await _fadeIn(startVol);
+        if (!transitioning) {
+          transitioning = true;
+          // Passer au titre suivant, puis fade in — sans bloquer le timer
+          _player.setVolume(0).then((_) => next()).then((_) => _fadeIn(startVol));
+        }
         return;
       }
-      // Fade out progressif
-      await _player.setVolume(startVol * (1.0 - ratio));
+      // Fade out progressif (fire-and-forget, pas de await)
+      _player.setVolume(startVol * (1.0 - ratio));
     });
   }
 
-  Future<void> _fadeIn(double targetVolume) async {
+  /// Fade in non-bloquant via Timer.periodic (évite await-in-loop)
+  void _fadeIn(double targetVolume) {
     const steps    = 30;
     const interval = Duration(milliseconds: 50);
-    for (int i = 0; i <= steps; i++) {
-      if (!mounted) return;
-      await _player.setVolume(targetVolume * (i / steps));
-      await Future.delayed(interval);
-    }
-    await _player.setVolume(targetVolume);
+    int i = 0;
+    Timer.periodic(interval, (t) {
+      if (!mounted || i > steps) { t.cancel(); return; }
+      _player.setVolume(targetVolume * (i / steps));
+      i++;
+      if (i > steps) {
+        t.cancel();
+        _player.setVolume(targetVolume);
+      }
+    });
   }
 
   PlayerProvider() {
@@ -665,9 +672,11 @@ class PlayerProvider extends ChangeNotifier {
       _queue = restored;
       _currentIndex = savedIndex.clamp(0, restored.length - 1);
 
-      // Construire la playlist et charger sans jouer
+      // Construire une nouvelle ConcatenatingAudioSource directement
+      // (évite d'appeler addAll sur _playlist puis setAudioSource, ce qui
+      //  créerait une double-initialisation et pouvait provoquer un freeze)
       final sources = _queue.map(_buildSource).toList();
-      await _playlist.addAll(sources);
+      _playlist = ConcatenatingAudioSource(children: sources);
       await _player.setAudioSource(
         _playlist,
         initialIndex:    _currentIndex,

@@ -803,82 +803,94 @@ class _PlayerPage extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // Contrôles
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center, children: [
-          GestureDetector(
-            onTap: player.toggleShuffle,
-            child: Stack(alignment: Alignment.bottomCenter, children: [
-              Icon(Icons.shuffle_rounded, size: 26,
-                color: player.shuffle ? accent : Colors.white.withOpacity(0.6)),
-              if (player.shuffle) Positioned(bottom: -4,
-                child: Container(width: 4, height: 4,
-                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
-            ]),
-          ),
-          GestureDetector(
-            onTap: player.previous,
-            child: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 46)),
-          GestureDetector(
-            onTap: player.playPause,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 400),
-              width: 68, height: 68,
-              decoration: BoxDecoration(
-                color: accent, shape: BoxShape.circle,
-                boxShadow: [BoxShadow(
-                  color: accent.withOpacity(0.5), blurRadius: 22, spreadRadius: 2)]),
-              child: Center(child: player.isLoading
-                  ? const SizedBox(width: 26, height: 26,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                  : Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Colors.white, size: 42)),
-            ),
-          ),
-          GestureDetector(
-            onTap: player.next,
-            child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 46)),
-          GestureDetector(
-            onTap: player.toggleRepeat,
-            child: Stack(alignment: Alignment.bottomCenter, children: [
-              Icon(
-                player.repeatMode == RepeatMode.one
-                    ? Icons.repeat_one_rounded : Icons.repeat_rounded,
-                size: 26,
-                color: player.repeatMode != RepeatMode.off
-                    ? accent : Colors.white.withOpacity(0.6)),
-              if (player.repeatMode != RepeatMode.off) Positioned(bottom: -4,
-                child: Container(width: 4, height: 4,
-                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
-            ]),
-          ),
-        ]),
+        // Contrôles — Selector isolé pour réactivité immédiate
+        Selector<PlayerProvider, (bool, bool, bool, RepeatMode)>(
+          selector: (_, p) => (p.isPlaying, p.isLoading, p.shuffle, p.repeatMode),
+          builder: (ctx2, data, _) {
+            final isPlaying  = data.$1;
+            final isLoading  = data.$2;
+            final isShuffle  = data.$3;
+            final repeatMode = data.$4;
+            return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center, children: [
+              GestureDetector(
+                onTap: () => ctx2.read<PlayerProvider>().toggleShuffle(),
+                child: Stack(alignment: Alignment.bottomCenter, children: [
+                  Icon(Icons.shuffle_rounded, size: 26,
+                    color: isShuffle ? accent : Colors.white.withOpacity(0.6)),
+                  if (isShuffle) Positioned(bottom: -4,
+                    child: Container(width: 4, height: 4,
+                      decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
+                ]),
+              ),
+              GestureDetector(
+                onTap: () => ctx2.read<PlayerProvider>().previous(),
+                child: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 46)),
+              GestureDetector(
+                onTap: () => ctx2.read<PlayerProvider>().playPause(),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  width: 68, height: 68,
+                  decoration: BoxDecoration(
+                    color: accent, shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(
+                      color: accent.withOpacity(0.5), blurRadius: 22, spreadRadius: 2)]),
+                  child: Center(child: isLoading
+                      ? const SizedBox(width: 26, height: 26,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          color: Colors.white, size: 42)),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => ctx2.read<PlayerProvider>().next(),
+                child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 46)),
+              GestureDetector(
+                onTap: () => ctx2.read<PlayerProvider>().toggleRepeat(),
+                child: Stack(alignment: Alignment.bottomCenter, children: [
+                  Icon(
+                    repeatMode == RepeatMode.one
+                        ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+                    size: 26,
+                    color: repeatMode != RepeatMode.off
+                        ? accent : Colors.white.withOpacity(0.6)),
+                  if (repeatMode != RepeatMode.off) Positioned(bottom: -4,
+                    child: Container(width: 4, height: 4,
+                      decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
+                ]),
+              ),
+            ]);
+          },
+        ),
         const SizedBox(height: 20),
 
-        // ── Slider volume ─────────────────────────────────────────
-        Row(children: [
-          Icon(
-            player.volume == 0
-                ? Icons.volume_off_rounded
-                : player.volume < 0.5
-                    ? Icons.volume_down_rounded
-                    : Icons.volume_up_rounded,
-            size: 18, color: Colors.white38),
-          Expanded(child: SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-              activeTrackColor: accent,
-              inactiveTrackColor: Colors.white24,
-              thumbColor: Colors.white,
-              overlayColor: accent.withOpacity(0.2)),
-            child: Slider(
-              value: player.volume,
-              onChanged: (v) => player.setVolume(v)),
-          )),
-          Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
-        ]),
+        // ── Slider volume — Selector isolé sur volume uniquement ──
+        Selector<PlayerProvider, double>(
+          selector: (_, p) => p.volume,
+          builder: (ctx2, vol, _) => Row(children: [
+            Icon(
+              vol == 0
+                  ? Icons.volume_off_rounded
+                  : vol < 0.5
+                      ? Icons.volume_down_rounded
+                      : Icons.volume_up_rounded,
+              size: 18, color: Colors.white38),
+            Expanded(child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: accent,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: Colors.white,
+                overlayColor: accent.withOpacity(0.2)),
+              child: Slider(
+                value: vol,
+                onChanged: (v) => ctx2.read<PlayerProvider>().setVolume(v)),
+            )),
+            Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
+          ]),
+        ),
         const SizedBox(height: 6),
 
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
