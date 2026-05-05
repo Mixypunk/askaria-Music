@@ -7,7 +7,7 @@ import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import 'settings_screen.dart';
-import 'album_screen.dart';
+import 'albums_screen.dart';
 import 'artist_screen.dart';
 
 class HomeTab extends StatefulWidget {
@@ -374,7 +374,7 @@ class _AlbumCard extends StatelessWidget {
 
   void _openAlbum(BuildContext ctx) {
     Navigator.push(ctx, MaterialPageRoute(
-      builder: (_) => AlbumScreen(album: album)));
+      builder: (_) => AlbumDetailScreen(album: album)));
   }
 }
 
