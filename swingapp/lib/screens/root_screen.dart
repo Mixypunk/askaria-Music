@@ -43,7 +43,7 @@ class _RootScreenState extends State<RootScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
+      onPopInvoked: (didPop) async {
         if (didPop) return;
         // Double appui retour pour quitter
         final now = DateTime.now();

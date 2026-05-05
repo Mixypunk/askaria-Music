@@ -154,9 +154,9 @@ class _AvatarSectionState extends State<_AvatarSection> {
           margin: const EdgeInsets.only(top: 4),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
           decoration: BoxDecoration(
-            color: Sp.g2.withValues(alpha: 0.2),
+            color: Sp.g2.withOpacity(0.2),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Sp.g2.withValues(alpha: 0.4))),
+            border: Border.all(color: Sp.g2.withOpacity(0.4))),
           child: const Text('Admin',
               style: TextStyle(color: Sp.g2, fontSize: 11,
                   fontWeight: FontWeight.bold))),

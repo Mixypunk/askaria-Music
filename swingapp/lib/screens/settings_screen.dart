@@ -149,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 activeTrackColor: Sp.g2,
                 inactiveTrackColor: Colors.white24,
                 thumbColor: Colors.white,
-                overlayColor: Sp.g2.withValues(alpha: 0.2),
+                overlayColor: Sp.g2.withOpacity(0.2),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 14)),
               child: Slider(
                 value: player.volume,
@@ -215,7 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 activeTrackColor: Sp.g2,
                 inactiveTrackColor: Colors.white24,
                 thumbColor: Colors.white,
-                overlayColor: Sp.g2.withValues(alpha: 0.2),
+                overlayColor: Sp.g2.withOpacity(0.2),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 14)),
               child: Slider(
                 value: player.crossfadeSeconds.toDouble(),
@@ -303,7 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Container(
             height: 52,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.6)),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
               borderRadius: BorderRadius.circular(4)),
             child: const Center(child: Text('Se déconnecter',
               style: TextStyle(color: Colors.redAccent,

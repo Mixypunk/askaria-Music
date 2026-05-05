@@ -7,6 +7,8 @@ import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import 'settings_screen.dart';
+import 'album_screen.dart';
+import 'artist_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});

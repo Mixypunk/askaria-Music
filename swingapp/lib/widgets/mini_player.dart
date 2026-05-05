@@ -56,10 +56,10 @@ class _MiniPlayerShell extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF282828),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: accent.withValues(alpha: 0.12), width: 0.5),
+          border: Border.all(color: accent.withOpacity(0.12), width: 0.5),
           boxShadow: [
             BoxShadow(
-              color: accent.withValues(alpha: 0.1),
+              color: accent.withOpacity(0.1),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

@@ -154,7 +154,7 @@ class PlayerView extends StatelessWidget {
                 onTap: () => ctx2.read<PlayerProvider>().toggleShuffle(),
                 child: Stack(alignment: Alignment.bottomCenter, children: [
                   Icon(Icons.shuffle_rounded, size: 26,
-                    color: isShuffle ? accent : Colors.white.withValues(alpha: 0.6)),
+                    color: isShuffle ? accent : Colors.white.withOpacity(0.6)),
                   if (isShuffle) Positioned(bottom: -4,
                     child: Container(width: 4, height: 4,
                       decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
@@ -171,7 +171,7 @@ class PlayerView extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: accent, shape: BoxShape.circle,
                     boxShadow: [BoxShadow(
-                      color: accent.withValues(alpha: 0.5), blurRadius: 22, spreadRadius: 2)]),
+                      color: accent.withOpacity(0.5), blurRadius: 22, spreadRadius: 2)]),
                   child: Center(child: isLoading
                       ? const SizedBox(width: 26, height: 26,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
@@ -190,7 +190,7 @@ class PlayerView extends StatelessWidget {
                         ? Icons.repeat_one_rounded : Icons.repeat_rounded,
                     size: 26,
                     color: repeatMode != RepeatMode.off
-                        ? accent : Colors.white.withValues(alpha: 0.6)),
+                        ? accent : Colors.white.withOpacity(0.6)),
                   if (repeatMode != RepeatMode.off) Positioned(bottom: -4,
                     child: Container(width: 4, height: 4,
                       decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
@@ -220,7 +220,7 @@ class PlayerView extends StatelessWidget {
                 activeTrackColor: accent,
                 inactiveTrackColor: Colors.white24,
                 thumbColor: Colors.white,
-                overlayColor: accent.withValues(alpha: 0.2)),
+                overlayColor: accent.withOpacity(0.2)),
               child: Slider(
                 value: vol,
                 onChanged: (v) => ctx2.read<PlayerProvider>().setVolume(v)),
@@ -234,17 +234,17 @@ class PlayerView extends StatelessWidget {
           GestureDetector(
             onTap: () => SongMenuSheet.showDevicesSheet(ctx, accent),
             child: Icon(Icons.devices_rounded, size: 20,
-                color: Colors.white.withValues(alpha: 0.6))),
+                color: Colors.white.withOpacity(0.6))),
           Row(children: [
             GestureDetector(
               onTap: () => SongMenuSheet.showShareSheet(ctx, song, accent),
               child: Icon(Icons.share_rounded, size: 20,
-                  color: Colors.white.withValues(alpha: 0.6))),
+                  color: Colors.white.withOpacity(0.6))),
             const SizedBox(width: 20),
             GestureDetector(
               onTap: () => SongMenuSheet.show(ctx, player, song, accent),
               child: Icon(Icons.more_horiz_rounded, size: 24,
-                  color: Colors.white.withValues(alpha: 0.6))),
+                  color: Colors.white.withOpacity(0.6))),
           ]),
         ]),
         const SizedBox(height: 12),
@@ -275,7 +275,7 @@ class _ProgressBar extends StatelessWidget {
             activeTrackColor: accent,
             inactiveTrackColor: Colors.white24,
             thumbColor: Colors.white,
-            overlayColor: accent.withValues(alpha: 0.2)),
+            overlayColor: accent.withOpacity(0.2)),
           child: Slider(
             min: 0.0,
             max: maxMs,

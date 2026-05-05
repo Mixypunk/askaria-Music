@@ -116,7 +116,7 @@ class _LyricsViewState extends State<LyricsView> {
               style: active
                   ? TextStyle(color: accent, fontSize: 26,
                       fontWeight: FontWeight.bold, height: 1.4)
-                  : TextStyle(color: Colors.white.withValues(alpha: 0.22),
+                  : TextStyle(color: Colors.white.withOpacity(0.22),
                       fontSize: 18, height: 1.4, fontWeight: FontWeight.w600),
               child: Text(text, textAlign: TextAlign.left),
             ),
@@ -133,7 +133,7 @@ class _LyricsViewState extends State<LyricsView> {
           textAlign: TextAlign.left));
     }
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.lyrics_outlined, color: accent.withValues(alpha: 0.4), size: 56),
+      Icon(Icons.lyrics_outlined, color: accent.withOpacity(0.4), size: 56),
       const SizedBox(height: 16),
       const Text('Aucune parole disponible',
           style: TextStyle(color: Colors.white54)),

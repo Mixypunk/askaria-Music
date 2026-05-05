@@ -284,9 +284,9 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext ctx) => Expanded(child: Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.1),
+      color: color.withOpacity(0.1),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: color.withValues(alpha: 0.25))),
+      border: Border.all(color: color.withOpacity(0.25))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Icon(icon, color: color, size: 20),
       const SizedBox(height: 8),
@@ -370,7 +370,7 @@ class _Heatmap extends StatelessWidget {
               margin: const EdgeInsets.all(1.5),
               decoration: BoxDecoration(
                 color: Color.lerp(
-                  Colors.white.withValues(alpha: 0.04),
+                  Colors.white.withOpacity(0.04),
                   Sp.g2,
                   ratio,
                 ),

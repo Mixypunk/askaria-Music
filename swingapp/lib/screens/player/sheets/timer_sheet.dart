@@ -17,7 +17,7 @@ class TimerSheet {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
               child: Container(
-                color: const Color(0xFF282828).withValues(alpha: 0.7),
+                color: const Color(0xFF282828).withOpacity(0.7),
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Container(width: 36, height: 4,
@@ -43,7 +43,7 @@ class TimerSheet {
                       activeTrackColor: Colors.blueAccent,
                       inactiveTrackColor: Colors.white24,
                       thumbColor: Colors.white,
-                      overlayColor: Colors.blueAccent.withValues(alpha: 0.2),
+                      overlayColor: Colors.blueAccent.withOpacity(0.2),
                       trackHeight: 6,
                       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
                       overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),

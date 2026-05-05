@@ -25,7 +25,7 @@ class SongMenuSheet {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
-            color: const Color(0xFF282828).withValues(alpha: 0.7),
+            color: const Color(0xFF282828).withOpacity(0.7),
             padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4,
@@ -178,7 +178,7 @@ class SongMenuSheet {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
-            color: const Color(0xFF282828).withValues(alpha: 0.7),
+            color: const Color(0xFF282828).withOpacity(0.7),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -245,7 +245,8 @@ class SongMenuSheet {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   static void showShareSheet(BuildContext ctx, dynamic song, Color accent) {
@@ -260,7 +261,7 @@ class SongMenuSheet {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
-            color: const Color(0xFF282828).withValues(alpha: 0.7),
+            color: const Color(0xFF282828).withOpacity(0.7),
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4,
@@ -331,7 +332,7 @@ class SongMenuSheet {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
-            color: const Color(0xFF282828).withValues(alpha: 0.7),
+            color: const Color(0xFF282828).withOpacity(0.7),
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             child: Column(mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start, children: [

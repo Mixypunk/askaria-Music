@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import '../main.dart';
@@ -163,7 +165,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   Positioned.fill(child: ImageFiltered(
                     imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
                     child: Image.memory(_bgImage!, fit: BoxFit.cover,
-                      color: Colors.black.withValues(alpha: 0.58),
+                      color: Colors.black.withOpacity(0.58),
                       colorBlendMode: BlendMode.darken)))
                 else
                   Positioned.fill(child: Container(
@@ -172,7 +174,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(
-                    colors: [dark.withValues(alpha: 0.5), Colors.transparent, Sp.bg.withValues(alpha: 0.65)],
+                    colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
                     begin: Alignment.topCenter, end: Alignment.bottomCenter,
                     stops: const [0.0, 0.4, 1.0])))),
 
@@ -304,7 +306,7 @@ class _LyricsOverlay extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           color: HSLColor.fromColor(accent).withLightness(0.10).toColor()
-              .withValues(alpha: 0.97),
+              .withOpacity(0.97),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         margin: const EdgeInsets.only(top: 60),
@@ -328,7 +330,7 @@ class _LyricsOverlay extends StatelessWidget {
                     fontWeight: FontWeight.bold),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(song.artist, style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                    color: Colors.white.withOpacity(0.6), fontSize: 12),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 ])),
               GestureDetector(
@@ -341,7 +343,7 @@ class _LyricsOverlay extends StatelessWidget {
                     color: Colors.white, size: 22))),
             ]),
           ),
-          Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+          Divider(color: Colors.white.withOpacity(0.08), height: 1),
           // Paroles
           Expanded(child: ChangeNotifierProvider.value(
             value: player,
