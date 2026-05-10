@@ -246,19 +246,14 @@ class PlayerProvider extends ChangeNotifier {
   AudioSource _buildSource(Song song) {
     final localPath = song.filepath;
 
-    // Un fichier est local si :
-    // 1. Le chemin contient '/offline/' (répertoire de téléchargement)
-    // 2. Ou le chemin commence par '/' ou 'file://' ET le fichier existe physiquement
-    //    (vérifié via File.existsSync pour éviter les faux positifs avec les chemins NAS)
-    final isLocal = localPath != null && (
-      localPath.contains('/offline/') ||
-      ((localPath.startsWith('/') || localPath.startsWith('file://')) &&
-          !localPath.startsWith('/music') &&
-          File(localPath.replaceFirst('file://', '')).existsSync())
-    );
+    // Un fichier est "local" uniquement si son chemin contient '/offline/'
+    // (répertoire exclusif aux téléchargements hors-ligne de l'app).
+    // On évite tout File.existsSync() ici — appel I/O synchrone sur le main thread
+    // qui bloquerait l'UI à chaque rebuild de playlist (potentiellement centaines de titres).
+    final isLocal = localPath != null && localPath.contains('/offline/');
 
     final uri = isLocal
-        ? Uri.file(localPath.replaceFirst('file://', ''))
+        ? Uri.file(localPath)
         : Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath));
 
     final headers = isLocal ? <String, String>{} : _api.authHeaders;
@@ -269,8 +264,8 @@ class PlayerProvider extends ChangeNotifier {
       tag: MediaItem(
         id:     song.hash,
         title:  song.title,
-        artist: song.artist ?? '',
-        album:  song.album ?? '',
+        artist: song.artist,
+        album:  song.album,
         artUri: Uri.parse(
             '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}'),
       ),
