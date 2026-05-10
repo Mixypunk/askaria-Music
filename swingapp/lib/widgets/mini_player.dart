@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../screens/player_screen.dart';
+import '../main.dart';
 import 'artwork_widget.dart';
 
 class MiniPlayer extends StatelessWidget {
@@ -57,13 +58,6 @@ class _MiniPlayerShell extends StatelessWidget {
           color: const Color(0xFF282828),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: accent.withOpacity(0.12), width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withOpacity(0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Stack(children: [
           // ── Barre de progression — Selector isolé ────────────────
@@ -79,16 +73,13 @@ class _MiniPlayerShell extends StatelessWidget {
             child: Row(children: [
               // Artwork — ne rebuild que si le hash change
               RepaintBoundary(
-                child: Hero(
-                  tag: 'artwork-${song.hash}',
-                  child: ClipRRect(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: ArtworkWidget(
+                    key: ValueKey(song.hash),
+                    hash: song.image ?? song.hash,
+                    size: 46,
                     borderRadius: BorderRadius.circular(4),
-                    child: ArtworkWidget(
-                      key: ValueKey(song.hash),
-                      hash: song.image ?? song.hash,
-                      size: 46,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
                   ),
                 ),
               ),

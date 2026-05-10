@@ -75,8 +75,8 @@ class _StatsScreenState extends State<StatsScreen>
     ]);
     if (mounted) {
       setState(() {
-        _topTracks  = results[0]['items'] ?? [];
-        _topArtists = results[1]['items'] ?? [];
+        _topTracks  = (results[0] as Map<String, dynamic>)['items'] ?? [];
+        _topArtists = (results[1] as Map<String, dynamic>)['items'] ?? [];
       });
     }
   }

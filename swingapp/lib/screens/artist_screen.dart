@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/song.dart';
 import '../models/album.dart';
+import '../models/artist.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';

@@ -245,7 +245,7 @@ class _InfoSectionState extends State<_InfoSection> {
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: ColorScheme.dark(primary: Sp.g2, surface: Sp.card),
-          dialogTheme: DialogTheme(backgroundColor: Sp.surface),
+          dialogBackgroundColor: Sp.surface,
         ),
         child: child!,
       ),

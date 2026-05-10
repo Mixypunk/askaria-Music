@@ -28,7 +28,10 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final dir = await getApplicationDocumentsDirectory();
     final offlineDir = Directory('${dir.path}/offline');
     if (offlineDir.existsSync()) {
-      _files = offlineDir.listSync().whereType<File>().toList()
+      _files = offlineDir.listSync().whereType<File>()
+          // Exclure les fichiers .meta.json — ce sont les métadonnées, pas les audios
+          .where((f) => !f.path.endsWith('.meta.json'))
+          .toList()
         ..sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
     }
     if (mounted) setState(() => _loading = false);
@@ -36,6 +39,14 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   Future<void> _delete(File file) async {
     await file.delete();
+    // Supprimer aussi le fichier de métadonnées associé
+    final filename = file.path.split('/').last;
+    final hash = filename.contains('.')
+        ? filename.substring(0, filename.lastIndexOf('.'))
+        : filename;
+    final metaFile = File('${file.parent.path}/$hash.meta.json');
+    if (metaFile.existsSync()) await metaFile.delete();
+
     setState(() => _files.remove(file));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -121,7 +132,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     itemCount: _files.length,
                     itemBuilder: (ctx, i) {
                       final file = _files[i];
-                      final hash = file.path.split('/').last.split('.').first;
+                      // Extraire le hash : nom sans extension (ex: abc123.mp3 → abc123)
+                      final filename = file.path.split('/').last;
+                      final hash = filename.contains('.')
+                          ? filename.substring(0, filename.lastIndexOf('.'))
+                          : filename;
                       final size = file.lengthSync();
                       return _DownloadTile(
                         file: file,
@@ -148,7 +163,8 @@ class _DownloadTile extends StatefulWidget {
   final void Function(Song) onPlay;
 
   const _DownloadTile({required this.file, required this.hash,
-      required this.size, required this.onDelete, required this.onPlay});
+      required this.size, required this.onDelete, required this.onPlay,
+      super.key});
 
   @override
   State<_DownloadTile> createState() => _DownloadTileState();
@@ -196,12 +212,15 @@ class _DownloadTileState extends State<_DownloadTile> {
             icon: const Icon(Icons.play_circle_outline_rounded,
                 color: Sp.g2, size: 28),
             onPressed: () {
+              // Priorité : utiliser le filepath sauvegardé dans le meta
+              // (plus fiable que widget.file.path qui peut être un ancien chemin)
+              final localPath = _meta?['filepath'] as String? ?? widget.file.path;
               final song = Song(
                 hash:       widget.hash,
                 title:      title,
                 artist:     artist,
                 album:      _meta?['album'] as String? ?? '',
-                filepath:   widget.file.path,
+                filepath:   localPath,
                 albumHash:  '',
                 artistHash: '',
                 duration:   dur,
