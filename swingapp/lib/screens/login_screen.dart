@@ -176,16 +176,17 @@ class _ManualTabState extends State<_ManualTab> {
   Widget build(BuildContext ctx) => SingleChildScrollView(
     padding: const EdgeInsets.symmetric(horizontal: 24),
     child: Column(children: [
-      // Username
+      // Identifiant (email ou nom d'utilisateur)
       Container(
         height: 52,
         decoration: BoxDecoration(color: Sp.card, borderRadius: BorderRadius.circular(4)),
         child: TextField(
           controller: _u, textInputAction: TextInputAction.next,
+          keyboardType: TextInputType.emailAddress,
           style: const TextStyle(color: Sp.white, fontSize: 15),
           decoration: const InputDecoration(
-            hintText: 'Nom d\'utilisateur', hintStyle: TextStyle(color: Sp.white70),
-            prefixIcon: Icon(Icons.person_outline_rounded, color: Sp.white70, size: 20),
+            hintText: 'Email ou nom d\'utilisateur', hintStyle: TextStyle(color: Sp.white70),
+            prefixIcon: Icon(Icons.alternate_email_rounded, color: Sp.white70, size: 20),
             border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 16)),
         ),
       ),
