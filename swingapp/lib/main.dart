@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/player_provider.dart';
+import 'providers/downloads_provider.dart';
 import 'services/api_service.dart';
 import 'services/theme_notifier.dart';
 import 'services/widget_service.dart';
@@ -164,6 +165,7 @@ class _SplashWrapperState extends State<_SplashWrapper> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => PlayerProvider()),
+        ChangeNotifierProvider(create: (_) => DownloadsProvider()),
         ChangeNotifierProvider.value(value: ThemeNotifier.instance),
       ],
       child: _App(_logged),

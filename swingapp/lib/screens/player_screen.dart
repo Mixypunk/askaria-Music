@@ -12,6 +12,7 @@ import 'artist_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../providers/downloads_provider.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
@@ -394,32 +395,7 @@ class _PlayerPage extends StatelessWidget {
     );
   }
 
-  Future<void> _downloadSong(BuildContext ctx, dynamic song) async {
-    final api = SwingApiService();
-    final messenger = ScaffoldMessenger.of(ctx);
-    messenger.showSnackBar(SnackBar(
-      content: Text('Téléchargement de \${song.title}…'),
-      duration: const Duration(seconds: 60),
-      behavior: SnackBarBehavior.floating));
-    final path = await api.downloadTrack(song);
-    messenger.hideCurrentSnackBar();
-    if (path != null) {
-      messenger.showSnackBar(SnackBar(
-        content: Text('\${song.title} téléchargé !'),
-        backgroundColor: Sp.card,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Voir',
-          textColor: Sp.g2,
-          onPressed: () => Navigator.push(ctx,
-              MaterialPageRoute(builder: (_) => const DownloadsScreen())))));
-    } else {
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Échec du téléchargement'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating));
-    }
-  }
+  // La méthode de téléchargement a été déplacée dans DownloadsProvider
 
   void _showSleepTimer(BuildContext ctx, PlayerProvider player) {
     showModalBottomSheet(
@@ -613,11 +589,26 @@ class _PlayerPage extends StatelessWidget {
             title: const Text('Lancer la radio',
                 style: TextStyle(color: Colors.white)),
             onTap: () { Navigator.pop(ctx); _startRadio(ctx, player, song); }),
-          ListTile(
-            leading: const Icon(Icons.download_rounded, color: Colors.white70),
-            title: const Text('Télécharger',
-                style: TextStyle(color: Colors.white)),
-            onTap: () { Navigator.pop(ctx); _downloadSong(ctx, song); }),
+          Consumer<DownloadsProvider>(
+            builder: (ctx, dl, _) {
+              final isDownloaded = dl.isDownloaded(song.hash);
+              if (isDownloaded) {
+                return ListTile(
+                  leading: const Icon(Icons.download_done_rounded, color: Colors.green),
+                  title: const Text('Supprimer le téléchargement',
+                      style: TextStyle(color: Colors.redAccent)),
+                  onTap: () { Navigator.pop(ctx); dl.deleteSong(song.hash, song.filepath); }
+                );
+              } else {
+                return ListTile(
+                  leading: const Icon(Icons.download_rounded, color: Colors.white70),
+                  title: const Text('Télécharger',
+                      style: TextStyle(color: Colors.white)),
+                  onTap: () { Navigator.pop(ctx); dl.downloadSong(song, ctx); }
+                );
+              }
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
             title: const Text('Ajouter à la file',

@@ -23,6 +23,9 @@ class SwingApiService {
   String? _streamToken;
   DateTime? _streamTokenExpiry;
 
+  /// Cache du chemin du répertoire hors-ligne (initialisé au démarrage)
+  String? offlineDirPath;
+
   String get baseUrl => _baseUrl;
   bool get isLoggedIn => _accessToken != null;
 
@@ -60,6 +63,12 @@ class SwingApiService {
     final prefs = await SharedPreferences.getInstance();
     _baseUrl = prefs.getString('server_url') ?? 'https://askaria-music.duckdns.org';
     if (_baseUrl.endsWith('/')) _baseUrl = _baseUrl.substring(0, _baseUrl.length - 1);
+    
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      offlineDirPath = '${dir.path}/offline';
+    } catch (_) {}
+
     // Tokens chiffrés dans SecureStorage
     _accessToken  = await _secure.read(key: 'access_token');
     _refreshToken = await _secure.read(key: 'refresh_token');

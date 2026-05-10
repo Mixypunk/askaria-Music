@@ -5,6 +5,7 @@ import '../models/playlist.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/artwork_widget.dart';
 
@@ -346,13 +347,46 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           ],
         ),
         actions: [
-          if (_tracks.isNotEmpty)
+          if (_tracks.isNotEmpty) ...[
+            Consumer<DownloadsProvider>(
+              builder: (ctx, dl, _) {
+                final toDownload = _tracks.where((s) => !dl.isDownloaded(s.hash)).length;
+                final isDone = toDownload == 0;
+                if (dl.isDownloadingPlaylist) {
+                  return const Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: Center(child: SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green),
+                    )),
+                  );
+                }
+                if (isDone) {
+                  return IconButton(
+                    icon: const Icon(Icons.download_done_rounded, color: Colors.green),
+                    tooltip: 'Téléchargé',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Toute la playlist est hors-ligne'),
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                    },
+                  );
+                }
+                return IconButton(
+                  icon: const Icon(Icons.download_rounded, color: Colors.white70),
+                  tooltip: 'Télécharger',
+                  onPressed: () => dl.downloadPlaylist(_tracks, context),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.play_circle_rounded),
               onPressed: () => context.read<PlayerProvider>().playSong(
                 _tracks.first, queue: _tracks, index: 0,
               ),
             ),
+          ],
           if (!widget.readOnly)
             IconButton(
               icon: Icon(

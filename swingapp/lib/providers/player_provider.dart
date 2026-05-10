@@ -244,12 +244,27 @@ class PlayerProvider extends ChangeNotifier {
   // Construit un AudioSource pour un titre (sync — utilise getStreamUrl)
   // Si le fichier est stocké localement (offline), utilise le chemin local
   AudioSource _buildSource(Song song) {
-    final localPath = song.filepath;
+    String? localPath = song.filepath;
+
+    // Si on a un chemin réseau (qui ne contient pas '/offline/'),
+    // on vérifie très rapidement (en local) si le fichier n'a pas été téléchargé.
+    // L'I/O ici est minime (existsSync sur le stockage interne, pas sur un NAS).
+    if (localPath == null || !localPath.contains('/offline/')) {
+      final offlineDir = _api.offlineDirPath;
+      if (offlineDir != null) {
+        // Déduire l'extension (fallback mp3 si vide/invalide)
+        final extRaw = (song.filepath ?? '').split('.').last.toLowerCase();
+        final ext = (extRaw.isNotEmpty && extRaw.length <= 4 && extRaw != song.filepath) ? extRaw : 'mp3';
+        final possibleLocalPath = '$offlineDir/${song.hash}.$ext';
+        
+        if (File(possibleLocalPath).existsSync()) {
+          localPath = possibleLocalPath;
+        }
+      }
+    }
 
     // Un fichier est "local" uniquement si son chemin contient '/offline/'
     // (répertoire exclusif aux téléchargements hors-ligne de l'app).
-    // On évite tout File.existsSync() ici — appel I/O synchrone sur le main thread
-    // qui bloquerait l'UI à chaque rebuild de playlist (potentiellement centaines de titres).
     final isLocal = localPath != null && localPath.contains('/offline/');
 
     final uri = isLocal

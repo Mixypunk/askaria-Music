@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../main.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/artwork_widget.dart';
 
@@ -46,6 +47,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         : filename;
     final metaFile = File('${file.parent.path}/$hash.meta.json');
     if (metaFile.existsSync()) await metaFile.delete();
+
+    if (mounted) context.read<DownloadsProvider>().refresh();
 
     setState(() => _files.remove(file));
     if (mounted) {
@@ -102,6 +105,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 if (ok == true) {
                   for (final f in [..._files]) await f.delete();
                   setState(() => _files.clear());
+                  if (mounted) context.read<DownloadsProvider>().refresh();
                 }
               }),
         ],

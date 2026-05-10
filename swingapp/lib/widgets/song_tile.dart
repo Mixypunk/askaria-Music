@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../main.dart';
 import 'artwork_widget.dart';
 
@@ -22,7 +23,9 @@ class SongTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
+    final downloads = context.watch<DownloadsProvider>();
     final isCurrent = player.currentSong == song;
+    final isDownloaded = downloads.isDownloaded(song.hash);
 
     return InkWell(
       onTap: onTap ?? () => context.read<PlayerProvider>().playSong(
@@ -64,8 +67,14 @@ class SongTile extends StatelessWidget {
             ],
           )),
           // Duration + menu
-          Text(song.formattedDuration,
-            style: const TextStyle(color: Sp.white40, fontSize: 12)),
+          Row(children: [
+            if (isDownloaded) ...[
+              const Icon(Icons.download_done_rounded, size: 14, color: Colors.green),
+              const SizedBox(width: 4),
+            ],
+            Text(song.formattedDuration,
+              style: const TextStyle(color: Sp.white40, fontSize: 12)),
+          ]),
           const SizedBox(width: 4),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 18, color: Sp.white40),
@@ -74,12 +83,24 @@ class SongTile extends StatelessWidget {
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'next',  child: Text('Lire ensuite')),
               const PopupMenuItem(value: 'queue', child: Text('Ajouter à la file')),
+              if (isDownloaded)
+                const PopupMenuItem(value: 'delete_dl', child: Text('Supprimer le téléchargement', style: TextStyle(color: Colors.redAccent)))
+              else
+                const PopupMenuItem(value: 'download', child: Text('Télécharger')),
               if (onRemove != null)
-                const PopupMenuItem(value: 'remove', child: Text('Retirer', style: TextStyle(color: Colors.redAccent))),
+                const PopupMenuItem(value: 'remove', child: Text('Retirer de la liste', style: TextStyle(color: Colors.redAccent))),
             ],
             onSelected: (v) {
               if (v == 'remove') {
                 onRemove?.call();
+                return;
+              }
+              if (v == 'download') {
+                context.read<DownloadsProvider>().downloadSong(song, context);
+                return;
+              }
+              if (v == 'delete_dl') {
+                context.read<DownloadsProvider>().deleteSong(song.hash, song.filepath);
                 return;
               }
               final p = context.read<PlayerProvider>();
@@ -90,7 +111,7 @@ class SongTile extends StatelessWidget {
                   backgroundColor: Sp.card,
                   duration: const Duration(seconds: 2),
                 ));
-              } else {
+              } else if (v == 'queue') {
                 p.addToQueue(song);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text('${song.title} ajouté'),
