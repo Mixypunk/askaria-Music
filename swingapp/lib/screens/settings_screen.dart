@@ -15,6 +15,7 @@ import 'stats_screen.dart';
 import 'eq_screen.dart';
 import 'downloads_screen.dart';
 import 'profile_screen.dart';
+import 'tv_pair_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -93,6 +94,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
         SizedBox(width: double.infinity,
           child: GBtn(_saved ? '✓ Sauvegardé' : 'Enregistrer', onTap: _save)),
+        const SizedBox(height: 16),
+
+        // Connexion TV par code 6 chiffres
+        _card(_tile(
+          'Connecter la TV',
+          'Appairez l\'app Askaria TV via un code 6 chiffres',
+          Icons.tv_rounded,
+          () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const TvPairScreen())))),
         const SizedBox(height: 28),
 
         // ── AUDIO ────────────────────────────────────────────────

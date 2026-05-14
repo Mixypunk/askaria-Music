@@ -156,6 +156,40 @@ class SwingApiService {
     return false;
   }
 
+  /// [Mobile → TV] Valide un code TV à 6 chiffres depuis le mobile connecté.
+  /// Retourne le message de confirmation du serveur.
+  /// Lance une Exception avec message lisible en cas d'erreur.
+  Future<String> confirmTvPair(String code) async {
+    final cleanCode = code.trim().replaceAll(' ', '');
+    if (cleanCode.length != 6 || int.tryParse(cleanCode) == null) {
+      throw Exception('Le code doit contenir exactement 6 chiffres.');
+    }
+    final r = await http.post(
+      Uri.parse('$_baseUrl/auth/tv/confirm'),
+      headers: _headers,
+      body: json.encode({'code': cleanCode}),
+    ).timeout(const Duration(seconds: 10));
+
+    if (r.statusCode == 200) {
+      final data = json.decode(r.body) as Map<String, dynamic>;
+      return data['message']?.toString() ?? 'TV connectée ✓';
+    } else if (r.statusCode == 404) {
+      throw Exception('Code introuvable. Vérifiez le code affiché sur la TV.');
+    } else if (r.statusCode == 410) {
+      throw Exception('Code expiré. La TV doit en générer un nouveau.');
+    } else if (r.statusCode == 409) {
+      throw Exception('Ce code a déjà été utilisé.');
+    } else {
+      String detail = 'Erreur serveur (HTTP ${r.statusCode}).';
+      try {
+        final err = json.decode(r.body);
+        if (err['detail'] != null) detail = err['detail'].toString();
+      } catch (_) {}
+      throw Exception(detail);
+    }
+  }
+
+
   Future<void> logout() async {
     _accessToken = null;
     _refreshToken = null;
