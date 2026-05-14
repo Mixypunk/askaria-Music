@@ -290,7 +290,7 @@ class _TvPairScreenState extends State<TvPairScreen>
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: Colors.white.withOpacity(0.04),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white12),
             ),
@@ -382,7 +382,7 @@ class _TvPairScreenState extends State<TvPairScreen>
                         height: 220,
                         decoration: BoxDecoration(
                           border: Border.all(
-                              color: Sp.g2.withValues(alpha: 0.8), width: 3),
+                              color: Sp.g2.withOpacity(0.8), width: 3),
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
@@ -454,8 +454,8 @@ class _FeedbackBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        color: color.withOpacity(0.12),
+        border: Border.all(color: color.withOpacity(0.4)),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
