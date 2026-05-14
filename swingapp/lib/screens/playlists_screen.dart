@@ -303,7 +303,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     } catch (e) {
       _error = e.toString();
     }
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() => _loading = false);
+      if (_tracks.isNotEmpty) {
+        context.read<DownloadsProvider>().autoSyncPlaylist(_playlist.id, _tracks);
+      }
+    }
   }
 
   Future<void> _togglePublic() async {
@@ -350,8 +355,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           if (_tracks.isNotEmpty) ...[
             Consumer<DownloadsProvider>(
               builder: (ctx, dl, _) {
-                final toDownload = _tracks.where((s) => !dl.isDownloaded(s.hash)).length;
-                final isDone = toDownload == 0;
+                final isOffline = dl.isPlaylistOffline(_playlist.id);
+                
                 if (dl.isDownloadingPlaylist) {
                   return const Padding(
                     padding: EdgeInsets.only(right: 16),
@@ -361,22 +366,28 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     )),
                   );
                 }
-                if (isDone) {
-                  return IconButton(
-                    icon: const Icon(Icons.download_done_rounded, color: Colors.green),
-                    tooltip: 'Téléchargé',
-                    onPressed: () {
+
+                return IconButton(
+                  icon: Icon(
+                    isOffline ? Icons.download_done_rounded : Icons.download_rounded,
+                    color: isOffline ? Colors.green : Colors.white70,
+                  ),
+                  tooltip: isOffline ? 'Désactiver la synchro' : 'Activer la synchro hors-ligne',
+                  onPressed: () {
+                    if (isOffline) {
+                      dl.unsyncPlaylist(_playlist.id);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Toute la playlist est hors-ligne'),
+                        content: Text('Synchronisation hors-ligne désactivée'),
                         behavior: SnackBarBehavior.floating,
                       ));
-                    },
-                  );
-                }
-                return IconButton(
-                  icon: const Icon(Icons.download_rounded, color: Colors.white70),
-                  tooltip: 'Télécharger',
-                  onPressed: () => dl.downloadPlaylist(_tracks, context),
+                    } else {
+                      dl.syncPlaylist(_playlist.id, _tracks, context: context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Synchronisation hors-ligne activée'),
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                    }
+                  },
                 );
               },
             ),

@@ -5,8 +5,9 @@ import '../main.dart';
 import '../models/song.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
-import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
+import '../services/api_service.dart';
 import '../widgets/artwork_widget.dart';
 
 class ArtistScreen extends StatefulWidget {
@@ -396,6 +397,40 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   color: Colors.white, size: 18)),
             onPressed: () => Navigator.pop(context)),
           actions: [
+            if (_tracks.isNotEmpty) ...[
+              Consumer<DownloadsProvider>(
+                builder: (ctx, dl, _) {
+                  final toDownload = _tracks.where((s) => !dl.isDownloaded(s.hash)).length;
+                  final isDone = toDownload == 0;
+                  if (dl.isDownloadingPlaylist) {
+                    return const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Center(child: SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green),
+                      )),
+                    );
+                  }
+                  if (isDone) {
+                    return IconButton(
+                      icon: const Icon(Icons.download_done_rounded, color: Colors.green, size: 22),
+                      tooltip: 'Téléchargé',
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Toute la playlist est hors-ligne'),
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      },
+                    );
+                  }
+                  return IconButton(
+                    icon: const Icon(Icons.download_rounded, color: Colors.white70, size: 22),
+                    tooltip: 'Télécharger',
+                    onPressed: () => dl.downloadPlaylist(_tracks, context),
+                  );
+                },
+              ),
+            ],
             // Bouton réorganiser
             IconButton(
               icon: Icon(_editing
@@ -603,6 +638,26 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   .playSong(song, queue: _tracks, index: index);
               Navigator.pop(context);
             }),
+          Consumer<DownloadsProvider>(
+            builder: (ctx, dl, _) {
+              final isDownloaded = dl.isDownloaded(song.hash);
+              if (isDownloaded) {
+                return ListTile(
+                  leading: const Icon(Icons.download_done_rounded, color: Colors.green),
+                  title: const Text('Supprimer le téléchargement',
+                      style: TextStyle(color: Colors.redAccent)),
+                  onTap: () { Navigator.pop(ctx); dl.deleteSong(song.hash, song.filepath); }
+                );
+              } else {
+                return ListTile(
+                  leading: const Icon(Icons.download_rounded, color: Colors.white70),
+                  title: const Text('Télécharger',
+                      style: TextStyle(color: Colors.white)),
+                  onTap: () { Navigator.pop(ctx); dl.downloadSong(song, ctx); }
+                );
+              }
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
             title: const Text('Ajouter à la file',
@@ -802,7 +857,9 @@ class _TrackRow extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final player = ctx.watch<PlayerProvider>();
+    final downloads = ctx.watch<DownloadsProvider>();
     final isCurrent = player.currentSong?.hash == song.hash;
+    final isDownloaded = downloads.isDownloaded(song.hash);
 
     return GestureDetector(
       onTap: () {
@@ -840,8 +897,14 @@ class _TrackRow extends StatelessWidget {
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
           // Durée
-          Text(_fmt(song.duration),
-            style: const TextStyle(color: Sp.white40, fontSize: 12)),
+          Row(children: [
+            if (isDownloaded) ...[
+              const Icon(Icons.download_done_rounded, size: 14, color: Colors.green),
+              const SizedBox(width: 4),
+            ],
+            Text(_fmt(song.duration),
+              style: const TextStyle(color: Sp.white40, fontSize: 12)),
+          ]),
         ]),
       ),
     );
