@@ -43,6 +43,7 @@ class DownloadsProvider extends ChangeNotifier {
   }
 
   Future<void> downloadSong(Song song, BuildContext? context, {bool showSnackBar = true}) async {
+    if (!SwingApiService().canDownload) return;
     if (isDownloaded(song.hash)) return;
     
     if (showSnackBar && context != null && context.mounted) {

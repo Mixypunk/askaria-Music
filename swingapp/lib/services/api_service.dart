@@ -22,12 +22,14 @@ class SwingApiService {
   String? _refreshToken;
   String? _streamToken;
   DateTime? _streamTokenExpiry;
+  bool _canDownload = false;
 
   /// Cache du chemin du répertoire hors-ligne (initialisé au démarrage)
   String? offlineDirPath;
 
   String get baseUrl => _baseUrl;
   bool get isLoggedIn => _accessToken != null;
+  bool get canDownload => _canDownload;
 
   // Headers avec Bearer token (format utilisé par l'app officielle)
   Map<String, String> get _headers => {
@@ -112,6 +114,9 @@ class SwingApiService {
         // L'app officielle utilise "accesstoken" (sans underscore)
         final token = data['accesstoken'] ?? data['access_token'] ?? data['token'];
         if (token != null) {
+          if (data['user'] != null && data['user']['can_download'] != null) {
+            _canDownload = data['user']['can_download'];
+          }
           await _storeTokens(token.toString(), 
             (data['refreshtoken'] ?? data['refresh_token'])?.toString());
           return true;
@@ -139,6 +144,9 @@ class SwingApiService {
         final data = json.decode(response.body);
         final token = data['accesstoken'] ?? data['access_token'] ?? data['token'];
         if (token != null) {
+          if (data['user'] != null && data['user']['can_download'] != null) {
+            _canDownload = data['user']['can_download'];
+          }
           await _storeTokens(token.toString(),
             (data['refreshtoken'] ?? data['refresh_token'])?.toString());
           return true;
@@ -213,7 +221,11 @@ class SwingApiService {
     try {
       final response = await _authedGet(Uri.parse('$_baseUrl/auth/user'))
           .timeout(const Duration(seconds: 6));
-      if (response.statusCode == 200) return true;
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _canDownload = data['can_download'] ?? false;
+        return true;
+      }
       if (response.statusCode == 401) {
         return await _refreshAccessToken();
       }
@@ -667,7 +679,11 @@ class SwingApiService {
   Future<Map<String, dynamic>> getMyProfile() async {
     try {
       final r = await _authedGet(Uri.parse('$_baseUrl/users/me'));
-      if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body) as Map<String, dynamic>;
+        _canDownload = data['can_download'] ?? false;
+        return data;
+      }
     } catch (_) {}
     return {};
   }

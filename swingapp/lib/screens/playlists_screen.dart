@@ -355,6 +355,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           if (_tracks.isNotEmpty) ...[
             Consumer<DownloadsProvider>(
               builder: (ctx, dl, _) {
+                if (!SwingApiService().canDownload) return const SizedBox.shrink();
+
                 final isOffline = dl.isPlaylistOffline(_playlist.id);
                 
                 if (dl.isDownloadingPlaylist) {
