@@ -581,9 +581,17 @@ class PlayerProvider extends ChangeNotifier {
     final wasLiked = _favourites.contains(hash);
     if (wasLiked) { _favourites.remove(hash); } else { _favourites.add(hash); }
     notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('cached_favourites', _favourites.toList());
+    } catch (_) {}
     final ok = await _api.toggleFavourite(hash);
     if (!ok) {
       if (wasLiked) { _favourites.add(hash); } else { _favourites.remove(hash); }
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList('cached_favourites', _favourites.toList());
+      } catch (_) {}
       notifyListeners();
     }
   }
@@ -591,9 +599,20 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _loadFavourites() async {
     try {
       final songs = await _api.getFavourites();
+      _favourites.clear();
       _favourites.addAll(songs.map((s) => s.hash));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('cached_favourites', _favourites.toList());
       if (mounted) notifyListeners();
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cached = prefs.getStringList('cached_favourites') ?? [];
+        _favourites.clear();
+        _favourites.addAll(cached);
+        if (mounted) notifyListeners();
+      } catch (_) {}
+    }
   }
 
   // ── Cache playlists ────────────────────────────────────────────────────

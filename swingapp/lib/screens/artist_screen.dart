@@ -39,27 +39,57 @@ class _ArtistScreenState extends State<ArtistScreen> {
   Future<void> _load() async {
     var hash = widget.artist.hash;
 
-    // Si le hash est vide, chercher l'artiste par nom
-    if (hash.isEmpty && widget.artist.name.isNotEmpty) {
-      final found = await SwingApiService()
-          .searchArtistByName(widget.artist.name);
-      if (found != null) hash = found.hash;
-    }
+    try {
+      // Si le hash est vide, chercher l'artiste par nom
+      if (hash.isEmpty && widget.artist.name.isNotEmpty) {
+        final found = await SwingApiService()
+            .searchArtistByName(widget.artist.name);
+        if (found != null) hash = found.hash;
+      }
 
-    if (hash.isEmpty) {
-      if (mounted) setState(() => _loading = false);
-      return;
-    }
+      if (hash.isEmpty) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
 
-    final results = await Future.wait([
-      SwingApiService().getArtistTracks(hash),
-      SwingApiService().getArtistAlbums(hash),
-    ]);
-    if (mounted) setState(() {
-      _tracks = results[0] as List<Song>;
-      _albums = results[1] as List<Album>;
-      _loading = false;
-    });
+      final results = await Future.wait([
+        SwingApiService().getArtistTracks(hash),
+        SwingApiService().getArtistAlbums(hash),
+      ]);
+      if (mounted) setState(() {
+        _tracks = results[0] as List<Song>;
+        _albums = results[1] as List<Album>;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+        _tracks = dlSongs
+            .where((s) => s.artist == widget.artist.name || (s.artistHash.isNotEmpty && s.artistHash == widget.artist.hash))
+            .toList();
+
+        final Map<String, List<Song>> albumsMap = {};
+        for (final song in _tracks) {
+          final albumTitle = song.album.isNotEmpty ? song.album : 'Unknown Album';
+          albumsMap.putIfAbsent(albumTitle, () => []).add(song);
+        }
+        _albums = albumsMap.entries.map((entry) {
+          final albumTitle = entry.key;
+          final songs = entry.value;
+          final firstSong = songs.first;
+          return Album(
+            hash: firstSong.albumHash.isNotEmpty ? firstSong.albumHash : albumTitle,
+            title: albumTitle,
+            artist: firstSong.artist,
+            artistHash: firstSong.artistHash,
+            trackCount: songs.length,
+            image: firstSong.image ?? '',
+          );
+        }).toList();
+
+        setState(() => _loading = false);
+      }
+    }
   }
 
   @override

@@ -6,6 +6,7 @@ import '../models/song.dart';
 import '../models/album.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../widgets/artwork_widget.dart';
 import 'artist_screen.dart';
 
@@ -109,17 +110,52 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
 
   void _searchLocal(String query) {
     final q = query.toLowerCase();
-    final player = context.read<PlayerProvider>();
-    final allSongs = player.queue;
-    final filtered = allSongs.where((s) =>
+    
+    // Fallback: chercher dans tous les titres téléchargés
+    final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+    final filtered = dlSongs.where((s) =>
       s.title.toLowerCase().contains(q) ||
       s.artist.toLowerCase().contains(q) ||
-      (s.album).toLowerCase().contains(q)
+      s.album.toLowerCase().contains(q)
     ).toList();
+
+    // Reconstruire les albums et artistes correspondants pour avoir des résultats riches
+    final albumMap = <String, List<Song>>{};
+    for (final s in filtered) {
+      albumMap.putIfAbsent(s.album, () => []).add(s);
+    }
+    final albums = albumMap.entries.map((e) {
+      final first = e.value.first;
+      return Album(
+        hash: first.albumHash.isNotEmpty ? first.albumHash : e.key,
+        title: e.key,
+        artist: first.artist,
+        artistHash: first.artistHash,
+        trackCount: e.value.length,
+        image: first.image ?? '',
+      );
+    }).toList();
+
+    final artistMap = <String, List<Song>>{};
+    for (final s in filtered) {
+      artistMap.putIfAbsent(s.artist, () => []).add(s);
+    }
+    final artists = artistMap.entries.map((e) {
+      final first = e.value.first;
+      final uniqueAlbums = e.value.map((s) => s.album).toSet();
+      return Artist(
+        hash: first.artistHash.isNotEmpty ? first.artistHash : e.key,
+        name: e.key,
+        trackCount: e.value.length,
+        albumCount: uniqueAlbums.length,
+        image: first.image ?? '',
+      );
+    }).toList();
+
     setState(() {
       _tracks  = filtered;
-      _albums  = [];
-      _artists = [];
+      _albums  = albums;
+      _artists = artists;
       _loading = false;
     });
   }

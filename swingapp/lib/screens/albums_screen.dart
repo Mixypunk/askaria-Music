@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/album.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../widgets/song_tile.dart';
 
 class AlbumsScreen extends StatefulWidget {
@@ -26,7 +27,33 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
     try {
       _albums = await SwingApiService().getAlbums(limit: 200);
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+        if (dlSongs.isNotEmpty) {
+          final Map<String, List<Song>> albumsMap = {};
+          for (final song in dlSongs) {
+            final albumTitle = song.album.isNotEmpty ? song.album : 'Unknown Album';
+            albumsMap.putIfAbsent(albumTitle, () => []).add(song);
+          }
+          _albums = albumsMap.entries.map((entry) {
+            final albumTitle = entry.key;
+            final songs = entry.value;
+            final firstSong = songs.first;
+            return Album(
+              hash: firstSong.albumHash.isNotEmpty ? firstSong.albumHash : albumTitle,
+              title: albumTitle,
+              artist: firstSong.artist,
+              artistHash: firstSong.artistHash,
+              trackCount: songs.length,
+              image: firstSong.image ?? '',
+            );
+          }).toList();
+        } else {
+          _error = e.toString();
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -131,7 +158,15 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
     try {
       _tracks = await SwingApiService().getAlbumTracks(widget.album.hash);
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+        _tracks = dlSongs.where((s) => s.album == widget.album.title || (s.albumHash.isNotEmpty && s.albumHash == widget.album.hash)).toList();
+        if (_tracks.isEmpty) {
+          _error = e.toString();
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     if (mounted) setState(() => _loading = false);
   }

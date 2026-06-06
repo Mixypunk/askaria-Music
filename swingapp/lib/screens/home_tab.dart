@@ -6,9 +6,11 @@ import '../models/album.dart';
 import '../models/artist.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../widgets/artwork_widget.dart';
 import 'settings_screen.dart';
 import 'artist_screen.dart';
+import 'playlists_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -98,31 +100,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
             child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2)))
 
         else if (_offline)
-          SliverFillRemaining(child: Center(child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.wifi_off_rounded, color: Sp.white40, size: 64),
-              const SizedBox(height: 16),
-              const Text('Serveur inaccessible',
-                style: TextStyle(color: Sp.white, fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text('Vérifiez votre connexion ou l\'URL du serveur',
-                style: TextStyle(color: Sp.white70, fontSize: 13),
-                textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: _load,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: kGrad,
-                    borderRadius: BorderRadius.circular(24)),
-                  child: const Text('Réessayer',
-                    style: TextStyle(color: Colors.white,
-                        fontWeight: FontWeight.bold)))),
-            ],
-          )))
+          _buildOfflineView(context)
 
         else ...[
           // ── Récemment joués (historique réel) ─────────────────────
@@ -239,6 +217,170 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOfflineView(BuildContext context) {
+    return Consumer<DownloadsProvider>(
+      builder: (context, dlProvider, _) {
+        final offlineSongs = dlProvider.downloadedSongs;
+        final offlinePlaylists = dlProvider.downloadedPlaylists;
+
+        if (offlineSongs.isEmpty && offlinePlaylists.isEmpty) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.wifi_off_rounded, color: Sp.white40, size: 64),
+                  const SizedBox(height: 16),
+                  const Text('Serveur inaccessible',
+                    style: TextStyle(color: Sp.white, fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text('Aucune musique téléchargée pour le mode hors connexion.',
+                    style: TextStyle(color: Sp.white70, fontSize: 13),
+                    textAlign: TextAlign.center),
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: _load,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: kGrad,
+                        borderRadius: BorderRadius.circular(24)),
+                      child: const Text('Réessayer',
+                        style: TextStyle(color: Colors.white,
+                            fontWeight: FontWeight.bold)))),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SliverList(
+          delegate: SliverChildListDelegate([
+            // Banner Mode hors connexion
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Sp.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.cloud_off_rounded, color: Sp.g2, size: 28),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Mode hors connexion',
+                          style: TextStyle(color: Sp.white, fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Affichage des titres et playlists téléchargés sur cet appareil.',
+                          style: TextStyle(color: Sp.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded, color: Sp.white, size: 20),
+                    onPressed: _load,
+                    tooltip: 'Actualiser',
+                  ),
+                ],
+              ),
+            ),
+
+            // Playlists hors connexion
+            if (offlinePlaylists.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Text(
+                  'Playlists hors connexion',
+                  style: TextStyle(color: Sp.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              SizedBox(
+                height: 180,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: offlinePlaylists.length,
+                  itemBuilder: (ctx, i) {
+                    final pl = offlinePlaylists[i];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => PlaylistDetailScreen(playlist: pl, readOnly: true),
+                        ));
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: SizedBox(
+                          width: 120,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  width: 120, height: 120,
+                                  color: Sp.card,
+                                  child: const Icon(Icons.queue_music_rounded, color: Colors.white24, size: 48),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                pl.name,
+                                style: const TextStyle(color: Sp.white, fontSize: 13, fontWeight: FontWeight.w500),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${pl.trackCount} titres',
+                                style: const TextStyle(color: Sp.white70, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+
+            // Musiques hors connexion
+            if (offlineSongs.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+                child: Text(
+                  'Titres téléchargés',
+                  style: TextStyle(color: Sp.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: offlineSongs.length,
+                itemBuilder: (ctx, i) {
+                  return _SongRow(song: offlineSongs[i], all: offlineSongs, idx: i);
+                },
+              ),
+            ],
+
+            const SizedBox(height: 100),
+          ]),
+        );
+      },
     );
   }
 }

@@ -7,6 +7,7 @@ import '../models/song.dart';
 import '../widgets/artwork_widget.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import 'artist_screen.dart';
 
 class LibraryTab extends StatefulWidget {
@@ -99,8 +100,57 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
       _albums    = results[1] as List<Album>;
       _artists   = results[2] as List<Artist>;
       _applySorting();
-    } catch (e) { _error = e.toString(); }
+    } catch (e) {
+      await _loadOfflineLibrary();
+    }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadOfflineLibrary() async {
+    try {
+      final dlProvider = context.read<DownloadsProvider>();
+      _playlists = dlProvider.downloadedPlaylists;
+      
+      final songs = dlProvider.downloadedSongs;
+      
+      // Regrouper par album
+      final albumMap = <String, List<Song>>{};
+      for (final s in songs) {
+        albumMap.putIfAbsent(s.album, () => []).add(s);
+      }
+      _albums = albumMap.entries.map((e) {
+        final albumTracks = e.value;
+        final firstTrack = albumTracks.first;
+        return Album(
+          hash: firstTrack.albumHash.isNotEmpty ? firstTrack.albumHash : e.key,
+          title: e.key,
+          artist: firstTrack.artist,
+          artistHash: firstTrack.artistHash,
+          trackCount: albumTracks.length,
+          image: firstTrack.image ?? '',
+        );
+      }).toList();
+
+      // Regrouper par artiste
+      final artistMap = <String, List<Song>>{};
+      for (final s in songs) {
+        artistMap.putIfAbsent(s.artist, () => []).add(s);
+      }
+      _artists = artistMap.entries.map((e) {
+        final artistTracks = e.value;
+        final firstTrack = artistTracks.first;
+        final uniqueAlbums = artistTracks.map((s) => s.album).toSet();
+        return Artist(
+          hash: firstTrack.artistHash.isNotEmpty ? firstTrack.artistHash : e.key,
+          name: e.key,
+          trackCount: artistTracks.length,
+          albumCount: uniqueAlbums.length,
+          image: firstTrack.image ?? '',
+        );
+      }).toList();
+
+      _applySorting();
+    } catch (_) {}
   }
 
   void _applySorting() {
@@ -408,7 +458,13 @@ class _FavouritesContentState extends State<_FavouritesContent> {
   Future<void> _load() async {
     try {
       _songs = await SwingApiService().getFavourites();
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+        final player = context.read<PlayerProvider>();
+        _songs = dlSongs.where((s) => player.isFavourite(s.hash)).toList();
+      } catch (_) {}
+    }
     if (mounted) setState(() => _loading = false);
   }
 

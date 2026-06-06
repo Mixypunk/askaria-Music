@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/artist.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
 import '../widgets/song_tile.dart';
 
 class ArtistsScreen extends StatefulWidget {
@@ -26,7 +27,34 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
     try {
       _artists = await SwingApiService().getArtists(limit: 500);
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+        if (dlSongs.isNotEmpty) {
+          final Map<String, List<Song>> artistsMap = {};
+          for (final song in dlSongs) {
+            final artistName = song.artist.isNotEmpty ? song.artist : 'Unknown Artist';
+            artistsMap.putIfAbsent(artistName, () => []).add(song);
+          }
+          _artists = artistsMap.entries.map((entry) {
+            final artistName = entry.key;
+            final songs = entry.value;
+            final firstSong = songs.first;
+            final albumsCount = songs.map((s) => s.album).toSet().length;
+            return Artist(
+              hash: firstSong.artistHash.isNotEmpty ? firstSong.artistHash : artistName,
+              name: artistName,
+              albumCount: albumsCount,
+              trackCount: songs.length,
+              image: firstSong.artistHash.isNotEmpty ? '${firstSong.artistHash}.webp' : '',
+              helpText: '${songs.length} titre${songs.length != 1 ? 's' : ''}',
+            );
+          }).toList();
+        } else {
+          _error = e.toString();
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -113,7 +141,17 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     try {
       _tracks = await SwingApiService().getArtistTracks(widget.artist.hash);
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+        _tracks = dlSongs
+            .where((s) => s.artist == widget.artist.name || (s.artistHash.isNotEmpty && s.artistHash == widget.artist.hash))
+            .toList();
+        if (_tracks.isEmpty) {
+          _error = e.toString();
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     if (mounted) setState(() => _loading = false);
   }

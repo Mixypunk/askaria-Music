@@ -47,7 +47,16 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
     try {
       _mine = await SwingApiService().getPlaylists();
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        final offlinePls = context.read<DownloadsProvider>().downloadedPlaylists;
+        if (offlinePls.isNotEmpty) {
+          _mine = offlinePls;
+        } else {
+          _error = e.toString();
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     if (mounted) setState(() => _loadingMine = false);
   }
@@ -301,12 +310,19 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     try {
       _tracks = await SwingApiService().getPlaylistTracks(_playlist.id);
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        _tracks = await context.read<DownloadsProvider>().getOfflinePlaylistTracks(_playlist.id);
+        if (_tracks.isEmpty) {
+          _error = e.toString();
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     if (mounted) {
       setState(() => _loading = false);
-      if (_tracks.isNotEmpty) {
-        context.read<DownloadsProvider>().autoSyncPlaylist(_playlist.id, _tracks);
+      if (_tracks.isNotEmpty && _error == null) {
+        context.read<DownloadsProvider>().autoSyncPlaylist(_playlist, _tracks);
       }
     }
   }
@@ -383,7 +399,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         behavior: SnackBarBehavior.floating,
                       ));
                     } else {
-                      dl.syncPlaylist(_playlist.id, _tracks, context: context);
+                      dl.syncPlaylist(_playlist, _tracks, context: context);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('Synchronisation hors-ligne activée'),
                         behavior: SnackBarBehavior.floating,
