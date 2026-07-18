@@ -250,32 +250,28 @@ class PlayerProvider extends ChangeNotifier {
   AudioSource _buildSource(Song song) {
     String? localPath = song.filepath;
 
-    // Si on a un chemin réseau (qui ne contient pas '/offline/'),
-    // on vérifie très rapidement (en local) si le fichier n'a pas été téléchargé.
-    // L'I/O ici est minime (existsSync sur le stockage interne, pas sur un NAS).
     if (localPath == null || !localPath.contains('/offline/')) {
       final offlineDir = _api.offlineDirPath;
       if (offlineDir != null) {
-        // Déduire l'extension (fallback mp3 si vide/invalide)
         final extRaw = (song.filepath ?? '').split('.').last.toLowerCase();
         final ext = (extRaw.isNotEmpty && extRaw.length <= 4 && extRaw != song.filepath) ? extRaw : 'mp3';
         final possibleLocalPath = '$offlineDir/${song.hash}.$ext';
-        
         if (File(possibleLocalPath).existsSync()) {
           localPath = possibleLocalPath;
         }
       }
     }
 
-    // Un fichier est "local" uniquement si son chemin contient '/offline/'
-    // (répertoire exclusif aux téléchargements hors-ligne de l'app).
     final isLocal = localPath != null && localPath.contains('/offline/');
+    final isDeezerPreview = song.hash.startsWith('dz_');
 
     final uri = isLocal
         ? Uri.file(localPath)
-        : Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath));
+        : isDeezerPreview
+            ? Uri.parse(song.filepath ?? '')
+            : Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath));
 
-    final headers = isLocal ? <String, String>{} : _api.authHeaders;
+    final headers = (isLocal || isDeezerPreview) ? null : _api.authHeaders;
 
     return AudioSource.uri(
       uri,
@@ -285,8 +281,7 @@ class PlayerProvider extends ChangeNotifier {
         title:  song.title,
         artist: song.artist,
         album:  song.album,
-        artUri: Uri.parse(
-            '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}'),
+        artUri: Uri.parse(_api.getArtworkUrl(song.image ?? song.hash)),
       ),
     );
   }
@@ -311,13 +306,18 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _updateArtUri(Song song, int index) async {
     if (index < 0 || index >= _playlist.length) return;
     try {
-      final artUrl =
-          '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
+      final artUrl = _api.getArtworkUrl(song.image ?? song.hash);
       final localUri = await _cacheArtwork(artUrl, song.image ?? song.hash);
-      // Remplacer la source avec l'artUri local
+      
+      final isDeezerPreview = song.hash.startsWith('dz_');
+      final uri = isDeezerPreview
+            ? Uri.parse(song.filepath ?? '')
+            : Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath));
+      final headers = isDeezerPreview ? null : _api.authHeaders;
+
       final newSource = AudioSource.uri(
-        Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath)),
-        headers: _api.authHeaders,
+        uri,
+        headers: headers,
         tag: MediaItem(
           id:     song.hash,
           title:  song.title,
@@ -358,6 +358,31 @@ class PlayerProvider extends ChangeNotifier {
     _fetchColors();
     _persistQueue();
     notifyListeners();
+
+    // Deezer background downloading and hot-swapping
+    if (song.hash.startsWith('dz_')) {
+      final deezerId = song.hash.replaceFirst('dz_', '');
+      _api.downloadDeezerTrack(deezerId).then((newHash) async {
+        if (newHash != null && currentSong?.hash == song.hash && _disposed == false) {
+          final currentPos = _player.position;
+          final updatedSong = Song(
+            hash: newHash,
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            albumHash: song.albumHash,
+            artistHash: song.artistHash,
+            duration: song.duration,
+            image: song.image,
+          );
+          _queue[_currentIndex] = updatedSong;
+          await _playlist.removeRange(_currentIndex, _currentIndex + 1);
+          await _playlist.insert(_currentIndex, _buildSource(updatedSong));
+          await _player.seek(currentPos, index: _currentIndex);
+          notifyListeners();
+        }
+      });
+    }
   }
 
   // ── Controls ───────────────────────────────────────────────────────────
@@ -488,8 +513,7 @@ class PlayerProvider extends ChangeNotifier {
     if (!hashChanged && !playingChanged) return;
     _lastWidgetSongHash = song.hash;
     _lastWidgetPlaying = _isPlaying;
-    final artUrl =
-        '${_api.baseUrl}/img/thumbnail/${song.image ?? song.hash}';
+    final artUrl = _api.getArtworkUrl(song.image ?? song.hash);
     WidgetService.instance.update(
       title:     song.title,
       artist:    song.artist ?? '',
@@ -510,8 +534,9 @@ class PlayerProvider extends ChangeNotifier {
       if (await file.exists()) {
         return _artCache[hash] = file.uri;
       }
+      final isOurApi = url.startsWith(_api.baseUrl);
       final r = await http
-          .get(Uri.parse(url), headers: _api.authHeaders)
+          .get(Uri.parse(url), headers: isOurApi ? _api.authHeaders : null)
           .timeout(const Duration(seconds: 8));
       if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
         await file.writeAsBytes(r.bodyBytes);
@@ -529,9 +554,10 @@ class PlayerProvider extends ChangeNotifier {
     final song = currentSong!;
     final cacheKey = song.image ?? song.hash;
     try {
-      final url = '${_api.baseUrl}/img/thumbnail/$cacheKey';
+      final url = _api.getArtworkUrl(cacheKey);
+      final isOurApi = url.startsWith(_api.baseUrl);
       final r = await http
-          .get(Uri.parse(url), headers: _api.authHeaders)
+          .get(Uri.parse(url), headers: isOurApi ? _api.authHeaders : null)
           .timeout(const Duration(seconds: 6));
       if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
         if (currentSong?.hash != song.hash) return;

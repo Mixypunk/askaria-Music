@@ -43,6 +43,8 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
   bool get _hasResults =>
       _tracks.isNotEmpty || _albums.isNotEmpty || _artists.isNotEmpty;
 
+  String _filter = 'all'; // 'all' ou 'deezer'
+
   void _onChanged(String v) {
     _debounce?.cancel();
     if (v.trim().isEmpty && _activeCategory == null) {
@@ -75,6 +77,17 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
     }
 
     try {
+      if (_filter == 'deezer') {
+        final deezerSongs = await SwingApiService().searchDeezer(query);
+        if (mounted) setState(() {
+          _tracks  = deezerSongs;
+          _albums  = [];
+          _artists = [];
+          _loading = false;
+        });
+        return;
+      }
+
       // Un seul appel searchTop retourne tracks + albums + artistes
       // + appel songs en parallèle pour plus de titres
       final results = await Future.wait([
@@ -219,8 +232,47 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         ),
       )),
 
+      // ── Source filtre (Askaria / Deezer) ──────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 16, bottom: 12),
+          child: Row(
+            children: [
+              ChoiceChip(
+                label: const Text('Askaria'),
+                selected: _filter == 'all',
+                onSelected: (val) {
+                  if (val) {
+                    setState(() => _filter = 'all');
+                    _onChanged(_ctrl.text);
+                  }
+                },
+                selectedColor: Sp.accent,
+                backgroundColor: Sp.bg2,
+                labelStyle: TextStyle(color: _filter == 'all' ? Colors.white : Sp.t3),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('Deezer'),
+                selected: _filter == 'deezer',
+                onSelected: (val) {
+                  if (val) {
+                    setState(() => _filter = 'deezer');
+                    _onChanged(_ctrl.text);
+                  }
+                },
+                selectedColor: Sp.accent,
+                backgroundColor: Sp.bg2,
+                labelStyle: TextStyle(color: _filter == 'deezer' ? Colors.white : Sp.t3),
+              ),
+            ],
+          ),
+        ),
+      ),
+
       // ── Chips catégories ──────────────────────────────────────
-      SliverToBoxAdapter(child: SizedBox(
+      if (_filter == 'all')
+        SliverToBoxAdapter(child: SizedBox(
         height: 36,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,

@@ -597,12 +597,44 @@ class SwingApiService {
     return '$_baseUrl/file/$trackHash/legacy?bitrate=$bitrate&token=$token';
   }
 
+  Future<List<Song>> searchDeezer(String query) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/downloader/deezer/search').replace(
+        queryParameters: {'q': query, 'limit': '20'},
+      );
+      final response = await _authedGet(uri);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['data'] != null) {
+          return (data['data'] as List).map((e) => Song.fromDeezer(e)).toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<String?> downloadDeezerTrack(String deezerId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/downloader/deezer/$deezerId'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['hash'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
   // Format officiel: {baseUrl}img/thumbnail/{track.image}
   String getArtworkUrl(String imageHash, {String type = 'track'}) {
+    if (imageHash.startsWith('http')) return imageHash;
     return '$_baseUrl/img/thumbnail/$imageHash';
   }
 
   String getThumbnailUrl(String imageHash, {String type = 'track'}) {
+    if (imageHash.startsWith('http')) return imageHash;
     return '$_baseUrl/img/thumbnail/$imageHash';
   }
 

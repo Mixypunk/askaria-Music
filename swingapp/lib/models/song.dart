@@ -36,6 +36,19 @@ class Song {
     image: j['image'] ?? '',  // = '{albumhash}.webp?pathhash={pathhash}'
   );
 
+  factory Song.fromDeezer(Map<String, dynamic> j) => Song(
+    hash: 'dz_${j['id']}', // Identifiant magique pour le Player
+    title: j['title'] ?? 'Unknown',
+    artist: j['artist']?['name'] ?? 'Unknown Artist',
+    album: j['album']?['title'] ?? 'Unknown Album',
+    albumHash: '', 
+    artistHash: '',
+    duration: (j['duration'] ?? 0).toInt(),
+    trackNumber: 0,
+    filepath: j['preview'], // On triche en stockant l'URL du preview ici
+    image: j['album']?['cover_xl'] ?? '', // URL directe vers la cover Deezer
+  );
+
   static String _extractArtist(Map<String, dynamic> j) {
     if (j['artists'] is List && (j['artists'] as List).isNotEmpty) {
       return (j['artists'] as List).map((a) => a['name'] ?? '').join(', ');

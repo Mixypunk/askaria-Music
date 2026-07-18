@@ -87,7 +87,7 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
       return;
     }
     final api = SwingApiService();
-    final url = '${api.baseUrl}/img/thumbnail/${widget.hash}';
+    final url = api.getArtworkUrl(widget.hash);
 
     // Vérifier le cache d'abord
     final cached = artCache.get(url);
@@ -108,9 +108,10 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
 
   Future<Uint8List?> _fetchImage(String url, SwingApiService api) async {
     try {
+      final isOurApi = url.startsWith(api.baseUrl);
       final response = await http.get(
         Uri.parse(url),
-        headers: api.authHeaders,
+        headers: isOurApi ? api.authHeaders : null,
       ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         artCache.put(url, response.bodyBytes);
