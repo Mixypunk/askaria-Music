@@ -164,7 +164,11 @@ class _SplashWrapperState extends State<_SplashWrapper> {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PlayerProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final p = PlayerProvider();
+          _setupWidgetActions(p);
+          return p;
+        }),
         ChangeNotifierProvider(create: (_) => DownloadsProvider()),
         ChangeNotifierProvider.value(value: ThemeNotifier.instance),
       ],

@@ -30,8 +30,8 @@ class Song {
     album: j['album'] ?? 'Unknown Album',
     albumHash: j['albumhash'] ?? j['album_hash'] ?? '',
     artistHash: _extractArtistHash(j),
-    duration: (j['duration'] ?? 0).toInt(),
-    trackNumber: j['track'] ?? j['trackno'] ?? 0,
+    duration: int.tryParse(j['duration']?.toString() ?? '0') ?? 0,
+    trackNumber: int.tryParse(j['track']?.toString() ?? j['trackno']?.toString() ?? '0') ?? 0,
     filepath: j['filepath'] ?? j['path'] ?? j['file_path'],
     image: j['image'] ?? '',  // = '{albumhash}.webp?pathhash={pathhash}'
   );

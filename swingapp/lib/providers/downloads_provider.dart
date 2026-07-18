@@ -96,18 +96,22 @@ class DownloadsProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    final tracks = await SwingApiService().getDownloadedTracks();
-    _downloadedHashes.clear();
-    for (var t in tracks) {
-      if (t['hash'] != null) {
-        // Ignorer les fichiers meta
-        if (!t['path'].toString().endsWith('.meta.json')) {
-          _downloadedHashes.add(t['hash']);
+    try {
+      final tracks = await SwingApiService().getDownloadedTracks();
+      _downloadedHashes.clear();
+      for (var t in tracks) {
+        if (t['hash'] != null) {
+          // Ignorer les fichiers meta
+          if (!t['path'].toString().endsWith('.meta.json')) {
+            _downloadedHashes.add(t['hash']);
+          }
         }
       }
+      await loadOfflineData();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('refresh downloads error: $e');
     }
-    await loadOfflineData();
-    notifyListeners();
   }
 
   Future<void> downloadSong(Song song, BuildContext? context, {bool showSnackBar = true}) async {

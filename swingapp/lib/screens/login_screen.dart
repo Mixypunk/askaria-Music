@@ -161,6 +161,13 @@ class _ManualTabState extends State<_ManualTab> {
   bool _loading = false, _obs = true;
   String? _err;
 
+  @override
+  void dispose() {
+    _u.dispose();
+    _p.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
     if (_u.text.trim().isEmpty || _p.text.isEmpty) {
       setState(() => _err = 'Remplis tous les champs'); return;

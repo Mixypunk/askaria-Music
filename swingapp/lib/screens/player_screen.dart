@@ -90,7 +90,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         artCache.put(url, r.bodyBytes);
         setState(() => _bgImage = r.bodyBytes);
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('player screen sheet error: $e'); }
   }
 
   void _animateTo(Color newAccent) {

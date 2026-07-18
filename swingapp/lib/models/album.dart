@@ -22,8 +22,8 @@ class Album {
     title: j['title'] ?? 'Unknown Album',
     artist: _extractArtist(j),
     artistHash: _extractArtistHash(j),
-    year: j['date'] != null ? int.tryParse(j['date'].toString().substring(0, 4)) : null,
-    trackCount: j['count'] ?? j['trackcount'] ?? 0,
+    year: j['date'] != null && j['date'].toString().length >= 4 ? int.tryParse(j['date'].toString().substring(0, 4)) : null,
+    trackCount: int.tryParse(j['count']?.toString() ?? j['trackcount']?.toString() ?? '0') ?? 0,
     image: j['image'] ?? '',
   );
 
@@ -65,8 +65,8 @@ class Artist {
     return Artist(
       hash: hash,
       name: j['name'] ?? 'Unknown Artist',
-      albumCount: j['albumcount'] ?? 0,
-      trackCount: j['trackcount'] ?? 0,
+      albumCount: int.tryParse(j['albumcount']?.toString() ?? '0') ?? 0,
+      trackCount: int.tryParse(j['trackcount']?.toString() ?? '0') ?? 0,
       image: j['image'] ?? '$hash.webp',
       helpText: j['help_text']?.toString() ?? '',
     );
@@ -94,7 +94,7 @@ class Playlist {
     id: j['id']?.toString() ?? '',
     name: j['name'] ?? 'Unnamed Playlist',
     description: j['extra']?['description'] ?? j['description'],
-    trackCount: j['count'] ?? j['trackcount'] ?? 0,
+    trackCount: int.tryParse(j['count']?.toString() ?? j['trackcount']?.toString() ?? '0') ?? 0,
     // playlist image served at /img/playlist/{id}.webp
     imageHash: j['id']?.toString(),
     isPublic: j['is_public'] == true || j['is_public'] == 1,

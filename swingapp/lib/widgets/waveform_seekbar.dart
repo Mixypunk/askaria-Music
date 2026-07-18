@@ -54,8 +54,8 @@ class _WaveformSeekbarState extends State<WaveformSeekbar> {
           _loadedHash = widget.songHash;
         });
       }
-    } catch (_) {}
-    _loading = false;
+    } catch (e) { debugPrint('waveform error: $e'); }
+    if (mounted) setState(() => _loading = false);
   }
 
 

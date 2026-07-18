@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/song.dart';
 import '../services/api_service.dart';
@@ -15,6 +15,12 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Song> _results = [];
   bool _loading = false;
   String _query = '';
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _search(String q) async {
     if (q.trim().isEmpty) { setState(() { _results = []; _query = ''; }); return; }

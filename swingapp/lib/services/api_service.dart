@@ -261,7 +261,7 @@ class SwingApiService {
         return true;
       }
       if (response.statusCode == 401) {
-        return await _refreshAccessToken();
+        return false;
       }
       return false;
     } on TimeoutException catch (_) {
@@ -557,7 +557,7 @@ class SwingApiService {
           'trackhash': trackHash,
           'filepath': filepath ?? '',
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return null;
       final data = json.decode(response.body);
       if (data['error'] != null) return null;
@@ -620,7 +620,7 @@ class SwingApiService {
         Uri.parse('$_baseUrl/track/favourite'),
         headers: _headers,
         body: json.encode({'trackhash': trackHash}),
-      );
+      ).timeout(const Duration(seconds: 10));
       return r.statusCode == 200;
     } catch (_) { return false; }
   }
@@ -832,25 +832,28 @@ class SwingApiService {
       req.headers['Authorization'] = 'Bearer $_accessToken';
 
       final client   = http.Client();
-      final streamed = await client.send(req);
+      try {
+        final streamed = await client.send(req);
 
-      if (streamed.statusCode != 200) { client.close(); return null; }
+        if (streamed.statusCode != 200) { client.close(); return null; }
 
-      final total  = streamed.contentLength ?? -1;
-      int received = 0;
-      final sink   = file.openWrite();
-      await for (final chunk in streamed.stream) {
-        sink.add(chunk);
-        received += chunk.length;
-        onProgress?.call(received, total);
+        final total  = streamed.contentLength ?? -1;
+        int received = 0;
+        final sink   = file.openWrite();
+        await for (final chunk in streamed.stream) {
+          sink.add(chunk);
+          received += chunk.length;
+          onProgress?.call(received, total);
+        }
+        await sink.close();
+        
+        // Sauvegarder les métadonnées pour affichage dans Downloads screen
+        await _saveOfflineMeta(song, file.path, ext: ext);
+
+        return file.path;
+      } finally {
+        client.close();
       }
-      await sink.close();
-      client.close();
-
-      // Sauvegarder les métadonnées pour affichage dans Downloads screen
-      await _saveOfflineMeta(song, file.path, ext: ext);
-
-      return file.path;
     } catch (e) {
       debugPrint('downloadTrack error: $e');
       return null;
@@ -873,7 +876,7 @@ class SwingApiService {
         'downloaded': DateTime.now().toIso8601String(),
       };
       await metaFile.writeAsString(json.encode(meta));
-    } catch (_) {}
+    } catch (e) { debugPrint('meta error: $e'); }
   }
 
   Future<Map<String, dynamic>?> getOfflineMeta(String hash) async {
@@ -941,6 +944,6 @@ class SwingApiService {
       // Supprimer aussi le fichier meta
       final metaFile = File('${dir.path}/offline/$hash.meta.json');
       if (metaFile.existsSync()) await metaFile.delete();
-    } catch (_) {}
+    } catch (e) { debugPrint('delete offline error: $e'); }
   }
 }

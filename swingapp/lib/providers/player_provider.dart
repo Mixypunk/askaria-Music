@@ -37,6 +37,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _shuffle = false;
   String? _error;
   bool _disposed = false;
+  final List<StreamSubscription> _subs = [];
 
   // Throttle positionStream — évite des milliers de notifyListeners/min
   DateTime _lastPositionNotify = DateTime.fromMillisecondsSinceEpoch(0);
@@ -96,6 +97,7 @@ class PlayerProvider extends ChangeNotifier {
   int _crossfadeSeconds = 0;   // 0 = désactivé
   Timer? _crossfadeTimer;
   bool _crossfading = false;
+  int _fadeId = 0;
 
   int get crossfadeSeconds => _crossfadeSeconds;
 
@@ -143,14 +145,16 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> _fadeIn(double targetVolume) async {
+    _fadeId++;
+    final currentFadeId = _fadeId;
     const steps    = 30;
     const interval = Duration(milliseconds: 50);
     for (int i = 0; i <= steps; i++) {
-      if (!mounted) return;
+      if (!mounted || _fadeId != currentFadeId) return;
       await _player.setVolume(targetVolume * (i / steps));
       await Future.delayed(interval);
     }
-    await _player.setVolume(targetVolume);
+    if (_fadeId == currentFadeId && mounted) await _player.setVolume(targetVolume);
   }
 
   PlayerProvider() {
@@ -185,7 +189,7 @@ class PlayerProvider extends ChangeNotifier {
     });
 
     // Écouter l'index courant — just_audio gère le passage automatique entre titres
-    _player.currentIndexStream.listen((idx) {
+    _subs.add(_player.currentIndexStream.listen((idx) {
       if (idx != null && idx != _currentIndex && idx < _queue.length) {
         _currentIndex = idx;
         _fetchLyrics();
@@ -194,9 +198,9 @@ class PlayerProvider extends ChangeNotifier {
         _persistQueue();
         notifyListeners();
       }
-    });
+    }));
 
-    _player.playerStateStream.listen((state) {
+    _subs.add(_player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
       _isLoading = state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering;
@@ -209,9 +213,9 @@ class PlayerProvider extends ChangeNotifier {
       }
       _updateWidget();
       if (mounted) notifyListeners();
-    });
+    }));
 
-    _player.positionStream.listen((pos) {
+    _subs.add(_player.positionStream.listen((pos) {
       _position = pos;
       // Déclencher le crossfade N secondes avant la fin
       if (_crossfadeSeconds > 0 &&
@@ -229,12 +233,12 @@ class PlayerProvider extends ChangeNotifier {
         _lastPositionNotify = now;
         notifyListeners();
       }
-    });
+    }));
 
-    _player.durationStream.listen((dur) {
+    _subs.add(_player.durationStream.listen((dur) {
       _duration = dur ?? Duration.zero;
       if (mounted) notifyListeners();
-    });
+    }));
 
     // Configurer la répétition dans just_audio
     _player.setLoopMode(LoopMode.off);
@@ -466,11 +470,11 @@ class PlayerProvider extends ChangeNotifier {
     if (oldIndex < newIndex) newIndex--;
     final song = _queue.removeAt(oldIndex);
     _queue.insert(newIndex, song);
-    // Reconstruire la playlist pour la réorganisation
-    _rebuildPlaylist(startIndex: _currentIndex);
     if (oldIndex == _currentIndex) _currentIndex = newIndex;
     else if (oldIndex < _currentIndex && newIndex >= _currentIndex) _currentIndex--;
     else if (oldIndex > _currentIndex && newIndex <= _currentIndex) _currentIndex++;
+    // Reconstruire la playlist pour la réorganisation
+    _rebuildPlaylist(startIndex: _currentIndex);
     notifyListeners();
   }
 
@@ -530,6 +534,7 @@ class PlayerProvider extends ChangeNotifier {
           .get(Uri.parse(url), headers: _api.authHeaders)
           .timeout(const Duration(seconds: 6));
       if (r.statusCode == 200 && r.bodyBytes.isNotEmpty && mounted) {
+        if (currentSong?.hash != song.hash) return;
         _dynamicColors = await ColorService.fromBytes(cacheKey, r.bodyBytes);
         if (mounted) notifyListeners();
       }
@@ -546,12 +551,14 @@ class PlayerProvider extends ChangeNotifier {
     _lyricsLoading = true;
     if (mounted) notifyListeners();
 
+    final songHash = currentSong!.hash;
     final result = await _api.getLyrics(
-      currentSong!.hash,
+      songHash,
       filepath: currentSong!.filepath,
     );
 
     if (result != null) {
+      if (currentSong?.hash != songHash) return;
       _lyricsSynced = result['synced'] == true;
       final raw = result['lyrics'];
       if (_lyricsSynced && raw is List) {
@@ -746,6 +753,7 @@ class PlayerProvider extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    for (final sub in _subs) { sub.cancel(); }
     _sleepTimer?.cancel();
     _periodicTimer?.cancel();
     _crossfadeTimer?.cancel();

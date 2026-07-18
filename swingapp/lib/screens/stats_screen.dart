@@ -269,7 +269,7 @@ class _StatsScreenState extends State<StatsScreen>
       if (diff.inHours  < 24)  return 'il y a ${diff.inHours}h';
       if (diff.inDays   < 7)   return 'il y a ${diff.inDays}j';
       return '${dt.day}/${dt.month}/${dt.year}';
-    } catch (_) { return ''; }
+    } catch (e) { debugPrint('stats format error: $e'); return ''; }
   }
 }
 
