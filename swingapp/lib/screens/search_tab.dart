@@ -247,9 +247,9 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
                     _onChanged(_ctrl.text);
                   }
                 },
-                selectedColor: Sp.accent,
-                backgroundColor: Sp.bg2,
-                labelStyle: TextStyle(color: _filter == 'all' ? Colors.white : Sp.t3),
+                selectedColor: Sp.g1,
+                backgroundColor: Sp.card,
+                labelStyle: TextStyle(color: _filter == 'all' ? Colors.white : Sp.white70),
               ),
               const SizedBox(width: 8),
               ChoiceChip(
@@ -261,9 +261,9 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
                     _onChanged(_ctrl.text);
                   }
                 },
-                selectedColor: Sp.accent,
-                backgroundColor: Sp.bg2,
-                labelStyle: TextStyle(color: _filter == 'deezer' ? Colors.white : Sp.t3),
+                selectedColor: Sp.g1,
+                backgroundColor: Sp.card,
+                labelStyle: TextStyle(color: _filter == 'deezer' ? Colors.white : Sp.white70),
               ),
             ],
           ),
