@@ -376,9 +376,9 @@ class PlayerProvider extends ChangeNotifier {
             image: song.image,
           );
           _queue[_currentIndex] = updatedSong;
-          await _playlist.removeRange(_currentIndex, _currentIndex + 1);
-          await _playlist.insert(_currentIndex, _buildSource(updatedSong));
-          await _player.seek(currentPos, index: _currentIndex);
+          await _playlist.insert(_currentIndex + 1, _buildSource(updatedSong));
+          await _player.seek(currentPos, index: _currentIndex + 1);
+          await _playlist.removeAt(_currentIndex);
           notifyListeners();
         }
       });

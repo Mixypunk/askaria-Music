@@ -627,10 +627,10 @@ class SwingApiService {
     return null;
   }
 
-  // Format officiel: {baseUrl}img/thumbnail/{track.image}
+  // Format officiel: {baseUrl}img/artwork/{track.image}
   String getArtworkUrl(String imageHash, {String type = 'track'}) {
     if (imageHash.startsWith('http')) return imageHash;
-    return '$_baseUrl/img/thumbnail/$imageHash';
+    return '$_baseUrl/img/artwork/$imageHash';
   }
 
   String getThumbnailUrl(String imageHash, {String type = 'track'}) {
