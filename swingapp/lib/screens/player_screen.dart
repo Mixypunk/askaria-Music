@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/downloads_provider.dart';
+import '../providers/connect_controller_provider.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
@@ -523,6 +524,9 @@ class _PlayerPage extends StatelessWidget {
   }
 
   void _showDevicesSheet(BuildContext ctx, Color accent) {
+    final connect = ctx.read<ConnectControllerProvider>();
+    connect.startDiscovery();
+    
     showModalBottomSheet(
       context: ctx,
       backgroundColor: const Color(0xFF282828),
@@ -537,21 +541,76 @@ class _PlayerPage extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(color: Colors.white24,
                 borderRadius: BorderRadius.circular(2))),
-          const Text('Lecture sur', style: TextStyle(color: Colors.white,
-              fontSize: 18, fontWeight: FontWeight.bold)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Lecture sur', style: TextStyle(color: Colors.white,
+                  fontSize: 18, fontWeight: FontWeight.bold)),
+              Consumer<ConnectControllerProvider>(
+                builder: (_, c, __) => c.isScanning 
+                  ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: accent))
+                  : const SizedBox(),
+              )
+            ]
+          ),
           const SizedBox(height: 16),
-          ListTile(contentPadding: EdgeInsets.zero,
-            leading: Container(width: 44, height: 44,
-              decoration: BoxDecoration(color: accent.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8)),
-              child: Icon(Icons.phone_android_rounded, color: accent, size: 24)),
-            title: const Text('Cet appareil',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            subtitle: Text('Connecté', style: TextStyle(color: accent, fontSize: 12)),
-            trailing: Icon(Icons.check_circle_rounded, color: accent, size: 20)),
+          Consumer<ConnectControllerProvider>(
+            builder: (ctx, c, _) {
+              return Column(
+                children: [
+                  ListTile(contentPadding: EdgeInsets.zero,
+                    leading: Container(width: 44, height: 44,
+                      decoration: BoxDecoration(
+                          color: !c.isConnected ? accent.withOpacity(0.2) : Colors.white10,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.phone_android_rounded, 
+                          color: !c.isConnected ? accent : Colors.white54, size: 24)),
+                    title: Text('Cet appareil',
+                        style: TextStyle(
+                            color: !c.isConnected ? Colors.white : Colors.white54, 
+                            fontWeight: FontWeight.w600)),
+                    subtitle: !c.isConnected ? Text('Connecté', style: TextStyle(color: accent, fontSize: 12)) : null,
+                    trailing: !c.isConnected ? Icon(Icons.check_circle_rounded, color: accent, size: 20) : null,
+                    onTap: () {
+                      c.disconnect();
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  for (final device in c.devices)
+                    ListTile(contentPadding: EdgeInsets.zero,
+                      leading: Container(width: 44, height: 44,
+                        decoration: BoxDecoration(
+                            color: c.connectedDevice == device ? accent.withOpacity(0.2) : Colors.white10,
+                            borderRadius: BorderRadius.circular(8)),
+                        child: Icon(Icons.tv_rounded, 
+                            color: c.connectedDevice == device ? accent : Colors.white54, size: 24)),
+                      title: Text(device.name,
+                          style: TextStyle(
+                              color: c.connectedDevice == device ? Colors.white : Colors.white70, 
+                              fontWeight: FontWeight.w600)),
+                      subtitle: c.connectedDevice == device ? Text('Connecté', style: TextStyle(color: accent, fontSize: 12)) : null,
+                      trailing: c.connectedDevice == device ? Icon(Icons.check_circle_rounded, color: accent, size: 20) : null,
+                      onTap: () {
+                        c.connectTo(device);
+                        final player = ctx.read<PlayerProvider>();
+                        if (player.currentSong != null) {
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            if (player.isPlaying) {
+                              player.playPause(); // Mettre en pause en local
+                            }
+                            c.playSong(player.currentSong!);
+                          });
+                        }
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                ],
+              );
+            },
+          ),
         ]),
       ),
-    );
+    ).whenComplete(() => connect.stopDiscovery());
   }
 
   Future<void> _startRadio(BuildContext ctx, PlayerProvider player, dynamic song) async {
@@ -784,14 +843,13 @@ class _PlayerPage extends StatelessWidget {
         _ProgressBar(accent: accent),
         const SizedBox(height: 4),
         // Labels position/durée — Selector isolé
-        Selector<PlayerProvider, (Duration, Duration)>(
-          selector: (_, p) => (p.position, p.duration),
-          builder: (_, data, __) => Row(
+        Consumer2<PlayerProvider, ConnectControllerProvider>(
+          builder: (_, p, c, __) => Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_fmt(data.$1),
+              Text(_fmt(c.isConnected ? c.position : p.position),
                 style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
-              Text(_fmt(data.$2),
+              Text(_fmt(c.isConnected ? c.duration : p.duration),
                 style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
             ],
           ),
@@ -799,17 +857,16 @@ class _PlayerPage extends StatelessWidget {
         const SizedBox(height: 20),
 
         // Contrôles
-        Selector<PlayerProvider, (bool, bool, bool, RepeatMode)>(
-          selector: (_, p) => (p.isPlaying, p.isLoading, p.shuffle, p.repeatMode),
-          builder: (_, data, __) {
-            final isPlaying = data.$1;
-            final isLoading = data.$2;
-            final shuffle = data.$3;
-            final repeatMode = data.$4;
+        Consumer2<PlayerProvider, ConnectControllerProvider>(
+          builder: (_, p, c, __) {
+            final isPlaying = c.isConnected ? c.isPlaying : p.isPlaying;
+            final isLoading = c.isConnected ? false : p.isLoading;
+            final shuffle = p.shuffle;
+            final repeatMode = p.repeatMode;
             return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center, children: [
               GestureDetector(
-                onTap: player.toggleShuffle,
+                onTap: p.toggleShuffle,
                 child: Stack(alignment: Alignment.bottomCenter, children: [
                   Icon(Icons.shuffle_rounded, size: 26,
                     color: shuffle ? accent : Colors.white.withOpacity(0.6)),
@@ -819,10 +876,10 @@ class _PlayerPage extends StatelessWidget {
                 ]),
               ),
               GestureDetector(
-                onTap: player.previous,
+                onTap: () { if (c.isConnected) { c.previous(); } else { p.previous(); } },
                 child: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 46)),
               GestureDetector(
-                onTap: player.playPause,
+                onTap: () { if (c.isConnected) { c.playPause(); } else { p.playPause(); } },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 400),
                   width: 68, height: 68,
@@ -838,10 +895,10 @@ class _PlayerPage extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: player.next,
+                onTap: () { if (c.isConnected) { c.next(); } else { p.next(); } },
                 child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 46)),
               GestureDetector(
-                onTap: player.toggleRepeat,
+                onTap: p.toggleRepeat,
                 child: Stack(alignment: Alignment.bottomCenter, children: [
                   Icon(
                     repeatMode == RepeatMode.one
@@ -886,10 +943,12 @@ class _PlayerPage extends StatelessWidget {
         const SizedBox(height: 6),
 
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          GestureDetector(
-            onTap: () => _showDevicesSheet(ctx, accent),
-            child: Icon(Icons.devices_rounded, size: 20,
-                color: Colors.white.withOpacity(0.6))),
+          Consumer<ConnectControllerProvider>(
+            builder: (_, c, __) => GestureDetector(
+              onTap: () => _showDevicesSheet(ctx, accent),
+              child: Icon(c.isConnected ? Icons.cast_connected_rounded : Icons.devices_rounded, size: 20,
+                  color: c.isConnected ? accent : Colors.white.withOpacity(0.6))),
+          ),
           Row(children: [
             GestureDetector(
               onTap: () => _showShareSheet(ctx, song, accent),
@@ -917,11 +976,10 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext ctx) {
-    return Selector<PlayerProvider, (Duration, Duration)>(
-      selector: (_, p) => (p.position, p.duration),
-      builder: (ctx, data, _) {
-        final pos = data.$1;
-        final dur = data.$2;
+    return Consumer2<PlayerProvider, ConnectControllerProvider>(
+      builder: (ctx, p, c, _) {
+        final pos = c.isConnected ? c.position : p.position;
+        final dur = c.isConnected ? c.duration : p.duration;
         final maxMs = dur.inMilliseconds.toDouble() > 0
             ? dur.inMilliseconds.toDouble()
             : 1.0;
@@ -938,8 +996,13 @@ class _ProgressBar extends StatelessWidget {
             min: 0.0,
             max: maxMs,
             value: pos.inMilliseconds.toDouble().clamp(0.0, maxMs),
-            onChanged: (v) => ctx.read<PlayerProvider>()
-                .seek(Duration(milliseconds: v.round())),
+            onChanged: (v) {
+              if (c.isConnected) {
+                c.seek(Duration(milliseconds: v.round()));
+              } else {
+                p.seek(Duration(milliseconds: v.round()));
+              }
+            },
           ),
         );
       },

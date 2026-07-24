@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/player_provider.dart';
 import 'providers/downloads_provider.dart';
+import 'providers/connect_controller_provider.dart';
 import 'services/api_service.dart';
 import 'services/theme_notifier.dart';
 import 'services/widget_service.dart';
@@ -170,6 +171,7 @@ class _SplashWrapperState extends State<_SplashWrapper> {
           return p;
         }),
         ChangeNotifierProvider(create: (_) => DownloadsProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectControllerProvider()),
         ChangeNotifierProvider.value(value: ThemeNotifier.instance),
       ],
       child: _App(_logged),

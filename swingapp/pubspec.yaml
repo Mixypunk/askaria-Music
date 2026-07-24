@@ -46,6 +46,7 @@ dependencies:
 
   # Détection réseau (qualité auto)
   connectivity_plus: ^6.0.3
+  nsd: ^5.0.0
 
 dev_dependencies:
   flutter_test:
