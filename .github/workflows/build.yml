@@ -79,6 +79,14 @@ jobs:
         working-directory: swingapp
         run: flutter pub get
 
+      # ── Patch nsd_android ─────────────────────────────────────────────
+      - name: Patch nsd_android
+        run: |
+          sed -i 's/flutter.minSdkVersion/19/g' ~/.pub-cache/hosted/pub.dev/nsd_android-*/android/build.gradle
+          sed -i 's/flutter.targetSdkVersion/34/g' ~/.pub-cache/hosted/pub.dev/nsd_android-*/android/build.gradle
+          sed -i 's/flutter.compileSdkVersion/34/g' ~/.pub-cache/hosted/pub.dev/nsd_android-*/android/build.gradle
+          sed -i 's/flutter.ndkVersion/"25.1.8937393"/g' ~/.pub-cache/hosted/pub.dev/nsd_android-*/android/build.gradle
+
       # ── Build APK signé ───────────────────────────────────────────────
       - name: Build APK
         working-directory: swingapp
