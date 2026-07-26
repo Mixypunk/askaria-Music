@@ -154,7 +154,7 @@ class ConnectControllerProvider extends ChangeNotifier {
   void _sendCommand(String action, [Map<String, dynamic>? extraParams]) {
     if (!isConnected) return;
     
-    final payload = {'action': action};
+    final payload = <String, dynamic>{'action': action};
     if (extraParams != null) {
       payload.addAll(extraParams);
     }
