@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
-import '../models/playlist.dart';
 import '../models/album.dart';
 import '../models/song.dart';
 import '../widgets/artwork_widget.dart';
@@ -16,7 +15,8 @@ class LibraryTab extends StatefulWidget {
   State<LibraryTab> createState() => _LibraryTabState();
 }
 
-class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _LibraryTabState extends State<LibraryTab>
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabCtrl;
 
   List<Playlist> _playlists = [];
@@ -47,11 +47,15 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Sp.card,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20)),
         title: const Text('Nouvelle playlist',
-          style: TextStyle(color: Colors.white, fontSize: 18)),
+          style: TextStyle(color: Colors.white, fontSize: 18,
+              fontWeight: FontWeight.bold)),
         content: Container(
-          decoration: BoxDecoration(color: Sp.bg,
-              borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(
+            color: Sp.surface,
+            borderRadius: BorderRadius.circular(12)),
           child: TextField(
             controller: nameCtrl,
             autofocus: true,
@@ -70,16 +74,15 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
               style: TextStyle(color: Colors.white54))),
           TextButton(onPressed: () => Navigator.pop(context, true),
             child: Text('Créer',
-              style: TextStyle(color: Sp.g2, fontWeight: FontWeight.bold))),
+              style: TextStyle(color: Sp.g2,
+                  fontWeight: FontWeight.bold))),
         ],
       ));
     if (confirmed != true || nameCtrl.text.trim().isEmpty) return;
-    final pl = await SwingApiService()
-        .createPlaylist(nameCtrl.text.trim());
+    final pl = await SwingApiService().createPlaylist(nameCtrl.text.trim());
     if (pl != null && mounted) {
       context.read<PlayerProvider>().invalidatePlaylistsCache();
       setState(() => _playlists.insert(0, pl));
-      // Ouvrir directement la playlist créée
       final result = await Navigator.push(context,
         MaterialPageRoute(builder: (_) => PlaylistScreen(playlist: pl)));
       if (result == 'deleted') {
@@ -110,10 +113,8 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
     try {
       final dlProvider = context.read<DownloadsProvider>();
       _playlists = dlProvider.downloadedPlaylists;
-      
       final songs = dlProvider.downloadedSongs;
-      
-      // Regrouper par album
+
       final albumMap = <String, List<Song>>{};
       for (final s in songs) {
         albumMap.putIfAbsent(s.album, () => []).add(s);
@@ -123,15 +124,12 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
         final firstTrack = albumTracks.first;
         return Album(
           hash: firstTrack.albumHash.isNotEmpty ? firstTrack.albumHash : e.key,
-          title: e.key,
-          artist: firstTrack.artist,
+          title: e.key, artist: firstTrack.artist,
           artistHash: firstTrack.artistHash,
-          trackCount: albumTracks.length,
-          image: firstTrack.image ?? '',
+          trackCount: albumTracks.length, image: firstTrack.image ?? '',
         );
       }).toList();
 
-      // Regrouper par artiste
       final artistMap = <String, List<Song>>{};
       for (final s in songs) {
         artistMap.putIfAbsent(s.artist, () => []).add(s);
@@ -142,10 +140,8 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
         final uniqueAlbums = artistTracks.map((s) => s.album).toSet();
         return Artist(
           hash: firstTrack.artistHash.isNotEmpty ? firstTrack.artistHash : e.key,
-          name: e.key,
-          trackCount: artistTracks.length,
-          albumCount: uniqueAlbums.length,
-          image: firstTrack.image ?? '',
+          name: e.key, trackCount: artistTracks.length,
+          albumCount: uniqueAlbums.length, image: firstTrack.image ?? '',
         );
       }).toList();
 
@@ -167,84 +163,151 @@ class _LibraryTabState extends State<LibraryTab> with SingleTickerProviderStateM
     return Scaffold(
       backgroundColor: Sp.bg,
       floatingActionButton: _tabCtrl.index == 0
-          ? FloatingActionButton(
-              onPressed: _createPlaylist,
-              backgroundColor: Sp.g2,
-              child: const Icon(Icons.add_rounded, color: Colors.white))
+          ? Container(
+              decoration: BoxDecoration(
+                gradient: kGrad,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(
+                  color: Sp.g2.withValues(alpha: 0.4),
+                  blurRadius: 16, offset: const Offset(0, 6))],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _createPlaylist,
+                  borderRadius: BorderRadius.circular(16),
+                  child: const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: Icon(Icons.add_rounded,
+                        color: Colors.white, size: 26)),
+                ),
+              ),
+            )
           : null,
       body: NestedScrollView(
-      headerSliverBuilder: (_, __) => [
-        SliverAppBar(
-          floating: true,
-          backgroundColor: Sp.bg,
-          titleSpacing: 16,
-          title: Row(children: [
-            Container(
-              width: 32, height: 32,
-              decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
-              child: const Icon(Icons.person_rounded, size: 18, color: Colors.white)),
-            const SizedBox(width: 10),
-            const Text('Bibliothèque',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                  color: Colors.white)),
-          ]),
-          actions: [
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.sort_rounded, color: Colors.white),
-              color: const Color(0xFF282828),
-              onSelected: (v) => setState(() { _sort = v; _applySorting(); }),
-              itemBuilder: (_) => [
-                PopupMenuItem(value: 'recent', child: Row(children: [
-                  Icon(Icons.access_time_rounded,
-                    color: _sort == 'recent' ? Sp.g2 : Colors.white70, size: 18),
-                  const SizedBox(width: 10),
-                  Text('Récents', style: TextStyle(
-                    color: _sort == 'recent' ? Sp.g2 : Colors.white))])),
-                PopupMenuItem(value: 'alpha', child: Row(children: [
-                  Icon(Icons.sort_by_alpha_rounded,
-                    color: _sort == 'alpha' ? Sp.g2 : Colors.white70, size: 18),
-                  const SizedBox(width: 10),
-                  Text('A → Z', style: TextStyle(
-                    color: _sort == 'alpha' ? Sp.g2 : Colors.white))])),
-              ]),
-            const SizedBox(width: 4),
-          ],
-          bottom: TabBar(
-            controller: _tabCtrl,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white54,
-            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            indicatorColor: Sp.g2,
-            indicatorSize: TabBarIndicatorSize.label,
-            indicatorWeight: 2,
-            tabs: [
-              Tab(text: 'Playlists ${_playlists.isNotEmpty ? "(${_playlists.length})" : ""}'),
-              Tab(text: 'Albums ${_albums.isNotEmpty ? "(${_albums.length})" : ""}'),
-              Tab(text: 'Artistes ${_artists.isNotEmpty ? "(${_artists.length})" : ""}'),
-              Tab(text: 'Favoris'),
+        headerSliverBuilder: (_, __) => [
+          SliverAppBar(
+            floating: true,
+            backgroundColor: Sp.bg,
+            surfaceTintColor: Colors.transparent,
+            titleSpacing: 16,
+            title: Row(children: [
+              Container(
+                width: 34, height: 34,
+                decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
+                child: const Icon(Icons.person_rounded, size: 18, color: Colors.white)),
+              const SizedBox(width: 10),
+              const Text('Ma bibliothèque',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+            ]),
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.sort_rounded, color: Colors.white),
+                color: Sp.card,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 12,
+                onSelected: (v) => setState(() { _sort = v; _applySorting(); }),
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'recent', child: Row(children: [
+                    Icon(Icons.access_time_rounded,
+                      color: _sort == 'recent' ? Sp.g2 : Colors.white70, size: 18),
+                    const SizedBox(width: 10),
+                    Text('Récents', style: TextStyle(
+                      color: _sort == 'recent' ? Sp.g2 : Colors.white))])),
+                  PopupMenuItem(value: 'alpha', child: Row(children: [
+                    Icon(Icons.sort_by_alpha_rounded,
+                      color: _sort == 'alpha' ? Sp.g2 : Colors.white70, size: 18),
+                    const SizedBox(width: 10),
+                    Text('A → Z', style: TextStyle(
+                      color: _sort == 'alpha' ? Sp.g2 : Colors.white))])),
+                ],
+              ),
+              const SizedBox(width: 4),
             ],
+            bottom: _PillTabBar(controller: _tabCtrl, tabs: [
+              _TabLabel('Playlists',
+                  _playlists.isNotEmpty ? _playlists.length : null),
+              _TabLabel('Albums', _albums.isNotEmpty ? _albums.length : null),
+              _TabLabel('Artistes', _artists.isNotEmpty ? _artists.length : null),
+              const _TabLabel('Favoris', null),
+            ]),
           ),
+        ],
+        body: _loading
+            ? const Center(child: CircularProgressIndicator(
+                color: Sp.g2, strokeWidth: 2))
+            : _error != null
+                ? _ErrorView(error: _error!, onRetry: _load)
+                : TabBarView(
+                    controller: _tabCtrl,
+                    children: [
+                      _PlaylistsList(playlists: _playlists,
+                          onDeleted: (id) => setState(
+                              () => _playlists.removeWhere((p) => p.id == id))),
+                      _AlbumsList(albums: _albums),
+                      _ArtistsList(artists: _artists),
+                      const _FavouritesList(),
+                    ],
+                  ),
+      ),
+    );
+  }
+}
+
+// ── Tab bar style pill ─────────────────────────────────────────────────────────
+class _TabLabel extends StatelessWidget {
+  final String text;
+  final int? count;
+  const _TabLabel(this.text, this.count);
+  @override
+  Widget build(BuildContext context) => Tab(
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(text),
+      if (count != null) ...[
+        const SizedBox(width: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            color: Colors.white12,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text('$count',
+            style: const TextStyle(fontSize: 10, color: Colors.white70)),
         ),
       ],
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(
-              color: Colors.white, strokeWidth: 2))
-          : _error != null
-              ? _ErrorView(error: _error!, onRetry: _load)
-              : TabBarView(
-                  controller: _tabCtrl,
-                  children: [
-                    _PlaylistsList(
-                      playlists: _playlists,
-                      onDeleted: (id) => setState(
-                          () => _playlists.removeWhere((p) => p.id == id))),
-                    _AlbumsList(albums: _albums),
-                    _ArtistsList(artists: _artists),
-                    const _FavouritesList(),
-                  ],
-                ),         // TabBarView
-      ),           // body: NestedScrollView
-    );             // Scaffold
+    ]),
+  );
+}
+
+class _PillTabBar extends StatelessWidget implements PreferredSizeWidget {
+  final TabController controller;
+  final List<Widget> tabs;
+  const _PillTabBar({required this.controller, required this.tabs});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(48);
+
+  @override
+  Widget build(BuildContext context) {
+    return TabBar(
+      controller: controller,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      labelColor: Colors.white,
+      unselectedLabelColor: Sp.white40,
+      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: const TextStyle(fontSize: 13),
+      indicator: BoxDecoration(
+        gradient: kGrad,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      indicatorSize: TabBarIndicatorSize.tab,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      dividerColor: Colors.transparent,
+      tabs: tabs,
+    );
   }
 }
 
@@ -258,11 +321,10 @@ class _PlaylistsList extends StatelessWidget {
     if (playlists.isEmpty) return const _EmptyView(
       icon: Icons.queue_music_rounded, label: 'Aucune playlist');
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(bottom: 120, top: 8),
       itemCount: playlists.length,
       itemBuilder: (ctx, i) => _PlaylistTile(
-        playlist: playlists[i],
-        onDeleted: onDeleted),
+        playlist: playlists[i], onDeleted: onDeleted),
     );
   }
 }
@@ -274,32 +336,46 @@ class _PlaylistTile extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: NetImage(url: '${api.baseUrl}/img/playlist/${playlist.id}.webp', width: 56, height: 56,
-              headers: api.authHeaders,
-              borderRadius: BorderRadius.circular(4),
-              placeholder: Container(width: 56, height: 56, color: Sp.card,
-                child: const Icon(Icons.queue_music_rounded, color: Colors.white38, size: 28)))),
-      title: Text(playlist.name, style: const TextStyle(
-          color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
-        maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        'Playlist · ${playlist.trackCount} titre${playlist.trackCount != 1 ? "s" : ""}',
-        style: const TextStyle(color: Colors.white54, fontSize: 13)),
-      trailing: const Icon(Icons.chevron_right_rounded,
-          color: Colors.white38, size: 20),
-      onTap: () async {
-        final result = await Navigator.push(ctx, MaterialPageRoute(
-          builder: (_) => PlaylistScreen(playlist: playlist)));
-        if (result == 'deleted' && ctx.mounted) {
-          // Remonter l'info au parent (_PlaylistsList → _LibraryTabState)
-          // via le callback onDeleted
-          onDeleted?.call(playlist.id);
-        }
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: GestureDetector(
+        onTap: () async {
+          final result = await Navigator.push(ctx, MaterialPageRoute(
+            builder: (_) => PlaylistScreen(playlist: playlist)));
+          if (result == 'deleted' && ctx.mounted) {
+            onDeleted?.call(playlist.id);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: kCardDecoration(radius: 14),
+          child: Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: NetImage(
+                url: '${api.baseUrl}/img/playlist/${playlist.id}.webp',
+                width: 56, height: 56,
+                headers: api.authHeaders,
+                borderRadius: BorderRadius.circular(10),
+                placeholder: Container(width: 56, height: 56, color: Sp.cardHi,
+                  child: const Icon(Icons.queue_music_rounded,
+                      color: Colors.white38, size: 28)))),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(playlist.name, style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 3),
+                Text(
+                  'Playlist · ${playlist.trackCount} titre${playlist.trackCount != 1 ? "s" : ""}',
+                  style: const TextStyle(color: Sp.white70, fontSize: 12)),
+              ])),
+            const Icon(Icons.chevron_right_rounded, color: Sp.white40, size: 20),
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -313,7 +389,7 @@ class _AlbumsList extends StatelessWidget {
     if (albums.isEmpty) return const _EmptyView(
       icon: Icons.album_rounded, label: 'Aucun album');
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(bottom: 120, top: 8),
       itemCount: albums.length,
       itemBuilder: (ctx, i) => _AlbumTile(album: albums[i]),
     );
@@ -326,26 +402,41 @@ class _AlbumTile extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: NetImage(url: '${api.baseUrl}/img/thumbnail/${album.image}', width: 56, height: 56,
-              headers: api.authHeaders,
-              borderRadius: BorderRadius.circular(4),
-              placeholder: Container(width: 56, height: 56, color: Sp.card,
-                child: const Icon(Icons.album, color: Colors.white38, size: 28)))),
-      title: Text(album.title, style: const TextStyle(
-          color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
-        maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '${album.artist}${album.year != null ? " · ${album.year}" : ""}',
-        style: const TextStyle(color: Colors.white54, fontSize: 13),
-        maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.chevron_right_rounded,
-          color: Colors.white38, size: 20),
-      onTap: () => Navigator.push(ctx, MaterialPageRoute(
-        builder: (_) => AlbumScreen(album: album))),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: GestureDetector(
+        onTap: () => Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => AlbumScreen(album: album))),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: kCardDecoration(radius: 14),
+          child: Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: NetImage(
+                url: '${api.baseUrl}/img/thumbnail/${album.image}',
+                width: 56, height: 56,
+                headers: api.authHeaders,
+                borderRadius: BorderRadius.circular(10),
+                placeholder: Container(width: 56, height: 56, color: Sp.cardHi,
+                  child: const Icon(Icons.album, color: Colors.white38, size: 28)))),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(album.title, style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 3),
+                Text(
+                  '${album.artist}${album.year != null ? " · ${album.year}" : ""}',
+                  style: const TextStyle(color: Sp.white70, fontSize: 12),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ])),
+            const Icon(Icons.chevron_right_rounded, color: Sp.white40, size: 20),
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -359,7 +450,7 @@ class _ArtistsList extends StatelessWidget {
     if (artists.isEmpty) return const _EmptyView(
       icon: Icons.person_rounded, label: 'Aucun artiste');
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(bottom: 120, top: 8),
       itemCount: artists.length,
       itemBuilder: (ctx, i) => _ArtistTile(artist: artists[i]),
     );
@@ -372,24 +463,43 @@ class _ArtistTile extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: ClipOval(child: NetImage(url: '${api.baseUrl}/img/artist/small/${artist.image}', width: 56, height: 56,
-              headers: api.authHeaders,
-              borderRadius: BorderRadius.circular(4),
-              placeholder: Container(width: 56, height: 56, color: Sp.card,
-                child: const Icon(Icons.person, color: Colors.white38, size: 28)))),
-      title: Text(artist.name, style: const TextStyle(
-          color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15),
-        maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '${artist.trackCount} titre${artist.trackCount != 1 ? "s" : ""}'
-        '${artist.albumCount > 0 ? " · ${artist.albumCount} album${artist.albumCount != 1 ? "s" : ""}" : ""}',
-        style: const TextStyle(color: Colors.white54, fontSize: 13)),
-      trailing: const Icon(Icons.chevron_right_rounded,
-          color: Colors.white38, size: 20),
-      onTap: () => Navigator.push(ctx, MaterialPageRoute(
-        builder: (_) => ArtistScreen(artist: artist))),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: GestureDetector(
+        onTap: () => Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => ArtistScreen(artist: artist))),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: kCardDecoration(radius: 14),
+          child: Row(children: [
+            Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle, gradient: kGrad),
+              padding: const EdgeInsets.all(2),
+              child: ClipOval(child: NetImage(
+                url: '${api.baseUrl}/img/artist/small/${artist.image}',
+                width: 52, height: 52,
+                headers: api.authHeaders,
+                borderRadius: BorderRadius.circular(26),
+                placeholder: Container(width: 52, height: 52, color: Sp.cardHi,
+                  child: const Icon(Icons.person, color: Colors.white38, size: 28))))),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(artist.name, style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 3),
+                Text(
+                  '${artist.trackCount} titre${artist.trackCount != 1 ? "s" : ""}'
+                  '${artist.albumCount > 0 ? " · ${artist.albumCount} album${artist.albumCount != 1 ? "s" : ""}" : ""}',
+                  style: const TextStyle(color: Sp.white70, fontSize: 12)),
+              ])),
+            const Icon(Icons.chevron_right_rounded, color: Sp.white40, size: 20),
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -403,9 +513,15 @@ class _EmptyView extends StatelessWidget {
   Widget build(BuildContext ctx) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(icon, color: Colors.white24, size: 64),
+      Container(
+        width: 72, height: 72,
+        decoration: BoxDecoration(
+          color: Sp.card, borderRadius: BorderRadius.circular(18)),
+        child: Icon(icon, color: Sp.white40, size: 36),
+      ),
       const SizedBox(height: 16),
-      Text(label, style: const TextStyle(color: Colors.white54, fontSize: 16)),
+      Text(label, style: const TextStyle(
+          color: Sp.white70, fontSize: 16)),
     ],
   ));
 }
@@ -418,13 +534,22 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext ctx) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      const Icon(Icons.error_outline, color: Colors.white38, size: 48),
+      Container(
+        width: 72, height: 72,
+        decoration: BoxDecoration(
+          color: Sp.card, borderRadius: BorderRadius.circular(18)),
+        child: const Icon(Icons.error_outline, color: Sp.white40, size: 36),
+      ),
       const SizedBox(height: 12),
-      Text(error, style: const TextStyle(color: Colors.white54, fontSize: 12),
-          textAlign: TextAlign.center),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Text(error, style: const TextStyle(
+            color: Sp.white70, fontSize: 12),
+          textAlign: TextAlign.center)),
       const SizedBox(height: 16),
       TextButton(onPressed: onRetry,
-        child: const Text('Réessayer', style: TextStyle(color: Sp.g2))),
+        child: const Text('Réessayer',
+            style: TextStyle(color: Sp.g2, fontWeight: FontWeight.w600))),
     ],
   ));
 }
@@ -435,7 +560,6 @@ class _FavouritesList extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     return Consumer<PlayerProvider>(builder: (ctx, player, _) {
-      // Charger les favoris depuis l'API à la demande
       return _FavouritesContent(player: player);
     });
   }
@@ -471,48 +595,70 @@ class _FavouritesContentState extends State<_FavouritesContent> {
   @override
   Widget build(BuildContext ctx) {
     if (_loading) return const Center(
-      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
+      child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2));
     if (_songs.isEmpty) return Center(child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        Icon(Icons.favorite_border_rounded, color: Colors.white24, size: 64),
-        SizedBox(height: 16),
-        Text('Aucun favori', style: TextStyle(color: Colors.white54, fontSize: 16)),
-        SizedBox(height: 8),
-        Text('Likez des titres depuis le lecteur',
-          style: TextStyle(color: Colors.white30, fontSize: 13)),
+      children: [
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: Sp.card, borderRadius: BorderRadius.circular(18)),
+          child: const Icon(Icons.favorite_border_rounded,
+              color: Sp.white40, size: 36),
+        ),
+        const SizedBox(height: 16),
+        const Text('Aucun favori',
+            style: TextStyle(color: Sp.white70, fontSize: 16)),
+        const SizedBox(height: 8),
+        const Text('Likez des titres depuis le lecteur',
+          style: TextStyle(color: Sp.white40, fontSize: 13)),
       ],
     ));
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(bottom: 120, top: 8),
       itemCount: _songs.length,
       itemBuilder: (ctx, i) {
         final song = _songs[i];
         final isCurrent = ctx.watch<PlayerProvider>().currentSong?.hash == song.hash;
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: ArtworkWidget(
-              key: ValueKey(song.hash),
-              hash: song.image ?? song.hash,
-              size: 50, borderRadius: BorderRadius.circular(4))),
-          title: Text(song.title, style: TextStyle(
-            color: isCurrent ? Sp.g2 : Colors.white,
-            fontWeight: FontWeight.w500, fontSize: 15),
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(song.artist,
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: GestureDetector(
-            onTap: () {
-              ctx.read<PlayerProvider>().toggleFavourite(song.hash);
-              setState(() => _songs.removeAt(i));
-            },
-            child: const Icon(Icons.favorite_rounded,
-                color: Colors.redAccent, size: 22)),
-          onTap: () => ctx.read<PlayerProvider>()
-              .playSong(song, queue: _songs, index: i),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+          child: GestureDetector(
+            onTap: () => ctx.read<PlayerProvider>()
+                .playSong(song, queue: _songs, index: i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: kCardDecoration(radius: 14),
+              child: Row(children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: ArtworkWidget(
+                    key: ValueKey(song.hash),
+                    hash: song.image ?? song.hash,
+                    size: 50, borderRadius: BorderRadius.circular(10))),
+                const SizedBox(width: 14),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(song.title, style: TextStyle(
+                      color: isCurrent ? Sp.g2 : Colors.white,
+                      fontWeight: FontWeight.w600, fontSize: 15),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 3),
+                    Text(song.artist,
+                      style: const TextStyle(
+                          color: Sp.white70, fontSize: 12),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ])),
+                GestureDetector(
+                  onTap: () {
+                    ctx.read<PlayerProvider>().toggleFavourite(song.hash);
+                    setState(() => _songs.removeAt(i));
+                  },
+                  child: const Icon(Icons.favorite_rounded,
+                      color: Colors.redAccent, size: 22)),
+              ]),
+            ),
+          ),
         );
       },
     );

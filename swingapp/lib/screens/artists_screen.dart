@@ -94,7 +94,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                           return ListTile(
                             leading: CircleAvatar(
                               radius: 24,
-                              backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                               child: ClipOval(child: Image.network(
                                 imgUrl,
                                 width: 48, height: 48, fit: BoxFit.cover,
@@ -172,7 +172,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
               fit: BoxFit.cover,
               headers: api.authHeaders,
               errorBuilder: (_, __, ___) => Container(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: const Icon(Icons.person_rounded, size: 80),
               ),
             ),

@@ -8,8 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/song.dart';
 import '../models/album.dart';
-import '../models/artist.dart';
-import '../models/playlist.dart';
+
 
 class SwingApiService {
   static final SwingApiService _instance = SwingApiService._internal();

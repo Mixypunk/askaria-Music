@@ -43,13 +43,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Sp.g2))
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
               children: [
-                _AvatarSection(profile: _profile, api: _api,
-                    onUpdated: _load),
-                const SizedBox(height: 28),
-                _InfoSection(profile: _profile, api: _api,
-                    onUpdated: _load),
+                _AvatarSection(
+                    profile: _profile, api: _api, onUpdated: _load),
+                const SizedBox(height: 32),
+                _InfoSection(
+                    profile: _profile, api: _api, onUpdated: _load),
                 const SizedBox(height: 20),
                 _PasswordSection(api: _api),
               ],
@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Section avatar ────────────────────────────────────────────────────────────
+// ── Section avatar ─────────────────────────────────────────────────────────────
 class _AvatarSection extends StatefulWidget {
   final Map<String, dynamic> profile;
   final SwingApiService api;
@@ -96,47 +96,56 @@ class _AvatarSectionState extends State<_AvatarSection> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
       backgroundColor: error ? Colors.redAccent : Sp.card,
-      behavior: SnackBarBehavior.floating));
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     final userId = widget.profile['id'] as int? ?? 0;
     final avatarUrl = userId > 0 ? widget.api.getAvatarUrl(userId) : null;
+    final username = widget.profile['username'] as String? ?? '';
 
     return Center(child: Column(children: [
       Stack(children: [
         GestureDetector(
           onTap: _uploading ? null : _pickAndUpload,
           child: Container(
-            width: 100, height: 100,
-            decoration: BoxDecoration(
+            width: 110, height: 110,
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: kGrad,
             ),
-            padding: const EdgeInsets.all(2),
+            padding: const EdgeInsets.all(3),
             child: ClipOval(child: avatarUrl != null
                 ? Image.network(
                     avatarUrl,
                     key: ValueKey(DateTime.now().millisecondsSinceEpoch),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _DefaultAvatar(
-                        widget.profile['username'] ?? '?'),
+                    errorBuilder: (_, __, ___) => _DefaultAvatar(username),
                   )
-                : _DefaultAvatar(widget.profile['username'] ?? '?')),
+                : _DefaultAvatar(username)),
           ),
         ),
+        // Bouton caméra
         Positioned(
           bottom: 0, right: 0,
           child: GestureDetector(
             onTap: _uploading ? null : _pickAndUpload,
             child: Container(
-              width: 30, height: 30,
-              decoration: const BoxDecoration(
-                  shape: BoxShape.circle, color: Sp.g2),
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                gradient: kGrad,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(
+                  color: Sp.g2.withValues(alpha: 0.4),
+                  blurRadius: 8, offset: const Offset(0, 2))],
+              ),
               child: _uploading
                   ? const Padding(
-                      padding: EdgeInsets.all(6),
+                      padding: EdgeInsets.all(7),
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2))
                   : const Icon(Icons.camera_alt_rounded,
@@ -145,21 +154,24 @@ class _AvatarSectionState extends State<_AvatarSection> {
           ),
         ),
       ]),
-      const SizedBox(height: 10),
-      Text(widget.profile['username'] ?? '',
+      const SizedBox(height: 12),
+      Text(username,
         style: const TextStyle(color: Sp.white,
-            fontSize: 18, fontWeight: FontWeight.bold)),
+            fontSize: 20, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 4),
       if (widget.profile['role'] == 'admin')
         Container(
-          margin: const EdgeInsets.only(top: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
           decoration: BoxDecoration(
-            color: Sp.g2.withOpacity(0.2),
+            color: Sp.g2.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Sp.g2.withOpacity(0.4))),
+            border: Border.all(color: Sp.g2.withValues(alpha: 0.4))),
           child: const Text('Admin',
-              style: TextStyle(color: Sp.g2, fontSize: 11,
+              style: TextStyle(color: Sp.g2, fontSize: 12,
                   fontWeight: FontWeight.bold))),
+      const SizedBox(height: 4),
+      Text('Appuyer sur la photo pour modifier',
+        style: const TextStyle(color: Sp.white40, fontSize: 12)),
     ]));
   }
 }
@@ -173,11 +185,11 @@ class _DefaultAvatar extends StatelessWidget {
     child: Center(child: Text(
       username.isNotEmpty ? username[0].toUpperCase() : '?',
       style: const TextStyle(color: Sp.white,
-          fontSize: 36, fontWeight: FontWeight.bold))),
+          fontSize: 40, fontWeight: FontWeight.bold))),
   );
 }
 
-// ── Section infos ─────────────────────────────────────────────────────────────
+// ── Section infos ──────────────────────────────────────────────────────────────
 class _InfoSection extends StatefulWidget {
   final Map<String, dynamic> profile;
   final SwingApiService api;
@@ -245,7 +257,7 @@ class _InfoSectionState extends State<_InfoSection> {
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: ColorScheme.dark(primary: Sp.g2, surface: Sp.card),
-          dialogBackgroundColor: Sp.surface,
+          dialogTheme: const DialogThemeData(backgroundColor: Sp.surface),
         ),
         child: child!,
       ),
@@ -260,21 +272,24 @@ class _InfoSectionState extends State<_InfoSection> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
       backgroundColor: error ? Colors.redAccent : Sp.card,
-      behavior: SnackBarBehavior.floating));
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    ));
   }
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Informations', style: TextStyle(
-          color: Sp.white70, fontSize: 12,
-          letterSpacing: 1.5, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 10),
-      _Field(label: "Nom d'utilisateur", ctrl: _usernameCtrl,
+      _ProfileSectionLabel('Informations'),
+      const SizedBox(height: 12),
+      _ProfileField(
+          label: "Nom d'utilisateur", ctrl: _usernameCtrl,
           icon: Icons.person_outline_rounded),
       const SizedBox(height: 10),
-      _Field(label: 'Adresse email', ctrl: _emailCtrl,
+      _ProfileField(
+          label: 'Adresse email', ctrl: _emailCtrl,
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress),
       const SizedBox(height: 10),
@@ -282,10 +297,12 @@ class _InfoSectionState extends State<_InfoSection> {
       GestureDetector(
         onTap: _pickDate,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
           decoration: BoxDecoration(
             color: Sp.card,
-            borderRadius: BorderRadius.circular(8)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Sp.white12),
+          ),
           child: Row(children: [
             const Icon(Icons.cake_outlined, color: Sp.white70, size: 20),
             const SizedBox(width: 12),
@@ -302,13 +319,13 @@ class _InfoSectionState extends State<_InfoSection> {
         ),
       ),
       const SizedBox(height: 10),
-      _Field(label: 'Bio (courte)', ctrl: _bioCtrl,
-          icon: Icons.edit_note_rounded, maxLines: 3,
-          maxLength: 300),
+      _ProfileField(
+          label: 'Bio (courte)', ctrl: _bioCtrl,
+          icon: Icons.edit_note_rounded, maxLines: 3, maxLength: 300),
       const SizedBox(height: 16),
       SizedBox(width: double.infinity,
-        child: GBtn('Enregistrer', onTap: _saving ? null : _save,
-            loading: _saving)),
+        child: GBtn('Enregistrer',
+            onTap: _saving ? null : _save, loading: _saving)),
     ],
   );
 
@@ -320,7 +337,7 @@ class _InfoSectionState extends State<_InfoSection> {
   }
 }
 
-// ── Section mot de passe ──────────────────────────────────────────────────────
+// ── Section mot de passe ───────────────────────────────────────────────────────
 class _PasswordSection extends StatefulWidget {
   final SwingApiService api;
   const _PasswordSection({required this.api});
@@ -367,53 +384,60 @@ class _PasswordSectionState extends State<_PasswordSection> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
       backgroundColor: error ? Colors.redAccent : Sp.card,
-      behavior: SnackBarBehavior.floating));
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    ));
   }
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Mot de passe', style: TextStyle(
-          color: Sp.white70, fontSize: 12,
-          letterSpacing: 1.5, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 10),
-      _Field(label: 'Mot de passe actuel', ctrl: _currCtrl,
+      _ProfileSectionLabel('Mot de passe'),
+      const SizedBox(height: 12),
+      _ProfileField(
+          label: 'Mot de passe actuel', ctrl: _currCtrl,
           icon: Icons.lock_outline_rounded,
           obscure: _obsC,
-          suffixIcon: IconButton(
-            icon: Icon(_obsC ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined,
-                color: Sp.white70, size: 18),
-            onPressed: () => setState(() => _obsC = !_obsC))),
+          suffixIcon: _eyeBtn(_obsC, () => setState(() => _obsC = !_obsC))),
       const SizedBox(height: 10),
-      _Field(label: 'Nouveau mot de passe', ctrl: _newCtrl,
+      _ProfileField(
+          label: 'Nouveau mot de passe', ctrl: _newCtrl,
           icon: Icons.lock_outline_rounded,
           obscure: _obsN,
-          suffixIcon: IconButton(
-            icon: Icon(_obsN ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined,
-                color: Sp.white70, size: 18),
-            onPressed: () => setState(() => _obsN = !_obsN))),
+          suffixIcon: _eyeBtn(_obsN, () => setState(() => _obsN = !_obsN))),
       const SizedBox(height: 10),
-      _Field(label: 'Confirmer le mot de passe', ctrl: _confCtrl,
+      _ProfileField(
+          label: 'Confirmer le mot de passe', ctrl: _confCtrl,
           icon: Icons.lock_outline_rounded,
           obscure: _obsF,
-          suffixIcon: IconButton(
-            icon: Icon(_obsF ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined,
-                color: Sp.white70, size: 18),
-            onPressed: () => setState(() => _obsF = !_obsF))),
+          suffixIcon: _eyeBtn(_obsF, () => setState(() => _obsF = !_obsF))),
       const SizedBox(height: 16),
       SizedBox(width: double.infinity,
         child: GBtn('Changer le mot de passe',
             onTap: _saving ? null : _change, loading: _saving)),
     ],
   );
+
+  Widget _eyeBtn(bool obs, VoidCallback onTap) => IconButton(
+    icon: Icon(obs ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+        color: Sp.white70, size: 18),
+    onPressed: onTap);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-class _Field extends StatelessWidget {
+// ── Helpers ────────────────────────────────────────────────────────────────────
+class _ProfileSectionLabel extends StatelessWidget {
+  final String label;
+  const _ProfileSectionLabel(this.label);
+  @override
+  Widget build(BuildContext context) => Text(label.toUpperCase(),
+    style: const TextStyle(
+      color: Sp.white40, fontSize: 11,
+      letterSpacing: 1.5, fontWeight: FontWeight.w700));
+}
+
+class _ProfileField extends StatefulWidget {
   final String label;
   final TextEditingController ctrl;
   final IconData icon;
@@ -422,25 +446,49 @@ class _Field extends StatelessWidget {
   final TextInputType? keyboardType;
   final int maxLines;
   final int? maxLength;
-  const _Field({required this.label, required this.ctrl, required this.icon,
-      this.obscure = false, this.suffixIcon, this.keyboardType,
-      this.maxLines = 1, this.maxLength});
+  const _ProfileField({
+    required this.label, required this.ctrl, required this.icon,
+    this.obscure = false, this.suffixIcon, this.keyboardType,
+    this.maxLines = 1, this.maxLength,
+  });
   @override
-  Widget build(BuildContext ctx) => Container(
+  State<_ProfileField> createState() => _ProfileFieldState();
+}
+
+class _ProfileFieldState extends State<_ProfileField> {
+  final _focus = FocusNode();
+  bool _focused = false;
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() => _focused = _focus.hasFocus));
+  }
+  @override
+  void dispose() { _focus.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext ctx) => AnimatedContainer(
+    duration: const Duration(milliseconds: 200),
     decoration: BoxDecoration(
-        color: Sp.card, borderRadius: BorderRadius.circular(8)),
+      color: Sp.card,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: _focused ? Sp.g2.withValues(alpha: 0.6) : Sp.white12,
+        width: _focused ? 1.5 : 0.8)),
     child: TextField(
-      controller: ctrl,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      maxLength: maxLength,
+      controller: widget.ctrl,
+      focusNode: _focus,
+      obscureText: widget.obscure,
+      keyboardType: widget.keyboardType,
+      maxLines: widget.maxLines,
+      maxLength: widget.maxLength,
       style: const TextStyle(color: Sp.white, fontSize: 14),
       decoration: InputDecoration(
-        hintText: label,
+        hintText: widget.label,
         hintStyle: const TextStyle(color: Sp.white40),
-        prefixIcon: Icon(icon, color: Sp.white70, size: 20),
-        suffixIcon: suffixIcon,
+        prefixIcon: Icon(widget.icon,
+            color: _focused ? Sp.g2 : Sp.white70, size: 20),
+        suffixIcon: widget.suffixIcon,
         border: InputBorder.none,
         counterStyle: const TextStyle(color: Sp.white40, fontSize: 10),
         contentPadding: const EdgeInsets.symmetric(vertical: 14)),

@@ -122,7 +122,7 @@ class _AlbumCard extends StatelessWidget {
               fit: BoxFit.cover,
               headers: api.authHeaders,
               errorBuilder: (_, __, ___) => Container(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: const Icon(Icons.album, size: 48),
               ),
             ),
@@ -132,7 +132,7 @@ class _AlbumCard extends StatelessWidget {
         Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
         Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
       ]),
     );
   }
@@ -192,7 +192,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                           headers: api.authHeaders,
                           errorBuilder: (_, __, ___) => Container(
                             width: 100, height: 100,
-                            color: Theme.of(context).colorScheme.surfaceVariant,
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
                             child: const Icon(Icons.album, size: 48),
                           ),
                         ),
@@ -200,7 +200,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                       const SizedBox(width: 16),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(widget.album.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
+                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
                         if (widget.album.year != null) Text('${widget.album.year}'),
                       ])),
                     ]),

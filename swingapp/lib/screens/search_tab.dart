@@ -16,18 +16,19 @@ class SearchTab extends StatefulWidget {
   State<SearchTab> createState() => _SearchTabState();
 }
 
-class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixin {
+class _SearchTabState extends State<SearchTab>
+    with AutomaticKeepAliveClientMixin {
   final _ctrl  = TextEditingController();
   final _focus = FocusNode();
   Timer? _debounce;
 
-  // Résultats par type
   List<Song>   _tracks  = [];
   List<Album>  _albums  = [];
   List<Artist> _artists = [];
   bool   _loading = false;
   String _query   = '';
   String? _activeCategory;
+  String _filter = 'all';
 
   static const _categories = [
     ('Tous',      Color(0xFF535353), Icons.apps_rounded,         ''),
@@ -42,8 +43,6 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
 
   bool get _hasResults =>
       _tracks.isNotEmpty || _albums.isNotEmpty || _artists.isNotEmpty;
-
-  String _filter = 'all'; // 'all' ou 'deezer'
 
   void _onChanged(String v) {
     _debounce?.cancel();
@@ -88,11 +87,9 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         return;
       }
 
-      // Un seul appel searchTop retourne tracks + albums + artistes
-      // + appel songs en parallèle pour plus de titres
       final results = await Future.wait([
         SwingApiService().searchSongs(query),
-        SwingApiService().searchTop(query),     // albums + artistes en un seul appel
+        SwingApiService().searchTop(query),
       ]).timeout(const Duration(seconds: 8));
 
       final songs = results[0] as List<Song>;
@@ -116,15 +113,12 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         _loading = false;
       });
     } catch (_) {
-      // Fallback local — filtrer la queue du player en mémoire
       if (mounted) _searchLocal(query);
     }
   }
 
   void _searchLocal(String query) {
     final q = query.toLowerCase();
-    
-    // Fallback: chercher dans tous les titres téléchargés
     final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
     final filtered = dlSongs.where((s) =>
       s.title.toLowerCase().contains(q) ||
@@ -132,7 +126,6 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
       s.album.toLowerCase().contains(q)
     ).toList();
 
-    // Reconstruire les albums et artistes correspondants pour avoir des résultats riches
     final albumMap = <String, List<Song>>{};
     for (final s in filtered) {
       albumMap.putIfAbsent(s.album, () => []).add(s);
@@ -141,11 +134,8 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
       final first = e.value.first;
       return Album(
         hash: first.albumHash.isNotEmpty ? first.albumHash : e.key,
-        title: e.key,
-        artist: first.artist,
-        artistHash: first.artistHash,
-        trackCount: e.value.length,
-        image: first.image ?? '',
+        title: e.key, artist: first.artist, artistHash: first.artistHash,
+        trackCount: e.value.length, image: first.image ?? '',
       );
     }).toList();
 
@@ -158,10 +148,8 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
       final uniqueAlbums = e.value.map((s) => s.album).toSet();
       return Artist(
         hash: first.artistHash.isNotEmpty ? first.artistHash : e.key,
-        name: e.key,
-        trackCount: e.value.length,
-        albumCount: uniqueAlbums.length,
-        image: first.image ?? '',
+        name: e.key, trackCount: e.value.length,
+        albumCount: uniqueAlbums.length, image: first.image ?? '',
       );
     }).toList();
 
@@ -188,132 +176,89 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
   Widget build(BuildContext context) {
     super.build(context);
     return CustomScrollView(slivers: [
+
+      // ── App Bar ──────────────────────────────────────────────────
       SliverAppBar(
         pinned: true,
         backgroundColor: Sp.bg,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Rechercher',
-          style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.bold, color: Sp.white)),
-      ),
-
-      // ── Barre de recherche ────────────────────────────────────
-      SliverToBoxAdapter(child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Container(
-          height: 46,
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(4)),
-          child: Row(children: [
-            const SizedBox(width: 12),
-            const Icon(Icons.search, color: Colors.black, size: 22),
-            const SizedBox(width: 8),
-            Expanded(child: TextField(
-              controller: _ctrl,
-              focusNode: _focus,
-              style: const TextStyle(color: Colors.black, fontSize: 15),
-              decoration: const InputDecoration(
-                hintText: 'Artistes, titres, albums',
-                hintStyle: TextStyle(color: Color(0xFF666666)),
-                border: InputBorder.none, isDense: true),
-              onChanged: _onChanged,
-            )),
-            if (_ctrl.text.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  _ctrl.clear();
-                  _activeCategory = null;
-                  _onChanged('');
-                  _focus.unfocus();
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Icon(Icons.clear, color: Colors.black, size: 20))),
-          ]),
-        ),
-      )),
-
-      // ── Source filtre (Askaria / Deezer) ──────────────────────
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 12),
-          child: Row(
-            children: [
-              ChoiceChip(
-                label: const Text('Askaria'),
-                selected: _filter == 'all',
-                onSelected: (val) {
-                  if (val) {
-                    setState(() => _filter = 'all');
-                    _onChanged(_ctrl.text);
-                  }
-                },
-                selectedColor: Sp.g1,
-                backgroundColor: Sp.card,
-                labelStyle: TextStyle(color: _filter == 'all' ? Colors.white : Sp.white70),
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Deezer'),
-                selected: _filter == 'deezer',
-                onSelected: (val) {
-                  if (val) {
-                    setState(() => _filter = 'deezer');
-                    _onChanged(_ctrl.text);
-                  }
-                },
-                selectedColor: Sp.g1,
-                backgroundColor: Sp.card,
-                labelStyle: TextStyle(color: _filter == 'deezer' ? Colors.white : Sp.white70),
-              ),
-            ],
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
+              color: Sp.white)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: _SearchBar(ctrl: _ctrl, focus: _focus, onChanged: _onChanged),
           ),
         ),
       ),
 
-      // ── Chips catégories ──────────────────────────────────────
+      // ── Filtre source ────────────────────────────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Row(children: [
+            _FilterChip(
+              label: 'Askaria', selected: _filter == 'all',
+              onTap: () { setState(() => _filter = 'all'); _onChanged(_ctrl.text); },
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: 'Deezer', selected: _filter == 'deezer',
+              onTap: () { setState(() => _filter = 'deezer'); _onChanged(_ctrl.text); },
+            ),
+          ]),
+        ),
+      ),
+
+      // ── Chips catégories ─────────────────────────────────────────
       if (_filter == 'all')
         SliverToBoxAdapter(child: SizedBox(
-        height: 36,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: _categories.length,
-          itemBuilder: (ctx, i) {
-            final cat = _categories[i];
-            final keyword = cat.$4;
-            final isAll = keyword.isEmpty;
-            final isActive = isAll
-                ? _activeCategory == null
-                : _activeCategory == keyword;
-            return GestureDetector(
-              onTap: () => isAll
-                  ? _selectCategory('')
-                  : _selectCategory(keyword),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: isActive ? cat.$2 : const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(20)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(cat.$3, size: 14,
-                    color: isActive ? Colors.white : Sp.white70),
-                  const SizedBox(width: 5),
-                  Text(cat.$1, style: TextStyle(
-                    color: isActive ? Colors.white : Sp.white70,
-                    fontSize: 13, fontWeight: FontWeight.w600)),
-                ]),
-              ),
-            );
-          },
-        ),
-      )),
+          height: 46,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            itemCount: _categories.length,
+            itemBuilder: (ctx, i) {
+              final cat = _categories[i];
+              final keyword = cat.$4;
+              final isAll = keyword.isEmpty;
+              final isActive = isAll
+                  ? _activeCategory == null
+                  : _activeCategory == keyword;
+              return GestureDetector(
+                onTap: () => isAll
+                    ? _selectCategory('')
+                    : _selectCategory(keyword),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isActive ? cat.$2 : Sp.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: isActive ? null
+                        : Border.all(color: Sp.white12),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(cat.$3, size: 14,
+                      color: isActive ? Colors.white : Sp.white70),
+                    const SizedBox(width: 5),
+                    Text(cat.$1, style: TextStyle(
+                      color: isActive ? Colors.white : Sp.white70,
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              );
+            },
+          ),
+        )),
 
       const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-      // ── États ────────────────────────────────────────────────
+      // ── États ─────────────────────────────────────────────────────
       if (_loading)
         const SliverFillRemaining(child: Center(
           child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2)))
@@ -336,7 +281,7 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         if (_albums.isNotEmpty) ...[
           _SectionTitle('Albums'),
           SliverToBoxAdapter(child: SizedBox(
-            height: 180,
+            height: 190,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -349,8 +294,7 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         if (_tracks.isNotEmpty) ...[
           _SectionTitle('Titres'),
           SliverList(delegate: SliverChildBuilderDelegate(
-            (ctx, i) => _TrackRow(
-                song: _tracks[i], all: _tracks, idx: i),
+            (ctx, i) => _TrackRow(song: _tracks[i], all: _tracks, idx: i),
             childCount: _tracks.length,
           )),
         ],
@@ -360,7 +304,15 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         SliverFillRemaining(child: Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off_rounded, color: Sp.white40, size: 64),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: Sp.card,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.search_off_rounded,
+                  color: Sp.white40, size: 40),
+            ),
             const SizedBox(height: 16),
             Text(
               _activeCategory != null && _query.isEmpty
@@ -374,7 +326,15 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
         SliverFillRemaining(child: Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_rounded, color: Sp.white40, size: 64),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: Sp.card,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.search_rounded,
+                  color: Sp.white40, size: 40),
+            ),
             const SizedBox(height: 16),
             const Text('Recherchez un titre, artiste ou album',
               style: TextStyle(color: Sp.white70)),
@@ -386,17 +346,116 @@ class _SearchTabState extends State<SearchTab> with AutomaticKeepAliveClientMixi
   }
 }
 
+// ── Barre de recherche ─────────────────────────────────────────────────────────
+class _SearchBar extends StatefulWidget {
+  final TextEditingController ctrl;
+  final FocusNode focus;
+  final ValueChanged<String> onChanged;
+  const _SearchBar({required this.ctrl, required this.focus,
+      required this.onChanged});
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focus.addListener(() {
+      setState(() => _focused = widget.focus.hasFocus);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 48,
+      decoration: BoxDecoration(
+        color: _focused ? Colors.white : const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(14),
+        border: _focused
+            ? null
+            : Border.all(color: Sp.white12),
+      ),
+      child: Row(children: [
+        const SizedBox(width: 12),
+        Icon(Icons.search,
+            color: _focused ? Colors.black54 : Sp.white70, size: 22),
+        const SizedBox(width: 8),
+        Expanded(child: TextField(
+          controller: widget.ctrl,
+          focusNode: widget.focus,
+          style: TextStyle(
+              color: _focused ? Colors.black : Colors.white, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: 'Artistes, titres, albums',
+            hintStyle: TextStyle(
+                color: _focused ? Colors.black38 : Sp.white40),
+            border: InputBorder.none, isDense: true),
+          onChanged: widget.onChanged,
+        )),
+        if (widget.ctrl.text.isNotEmpty)
+          GestureDetector(
+            onTap: () {
+              widget.ctrl.clear();
+              widget.onChanged('');
+              widget.focus.unfocus();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(Icons.clear,
+                  color: _focused ? Colors.black54 : Sp.white70,
+                  size: 20))),
+      ]),
+    );
+  }
+}
+
+// ── Filter chip ────────────────────────────────────────────────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({required this.label, required this.selected,
+      required this.onTap});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: selected ? kGrad : null,
+        color: selected ? null : Sp.card,
+        borderRadius: BorderRadius.circular(20),
+        border: selected ? null : Border.all(color: Sp.white12),
+        boxShadow: selected ? [BoxShadow(
+          color: Sp.g2.withValues(alpha: 0.3), blurRadius: 8,
+          offset: const Offset(0, 3))] : null,
+      ),
+      child: Text(label, style: TextStyle(
+        color: selected ? Colors.white : Sp.white70,
+        fontSize: 13, fontWeight: FontWeight.w600)),
+    ),
+  );
+}
+
+// ── Section title ──────────────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
   const _SectionTitle(this.title);
   @override
   Widget build(BuildContext ctx) => SliverToBoxAdapter(child: Padding(
-    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
     child: Text(title, style: const TextStyle(
         color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
   ));
 }
 
+// ── Artist chip ────────────────────────────────────────────────────────────────
 class _ArtistChip extends StatelessWidget {
   final Artist artist;
   const _ArtistChip({required this.artist});
@@ -411,14 +470,18 @@ class _ArtistChip extends StatelessWidget {
         child: SizedBox(width: 80, child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ClipOval(child: Image.network(
-              '${api.baseUrl}/img/artist/small/${artist.image}',
-              width: 80, height: 80, fit: BoxFit.cover,
-              headers: api.authHeaders,
-              errorBuilder: (_, __, ___) => Container(
-                width: 80, height: 80, color: Sp.card,
-                child: const Icon(Icons.person,
-                    color: Sp.white40, size: 36)))),
+            Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle, gradient: kGrad),
+              padding: const EdgeInsets.all(2),
+              child: ClipOval(child: Image.network(
+                '${api.baseUrl}/img/artist/small/${artist.image}',
+                width: 76, height: 76, fit: BoxFit.cover,
+                headers: api.authHeaders,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 76, height: 76, color: Sp.card,
+                  child: const Icon(Icons.person, color: Sp.white40, size: 36)))),
+            ),
             const SizedBox(height: 6),
             Text(artist.name,
               style: const TextStyle(color: Sp.white,
@@ -432,6 +495,7 @@ class _ArtistChip extends StatelessWidget {
   }
 }
 
+// ── Album chip ─────────────────────────────────────────────────────────────────
 class _AlbumChip extends StatelessWidget {
   final Album album;
   const _AlbumChip({required this.album});
@@ -442,24 +506,23 @@ class _AlbumChip extends StatelessWidget {
       onTap: () => Navigator.push(ctx, MaterialPageRoute(
         builder: (_) => AlbumScreen(album: album))),
       child: Padding(
-        padding: const EdgeInsets.only(right: 16),
-        child: SizedBox(width: 120, child: Column(
+        padding: const EdgeInsets.only(right: 14),
+        child: SizedBox(width: 130, child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(12),
               child: Image.network(
                 '${api.baseUrl}/img/thumbnail/${album.image}',
-                width: 120, height: 120, fit: BoxFit.cover,
+                width: 130, height: 130, fit: BoxFit.cover,
                 headers: api.authHeaders,
                 errorBuilder: (_, __, ___) => Container(
-                  width: 120, height: 120, color: Sp.card,
-                  child: const Icon(Icons.album,
-                      color: Sp.white40, size: 40)))),
-            const SizedBox(height: 6),
+                  width: 130, height: 130, color: Sp.card,
+                  child: const Icon(Icons.album, color: Sp.white40, size: 40)))),
+            const SizedBox(height: 8),
             Text(album.title,
               style: const TextStyle(color: Sp.white,
-                  fontSize: 12, fontWeight: FontWeight.w500),
+                  fontSize: 13, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             Text(album.artist,
               style: const TextStyle(color: Sp.white70, fontSize: 11),
@@ -471,6 +534,7 @@ class _AlbumChip extends StatelessWidget {
   }
 }
 
+// ── Track row ──────────────────────────────────────────────────────────────────
 class _TrackRow extends StatelessWidget {
   final Song song; final List<Song> all; final int idx;
   const _TrackRow({required this.song, required this.all, required this.idx});
@@ -484,10 +548,10 @@ class _TrackRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(10),
             child: ArtworkWidget(
               key: ValueKey(song.hash), hash: song.image ?? song.hash,
-              size: 52, borderRadius: BorderRadius.circular(4))),
+              size: 52, borderRadius: BorderRadius.circular(10))),
           const SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

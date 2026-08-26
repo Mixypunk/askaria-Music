@@ -5,15 +5,15 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
 import '../services/widget_service.dart';
-import '../services/network_quality_service.dart';
 import '../services/eq_service.dart';
+
 
 enum RepeatMode { off, all, one }
 
@@ -302,36 +302,7 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // Mise à jour asynchrone de l'artUri dans le MediaItem (pour la notification)
-  Future<void> _updateArtUri(Song song, int index) async {
-    if (index < 0 || index >= _playlist.length) return;
-    try {
-      final artUrl = _api.getArtworkUrl(song.image ?? song.hash);
-      final localUri = await _cacheArtwork(artUrl, song.image ?? song.hash);
-      
-      final isDeezerPreview = song.hash.startsWith('dz_');
-      final uri = isDeezerPreview
-            ? Uri.parse(song.filepath ?? '')
-            : Uri.parse(_api.getStreamUrl(song.hash, filepath: song.filepath));
-      final headers = isDeezerPreview ? null : _api.authHeaders;
 
-      final newSource = AudioSource.uri(
-        uri,
-        headers: headers,
-        tag: MediaItem(
-          id:     song.hash,
-          title:  song.title,
-          artist: song.artist ?? '',
-          album:  song.album ?? '',
-          artUri: localUri,
-        ),
-      );
-      await _playlist.removeRange(index, index + 1);
-      await _playlist.insert(index, newSource);
-    } catch (e) {
-      debugPrint('_updateArtUri error: $e');
-    }
-  }
 
   // ── Play ───────────────────────────────────────────────────────────────
   Future<void> playSong(Song song, {List<Song>? queue, int? index}) async {
@@ -516,36 +487,11 @@ class PlayerProvider extends ChangeNotifier {
     final artUrl = _api.getArtworkUrl(song.image ?? song.hash);
     WidgetService.instance.update(
       title:     song.title,
-      artist:    song.artist ?? '',
+      artist:    song.artist,
       artUrl:    artUrl,
       isPlaying: _isPlaying,
       authToken: _api.accessToken,
     );
-  }
-
-  // ── Cache pochette locale (notification Android) ──────────────────────
-  final Map<String, Uri> _artCache = {};
-
-  Future<Uri> _cacheArtwork(String url, String hash) async {
-    if (_artCache.containsKey(hash)) return _artCache[hash]!;
-    try {
-      final dir  = await getTemporaryDirectory();
-      final file = File('${dir.path}/art_$hash.jpg');
-      if (await file.exists()) {
-        return _artCache[hash] = file.uri;
-      }
-      final isOurApi = url.startsWith(_api.baseUrl);
-      final r = await http
-          .get(Uri.parse(url), headers: isOurApi ? _api.authHeaders : null)
-          .timeout(const Duration(seconds: 8));
-      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
-        await file.writeAsBytes(r.bodyBytes);
-        return _artCache[hash] = file.uri;
-      }
-    } catch (e) {
-      debugPrint('cacheArtwork error: $e');
-    }
-    return Uri.parse(url);
   }
 
   // ── Dynamic colors ─────────────────────────────────────────────────────

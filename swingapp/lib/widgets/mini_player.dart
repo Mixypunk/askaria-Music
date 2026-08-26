@@ -10,7 +10,6 @@ class MiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Selector minimal : ne rebuild que si currentSong.hash change (pas à chaque position)
     return Selector<PlayerProvider, String?>(
       selector: (_, p) => p.currentSong?.hash,
       builder: (ctx, hash, _) {
@@ -21,8 +20,6 @@ class MiniPlayer extends StatelessWidget {
   }
 }
 
-/// Shell statique : ne rebuild que si la chanson change.
-/// Les sous-widgets progress et controls ont leurs propres Selectors.
 class _MiniPlayerShell extends StatelessWidget {
   final String hash;
   const _MiniPlayerShell({required this.hash});
@@ -44,7 +41,6 @@ class _MiniPlayerShell extends StatelessWidget {
           child: child,
         ),
       )),
-      // Swipe gauche = suivant, swipe droite = précédent
       onHorizontalDragEnd: (d) {
         if (d.primaryVelocity == null) return;
         final player = context.read<PlayerProvider>();
@@ -52,40 +48,55 @@ class _MiniPlayerShell extends StatelessWidget {
         if (d.primaryVelocity! >  300) player.previous();
       },
       child: Container(
-        margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-        height: 62,
+        margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+        height: 66,
         decoration: BoxDecoration(
-          color: const Color(0xFF282828),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: accent.withOpacity(0.12), width: 0.5),
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+              color: accent.withValues(alpha: 0.2), width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: accent.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Stack(children: [
-          // ── Barre de progression — Selector isolé ────────────────
+          // ── Barre de progression gradient ───────────────────────
           Positioned(bottom: 0, left: 0, right: 0,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-              child: RepaintBoundary(child: _MiniProgressBar(accent: accent)),
+              borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(18)),
+              child: RepaintBoundary(
+                  child: _MiniProgressBar(accent: accent)),
             ),
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
             child: Row(children: [
-              // Artwork — ne rebuild que si le hash change
+              // Artwork arrondi
               RepaintBoundary(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(10),
                   child: ArtworkWidget(
                     key: ValueKey(song.hash),
                     hash: song.image ?? song.hash,
-                    size: 46,
-                    borderRadius: BorderRadius.circular(4),
+                    size: 48,
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
 
-              // Titre / Artiste — ne rebuild que si song change
+              // Titre / Artiste
               Expanded(child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,26 +105,27 @@ class _MiniPlayerShell extends StatelessWidget {
                     style: const TextStyle(color: Colors.white,
                         fontSize: 14, fontWeight: FontWeight.w600),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
                   Text(song.artist,
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                    style: const TextStyle(
+                        color: Colors.white54, fontSize: 12),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               )),
 
-              // Like — Selector sur isFavourite uniquement
+              // Like
               _MiniLikeBtn(hash: song.hash, accent: accent),
 
-              // Play/Pause — Selector isolé
+              // Play/Pause
               const _MiniPlayBtn(),
 
-              // Next — statique
+              // Next
               GestureDetector(
                 onTap: () => context.read<PlayerProvider>().next(),
                 child: const Padding(
-                  padding: EdgeInsets.all(4),
+                  padding: EdgeInsets.all(6),
                   child: Icon(Icons.skip_next_rounded,
-                      color: Colors.white, size: 28))),
-              const SizedBox(width: 2),
+                      color: Colors.white, size: 26))),
             ]),
           ),
         ]),
@@ -122,7 +134,7 @@ class _MiniPlayerShell extends StatelessWidget {
   }
 }
 
-// ── Progress bar isolée — Selector sur progress seulement ──────────────────────
+// ── Progress bar gradient ──────────────────────────────────────────────────────
 class _MiniProgressBar extends StatelessWidget {
   final Color accent;
   const _MiniProgressBar({required this.accent});
@@ -131,17 +143,25 @@ class _MiniProgressBar extends StatelessWidget {
     final progress = context.select<PlayerProvider, double>(
         (p) => p.progress.clamp(0.0, 1.0));
     return SizedBox(
-      height: 2,
+      height: 2.5,
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
-        child: Container(color: accent),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [accent, Sp.g3],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-// ── Bouton play/pause isolé ─────────────────────────────────────────────────────
+// ── Bouton play/pause isolé ────────────────────────────────────────────────────
 class _MiniPlayBtn extends StatelessWidget {
   const _MiniPlayBtn();
   @override
@@ -168,7 +188,7 @@ class _MiniPlayBtn extends StatelessWidget {
   }
 }
 
-// ── Bouton like isolé ───────────────────────────────────────────────────────────
+// ── Bouton like isolé ──────────────────────────────────────────────────────────
 class _MiniLikeBtn extends StatelessWidget {
   final String hash;
   final Color accent;
@@ -183,8 +203,8 @@ class _MiniLikeBtn extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         child: Icon(
           isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          color: isFav ? accent : Colors.white54,
-          size: 22),
+          color: isFav ? Colors.redAccent : Colors.white38,
+          size: 20),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -16,13 +17,16 @@ import 'package:just_audio_background/just_audio_background.dart';
 
 // ── Palette ────────────────────────────────────────────────────────────────────
 class Sp {
-  static const bg      = Color(0xFF121212);
-  static const surface = Color(0xFF181818);
-  static const card    = Color(0xFF282828);
-  static const cardHi  = Color(0xFF3E3E3E);
+  static const bg      = Color(0xFF0D0D0D);
+  static const bg2     = Color(0xFF111111);
+  static const surface = Color(0xFF161616);
+  static const card    = Color(0xFF1A1A1A);
+  static const cardHi  = Color(0xFF252525);
+  static const glass   = Color(0x14FFFFFF);
   static const white   = Color(0xFFFFFFFF);
   static const white70 = Color(0xFFB3B3B3);
-  static const white40 = Color(0xFF6A6A6A);
+  static const white40 = Color(0xFF666666);
+  static const white12 = Color(0x1FFFFFFF);
   static const g1 = Color(0xFF4776E6);
   static const g2 = Color(0xFF8E54E9);
   static const g3 = Color(0xFFD63AF9);
@@ -40,7 +44,29 @@ const kGradV = LinearGradient(
   end: Alignment.bottomRight,
 );
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+const kGradBottom = LinearGradient(
+  colors: [Colors.transparent, Color(0xCC000000)],
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+);
+
+/// Décoration glass (frosted)
+BoxDecoration kGlassDecoration({
+  double radius = 16,
+  Color border = const Color(0x20FFFFFF),
+}) => BoxDecoration(
+  color: Sp.glass,
+  borderRadius: BorderRadius.circular(radius),
+  border: Border.all(color: border, width: 0.8),
+);
+
+/// Card standard épurée
+BoxDecoration kCardDecoration({double radius = 16}) => BoxDecoration(
+  color: Sp.card,
+  borderRadius: BorderRadius.circular(radius),
+);
+
+// ── Helpers UI ─────────────────────────────────────────────────────────────────
 class GText extends StatelessWidget {
   final String t; final TextStyle? s;
   const GText(this.t, {super.key, this.s});
@@ -61,6 +87,7 @@ class GIcon extends StatelessWidget {
   );
 }
 
+/// Bouton gradient avec ombre diffuse
 class GBtn extends StatelessWidget {
   final String label; final VoidCallback? onTap; final bool loading;
   const GBtn(this.label, {super.key, this.onTap, this.loading = false});
@@ -68,36 +95,70 @@ class GBtn extends StatelessWidget {
   Widget build(BuildContext ctx) => GestureDetector(
     onTap: onTap,
     child: Container(
-      height: 48,
-      decoration: BoxDecoration(gradient: kGrad,
-          borderRadius: BorderRadius.circular(24)),
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: kGrad,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Sp.g2.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       alignment: Alignment.center,
       child: loading
           ? const SizedBox(width: 22, height: 22,
               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           : Text(label, style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15,
+              letterSpacing: 0.3)),
+    ),
+  );
+}
+
+/// Container Glass avec blur
+class GlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final double radius;
+  final double blur;
+  const GlassCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.radius = 16,
+    this.blur = 12,
+  });
+  @override
+  Widget build(BuildContext ctx) => ClipRRect(
+    borderRadius: BorderRadius.circular(radius),
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+      child: Container(
+        padding: padding,
+        decoration: kGlassDecoration(radius: radius),
+        child: child,
+      ),
     ),
   );
 }
 
 // ── Point d'entrée ─────────────────────────────────────────────────────────────
 Future<void> main() async {
-  // Gestionnaire d'erreurs global — évite les crashes silencieux
   FlutterError.onError = (FlutterErrorDetails details) {
     debugPrint('Flutter error: \${details.exceptionAsString()}');
   };
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Barre de statut transparente dès le départ
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Sp.bg,
+    systemNavigationBarColor: Color(0xFF0D0D0D),
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  // Démarrer l'app immédiatement avec un splash — l'auth se fait en arrière-plan
   runApp(const _SplashWrapper());
 }
 
@@ -119,12 +180,10 @@ class _SplashWrapperState extends State<_SplashWrapper> {
   }
 
   Future<void> _init() async {
-    // Init arrière-plan audio
     try {
       await JustAudioBackground.init(
         androidNotificationChannelId: 'com.mixypunk.askaria.channel.audio',
         androidNotificationChannelName: 'Askaria Music',
-        // false = permet d'afficher les boutons prev/next dans la notification
         androidNotificationOngoing: false,
         androidStopForegroundOnPause: true,
         notificationColor: const Color(0xFF1A1A2E),
@@ -137,12 +196,9 @@ class _SplashWrapperState extends State<_SplashWrapper> {
       await ThemeNotifier.instance.load();
       final api = SwingApiService();
       await api.loadSettings();
-      // checkAuth retourne true même hors ligne si un token est présent
-      // (mode offline — l'user peut écouter les titres téléchargés)
       _logged = await api.checkAuth();
     } catch (e) {
       debugPrint('Auth error: $e');
-      // En cas d'erreur inattendue : connecté si token présent
       _logged = SwingApiService().isLoggedIn;
     }
     if (mounted) setState(() => _ready = true);
@@ -180,35 +236,79 @@ class _SplashWrapperState extends State<_SplashWrapper> {
 }
 
 // ── Écran de splash ────────────────────────────────────────────────────────────
-class _SplashScreen extends StatelessWidget {
+class _SplashScreen extends StatefulWidget {
   const _SplashScreen();
+  @override
+  State<_SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<_SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _glow = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Sp.bg,
-        body: Center(child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo Askaria depuis les assets réseau (ou fallback icône)
-            Image.network(
-              'https://askaria-music.duckdns.org/static/logo.webp',
-              width: 200,
-              errorBuilder: (_, __, ___) => ShaderMask(
-                shaderCallback: (b) => kGradV.createShader(b),
-                child: const Icon(Icons.music_note_rounded,
-                    size: 72, color: Colors.white),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: _glow,
+                builder: (_, child) => Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Sp.g2.withValues(alpha: 0.3 + _glow.value * 0.25),
+                        blurRadius: 40 + _glow.value * 30,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: child,
+                ),
+                child: Image.network(
+                  'https://askaria-music.duckdns.org/static/logo.webp',
+                  width: 120,
+                  errorBuilder: (_, __, ___) => ShaderMask(
+                    shaderCallback: (b) => kGradV.createShader(b),
+                    child: const Icon(Icons.music_note_rounded,
+                        size: 80, color: Colors.white),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 40),
-            const SizedBox(
-              width: 24, height: 24,
-              child: CircularProgressIndicator(
-                  color: Sp.g2, strokeWidth: 2),
-            ),
-          ],
-        )),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(
+                  color: Sp.g2.withValues(alpha: 0.7),
+                  strokeWidth: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -229,7 +329,7 @@ class _App extends StatelessWidget {
       scaffoldBackgroundColor: Sp.bg,
       colorScheme: const ColorScheme.dark(
         primary: Sp.g2, secondary: Sp.g3,
-        surface: Sp.surface, background: Sp.bg,
+        surface: Sp.surface, surfaceContainer: Sp.bg,
       ),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: Sp.white),
@@ -237,11 +337,14 @@ class _App extends StatelessWidget {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent, elevation: 0,
+        scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: Sp.white),
         titleTextStyle: TextStyle(color: Sp.white,
             fontSize: 18, fontWeight: FontWeight.bold),
       ),
       iconTheme: const IconThemeData(color: Sp.white),
+      splashColor: Colors.white10,
+      highlightColor: Colors.white10,
     ),
     initialRoute: logged ? '/root' : '/login',
     routes: {
@@ -251,8 +354,8 @@ class _App extends StatelessWidget {
       '/eq':      (_) => const EqScreen(),
     },
     builder: (ctx, child) => _UpdateChecker(child: child!),
-  ),   // MaterialApp
-  );   // Consumer<ThemeNotifier>
+  ),
+  );
 }
 
 // ── Vérification mise à jour ───────────────────────────────────────────────────
@@ -267,7 +370,6 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
   @override
   void initState() {
     super.initState();
-    // Délai pour ne pas bloquer le rendu initial
     Future.delayed(const Duration(seconds: 5), _check);
   }
 

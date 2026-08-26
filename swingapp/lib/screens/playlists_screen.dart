@@ -268,9 +268,9 @@ class _PlaylistTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.2),
+              color: Colors.blueAccent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+              border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.5)),
             ),
             child: const Text('Public',
                 style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.w600)),
@@ -488,32 +488,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             );
                           },
                         ),
-    );
-  }
-}
-
-
-class _PlaylistArtwork extends StatelessWidget {
-  final String playlistId;
-  final double size;
-  const _PlaylistArtwork({required this.playlistId, this.size = 48});
-
-  @override
-  Widget build(BuildContext context) {
-    final api = SwingApiService();
-    final url = '${api.baseUrl}/img/playlist/$playlistId.webp';
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: Image.network(
-        url,
-        width: size, height: size, fit: BoxFit.cover,
-        headers: api.authHeaders,
-        errorBuilder: (_, __, ___) => Container(
-          width: size, height: size,
-          color: Colors.white10,
-          child: const Icon(Icons.queue_music_rounded, color: Colors.white24),
-        ),
-      ),
     );
   }
 }

@@ -1,12 +1,11 @@
 import 'dart:ui';
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/artwork_widget.dart';
 import '../main.dart';
 import '../services/api_service.dart';
-import 'downloads_screen.dart';
 import '../models/album.dart';
 import 'artist_screen.dart';
 import 'package:http/http.dart' as http;
@@ -121,7 +120,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     ));
   }
 
-  void _closeLyricsSheet() => Navigator.maybePop(context);
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +173,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   Positioned.fill(child: ImageFiltered(
                     imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
                     child: Image.memory(_bgImage!, fit: BoxFit.cover,
-                      color: Colors.black.withOpacity(0.58),
+                      color: Colors.black.withValues(alpha: 0.58),
                       colorBlendMode: BlendMode.darken)))
                 else
                   Positioned.fill(child: Container(
@@ -182,7 +182,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(
-                    colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
+                    colors: [dark.withValues(alpha: 0.5), Colors.transparent, Sp.bg.withValues(alpha: 0.65)],
                     begin: Alignment.topCenter, end: Alignment.bottomCenter,
                     stops: const [0.0, 0.4, 1.0])))),
 
@@ -441,7 +441,7 @@ class _PlayerPage extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.6)),
                   borderRadius: BorderRadius.circular(8)),
                 child: const Center(child: Text('Annuler le timer',
                   style: TextStyle(color: Colors.redAccent,
@@ -470,7 +470,7 @@ class _PlayerPage extends StatelessWidget {
           Text(song.title, style: const TextStyle(color: Colors.white,
               fontSize: 16, fontWeight: FontWeight.bold)),
           Text(song.artist,
-              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13)),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
           const SizedBox(height: 8),
           // URL de stream (copiable)
           Container(
@@ -561,7 +561,7 @@ class _PlayerPage extends StatelessWidget {
                   ListTile(contentPadding: EdgeInsets.zero,
                     leading: Container(width: 44, height: 44,
                       decoration: BoxDecoration(
-                          color: !c.isConnected ? accent.withOpacity(0.2) : Colors.white10,
+                          color: !c.isConnected ? accent.withValues(alpha: 0.2) : Colors.white10,
                           borderRadius: BorderRadius.circular(8)),
                       child: Icon(Icons.phone_android_rounded, 
                           color: !c.isConnected ? accent : Colors.white54, size: 24)),
@@ -580,7 +580,7 @@ class _PlayerPage extends StatelessWidget {
                     ListTile(contentPadding: EdgeInsets.zero,
                       leading: Container(width: 44, height: 44,
                         decoration: BoxDecoration(
-                            color: c.connectedDevice == device ? accent.withOpacity(0.2) : Colors.white10,
+                            color: c.connectedDevice == device ? accent.withValues(alpha: 0.2) : Colors.white10,
                             borderRadius: BorderRadius.circular(8)),
                         child: Icon(Icons.tv_rounded, 
                             color: c.connectedDevice == device ? accent : Colors.white54, size: 24)),
@@ -759,7 +759,7 @@ class _PlayerPage extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               boxShadow: [BoxShadow(
-                color: accent.withOpacity(0.4), blurRadius: 50,
+                color: accent.withValues(alpha: 0.4), blurRadius: 50,
                 offset: const Offset(0, 16), spreadRadius: 4)],
             ),
             child: AspectRatio(aspectRatio: 1, child: ClipRRect(
@@ -779,13 +779,13 @@ class _PlayerPage extends StatelessWidget {
           GestureDetector(
             onTap: onLyricsTap,
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.lyrics_rounded, size: 14, color: accent.withOpacity(0.7)),
+              Icon(Icons.lyrics_rounded, size: 14, color: accent.withValues(alpha: 0.7)),
               const SizedBox(width: 6),
               Text('Voir les paroles', style: TextStyle(
-                  color: accent.withOpacity(0.7), fontSize: 12)),
+                  color: accent.withValues(alpha: 0.7), fontSize: 12)),
               const SizedBox(width: 4),
               Icon(Icons.keyboard_arrow_up_rounded, size: 14,
-                  color: accent.withOpacity(0.7)),
+                  color: accent.withValues(alpha: 0.7)),
             ]),
           )
         else
@@ -806,7 +806,7 @@ class _PlayerPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
-                    border: Border.all(color: accent.withOpacity(0.8), width: 1),
+                    border: Border.all(color: accent.withValues(alpha: 0.8), width: 1),
                     borderRadius: BorderRadius.circular(4)),
                   child: Text(song.audioFormat,
                     style: TextStyle(
@@ -818,7 +818,7 @@ class _PlayerPage extends StatelessWidget {
             ]),
             const SizedBox(height: 4),
             Text(song.artist, style: TextStyle(
-              color: Colors.white.withOpacity(0.7), fontSize: 15),
+              color: Colors.white.withValues(alpha: 0.7), fontSize: 15),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
           const SizedBox(width: 16),
@@ -848,9 +848,9 @@ class _PlayerPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(_fmt(c.isConnected ? c.position : p.position),
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
               Text(_fmt(c.isConnected ? c.duration : p.duration),
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
             ],
           ),
         ),
@@ -869,7 +869,7 @@ class _PlayerPage extends StatelessWidget {
                 onTap: p.toggleShuffle,
                 child: Stack(alignment: Alignment.bottomCenter, children: [
                   Icon(Icons.shuffle_rounded, size: 26,
-                    color: shuffle ? accent : Colors.white.withOpacity(0.6)),
+                    color: shuffle ? accent : Colors.white.withValues(alpha: 0.6)),
                   if (shuffle) Positioned(bottom: -4,
                     child: Container(width: 4, height: 4,
                       decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
@@ -886,7 +886,7 @@ class _PlayerPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: accent, shape: BoxShape.circle,
                     boxShadow: [BoxShadow(
-                      color: accent.withOpacity(0.5), blurRadius: 22, spreadRadius: 2)]),
+                      color: accent.withValues(alpha: 0.5), blurRadius: 22, spreadRadius: 2)]),
                   child: Center(child: isLoading
                       ? const SizedBox(width: 26, height: 26,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
@@ -905,7 +905,7 @@ class _PlayerPage extends StatelessWidget {
                         ? Icons.repeat_one_rounded : Icons.repeat_rounded,
                     size: 26,
                     color: repeatMode != RepeatMode.off
-                        ? accent : Colors.white.withOpacity(0.6)),
+                        ? accent : Colors.white.withValues(alpha: 0.6)),
                   if (repeatMode != RepeatMode.off) Positioned(bottom: -4,
                     child: Container(width: 4, height: 4,
                       decoration: BoxDecoration(color: accent, shape: BoxShape.circle))),
@@ -933,7 +933,7 @@ class _PlayerPage extends StatelessWidget {
               activeTrackColor: accent,
               inactiveTrackColor: Colors.white24,
               thumbColor: Colors.white,
-              overlayColor: accent.withOpacity(0.2)),
+              overlayColor: accent.withValues(alpha: 0.2)),
             child: Slider(
               value: player.volume,
               onChanged: (v) => player.setVolume(v)),
@@ -947,18 +947,18 @@ class _PlayerPage extends StatelessWidget {
             builder: (_, c, __) => GestureDetector(
               onTap: () => _showDevicesSheet(ctx, accent),
               child: Icon(c.isConnected ? Icons.cast_connected_rounded : Icons.devices_rounded, size: 20,
-                  color: c.isConnected ? accent : Colors.white.withOpacity(0.6))),
+                  color: c.isConnected ? accent : Colors.white.withValues(alpha: 0.6))),
           ),
           Row(children: [
             GestureDetector(
               onTap: () => _showShareSheet(ctx, song, accent),
               child: Icon(Icons.share_rounded, size: 20,
-                  color: Colors.white.withOpacity(0.6))),
+                  color: Colors.white.withValues(alpha: 0.6))),
             const SizedBox(width: 20),
             GestureDetector(
               onTap: () => _showMoreSheet(ctx, player, song, accent),
               child: Icon(Icons.more_horiz_rounded, size: 24,
-                  color: Colors.white.withOpacity(0.6))),
+                  color: Colors.white.withValues(alpha: 0.6))),
           ]),
         ]),
         const SizedBox(height: 12),
@@ -991,7 +991,7 @@ class _ProgressBar extends StatelessWidget {
             activeTrackColor: accent,
             inactiveTrackColor: Colors.white24,
             thumbColor: Colors.white,
-            overlayColor: accent.withOpacity(0.2)),
+            overlayColor: accent.withValues(alpha: 0.2)),
           child: Slider(
             min: 0.0,
             max: maxMs,
@@ -1014,21 +1014,16 @@ class _ProgressBar extends StatelessWidget {
 class _LyricsPage extends StatefulWidget {
   final PlayerProvider player;
   final Color accent;
-  final ScrollController? scrollController;
-  const _LyricsPage({required this.player, required this.accent,
-      this.scrollController});
+  const _LyricsPage({required this.player, required this.accent});
   @override
   State<_LyricsPage> createState() => _LyricsPageState();
 }
 
 class _LyricsPageState extends State<_LyricsPage> {
-  final _internalScroll = ScrollController();
+  final _scroll = ScrollController();
   int _line = 0;
   // Une clé par ligne pour mesurer la position réelle dans la liste
   final Map<int, GlobalKey> _keys = {};
-
-  ScrollController get _scroll =>
-      widget.scrollController ?? _internalScroll;
 
   GlobalKey _keyFor(int i) {
     _keys[i] ??= GlobalKey();
@@ -1132,7 +1127,7 @@ class _LyricsPageState extends State<_LyricsPage> {
               style: active
                   ? TextStyle(color: accent, fontSize: 26,
                       fontWeight: FontWeight.bold, height: 1.4)
-                  : TextStyle(color: Colors.white.withOpacity(0.22),
+                  : TextStyle(color: Colors.white.withValues(alpha: 0.22),
                       fontSize: 18, height: 1.4, fontWeight: FontWeight.w600),
               child: Text(text, textAlign: TextAlign.left),
             ),
@@ -1149,7 +1144,7 @@ class _LyricsPageState extends State<_LyricsPage> {
           textAlign: TextAlign.left));
     }
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.lyrics_outlined, color: accent.withOpacity(0.4), size: 56),
+      Icon(Icons.lyrics_outlined, color: accent.withValues(alpha: 0.4), size: 56),
       const SizedBox(height: 16),
       const Text('Aucune parole disponible',
           style: TextStyle(color: Colors.white54)),
@@ -1159,7 +1154,7 @@ class _LyricsPageState extends State<_LyricsPage> {
   @override
   void dispose() {
     widget.player.removeListener(_onPlayerUpdate);
-    if (widget.scrollController == null) _internalScroll.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 }
@@ -1262,7 +1257,7 @@ class _LyricsOverlay extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           color: HSLColor.fromColor(accent).withLightness(0.10).toColor()
-              .withOpacity(0.97),
+              .withValues(alpha: 0.97),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         margin: const EdgeInsets.only(top: 60),
@@ -1286,7 +1281,7 @@ class _LyricsOverlay extends StatelessWidget {
                     fontWeight: FontWeight.bold),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(song.artist, style: TextStyle(
-                    color: Colors.white.withOpacity(0.6), fontSize: 12),
+                    color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 ])),
               GestureDetector(
@@ -1299,7 +1294,7 @@ class _LyricsOverlay extends StatelessWidget {
                     color: Colors.white, size: 22))),
             ]),
           ),
-          Divider(color: Colors.white.withOpacity(0.08), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
           // Paroles
           Expanded(child: ChangeNotifierProvider.value(
             value: player,
