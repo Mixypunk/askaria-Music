@@ -52,14 +52,30 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   Future<void> _load() async {
     setState(() { _loading = true; _offline = false; });
     try {
+      final api = SwingApiService();
       final results = await Future.wait([
-        SwingApiService().getSongs(limit: 50),
-        SwingApiService().getAlbums(limit: 20),
-        SwingApiService().getArtists(limit: 20),
+        api.getTopTracks(limit: 30),
+        api.getAlbums(limit: 20),
+        api.getTopArtists(limit: 15),
       ]).timeout(const Duration(seconds: 15));
-      _songs   = results[0] as List<Song>;
-      _albums  = results[1] as List<Album>;
-      _artists = results[2] as List<Artist>;
+
+      _albums = results[1] as List<Album>;
+
+      final topTracksData = results[0] as Map<String, dynamic>;
+      _songs = (topTracksData['items'] as List?)
+          ?.map((x) => Song.fromJson(x as Map<String, dynamic>))
+          .toList() ?? [];
+      if (_songs.isEmpty) {
+        _songs = await api.getSongs(limit: 30);
+      }
+
+      final topArtistsData = results[2] as Map<String, dynamic>;
+      _artists = (topArtistsData['items'] as List?)
+          ?.map((x) => Artist.fromJson(x as Map<String, dynamic>))
+          .toList() ?? [];
+      if (_artists.isEmpty) {
+        _artists = await api.getArtists(limit: 15);
+      }
     } catch (_) {
       _offline = _songs.isEmpty;
     }
@@ -170,7 +186,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           if (_artists.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: _SectionHeader(
-                title: 'Vos artistes',
+                title: 'Artistes les plus écoutés',
                 icon: Icons.people_rounded,
               ),
             ),
@@ -189,7 +205,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           if (_songs.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: _SectionHeader(
-                title: 'Tous les titres',
+                title: 'Titres les plus populaires',
                 icon: Icons.music_note_rounded,
                 trailing: GestureDetector(
                   onTap: () => _showAllSongs(context),
