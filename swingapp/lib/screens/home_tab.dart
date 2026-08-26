@@ -149,9 +149,11 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
           // Albums
           if (_albums.isNotEmpty) ...[ 
-            _SectionHeader(
-              title: 'Nouveaux albums',
-              icon: Icons.album_rounded,
+            SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: 'Nouveaux albums',
+                icon: Icons.album_rounded,
+              ),
             ),
             SliverToBoxAdapter(child: SizedBox(
               height: 210,
@@ -166,9 +168,11 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
           // Artistes
           if (_artists.isNotEmpty) ...[
-            _SectionHeader(
-              title: 'Vos artistes',
-              icon: Icons.people_rounded,
+            SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: 'Vos artistes',
+                icon: Icons.people_rounded,
+              ),
             ),
             SliverToBoxAdapter(child: SizedBox(
               height: 148,
@@ -183,19 +187,21 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
           // Tous les titres
           if (_songs.isNotEmpty) ...[
-            _SectionHeader(
-              title: 'Tous les titres',
-              icon: Icons.music_note_rounded,
-              trailing: GestureDetector(
-                onTap: () => _showAllSongs(context),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text('Voir tout (${_songs.length})',
-                    style: const TextStyle(
-                      color: Sp.white70, fontSize: 13)),
-                  const SizedBox(width: 2),
-                  const Icon(Icons.chevron_right_rounded,
-                    color: Sp.white40, size: 18),
-                ]),
+            SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: 'Tous les titres',
+                icon: Icons.music_note_rounded,
+                trailing: GestureDetector(
+                  onTap: () => _showAllSongs(context),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('Voir tout (${_songs.length})',
+                      style: const TextStyle(
+                        color: Sp.white70, fontSize: 13)),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded,
+                      color: Sp.white40, size: 18),
+                  ]),
+                ),
               ),
             ),
             SliverList(delegate: SliverChildBuilderDelegate(
@@ -414,22 +420,24 @@ class _AvatarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '';
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36, height: 36,
-        decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
-        padding: const EdgeInsets.all(2),
-        child: ClipOval(
-          child: SizedBox(
-            width: 32, height: 32,
-            child: avatarUrl != null
-                ? NetImage(
-                    url: avatarUrl!, width: 32, height: 32,
-                    circular: false,
-                    headers: SwingApiService().authHeaders,
-                    placeholder: _InitialFallback(initial))
-                : _InitialFallback(initial),
+    return Center(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36, height: 36,
+          decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
+          padding: const EdgeInsets.all(2),
+          child: ClipOval(
+            child: SizedBox(
+              width: 32, height: 32,
+              child: avatarUrl != null
+                  ? NetImage(
+                      url: avatarUrl!, width: 32, height: 32,
+                      circular: false,
+                      headers: SwingApiService().authHeaders,
+                      placeholder: _InitialFallback(initial))
+                  : _InitialFallback(initial),
+            ),
           ),
         ),
       ),
@@ -458,7 +466,7 @@ class _SectionHeader extends StatelessWidget {
   final Widget? trailing;
   const _SectionHeader({required this.title, this.icon, this.trailing});
   @override
-  Widget build(BuildContext ctx) => SliverToBoxAdapter(child: Padding(
+  Widget build(BuildContext ctx) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 28, 16, 14),
     child: Row(children: [
       if (icon != null) ...[
@@ -469,7 +477,7 @@ class _SectionHeader extends StatelessWidget {
         color: Sp.white, fontSize: 20, fontWeight: FontWeight.bold))),
       if (trailing != null) trailing!,
     ]),
-  ));
+  );
 }
 
 // ── Recent tile ────────────────────────────────────────────────────────────────
