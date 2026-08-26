@@ -433,7 +433,7 @@ class _FilterChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: selected ? null : Border.all(color: Sp.white12),
         boxShadow: selected ? [BoxShadow(
-          color: Sp.g2.withValues(alpha: 0.3), blurRadius: 8,
+          color: Sp.g2.withOpacity(0.3), blurRadius: 8,
           offset: const Offset(0, 3))] : null,
       ),
       child: Text(label, style: TextStyle(

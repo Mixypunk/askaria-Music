@@ -271,7 +271,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         gradient: kGrad,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [BoxShadow(
-                          color: Sp.g2.withValues(alpha: 0.3),
+                          color: Sp.g2.withOpacity(0.3),
                           blurRadius: 12, offset: const Offset(0, 4))],
                       ),
                       child: const Text('Réessayer',
@@ -298,7 +298,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: Sp.g2.withValues(alpha: 0.15),
+                    color: Sp.g2.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.cloud_off_rounded, color: Sp.g2, size: 22),

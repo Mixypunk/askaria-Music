@@ -140,7 +140,7 @@ class _AvatarSectionState extends State<_AvatarSection> {
                 gradient: kGrad,
                 shape: BoxShape.circle,
                 boxShadow: [BoxShadow(
-                  color: Sp.g2.withValues(alpha: 0.4),
+                  color: Sp.g2.withOpacity(0.4),
                   blurRadius: 8, offset: const Offset(0, 2))],
               ),
               child: _uploading
@@ -163,9 +163,9 @@ class _AvatarSectionState extends State<_AvatarSection> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
           decoration: BoxDecoration(
-            color: Sp.g2.withValues(alpha: 0.15),
+            color: Sp.g2.withOpacity(0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Sp.g2.withValues(alpha: 0.4))),
+            border: Border.all(color: Sp.g2.withOpacity(0.4))),
           child: const Text('Admin',
               style: TextStyle(color: Sp.g2, fontSize: 12,
                   fontWeight: FontWeight.bold))),
@@ -257,7 +257,7 @@ class _InfoSectionState extends State<_InfoSection> {
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: ColorScheme.dark(primary: Sp.g2, surface: Sp.card),
-          dialogTheme: const DialogThemeData(backgroundColor: Sp.surface),
+          dialogBackgroundColor: Sp.surface,
         ),
         child: child!,
       ),
@@ -473,7 +473,7 @@ class _ProfileFieldState extends State<_ProfileField> {
       color: Sp.card,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(
-        color: _focused ? Sp.g2.withValues(alpha: 0.6) : Sp.white12,
+        color: _focused ? Sp.g2.withOpacity(0.6) : Sp.white12,
         width: _focused ? 1.5 : 0.8)),
     child: TextField(
       controller: widget.ctrl,

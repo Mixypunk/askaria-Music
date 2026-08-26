@@ -42,7 +42,7 @@ class _RootScreenState extends State<RootScreen>
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
+      onPopInvoked: (didPop) async {
         if (didPop) return;
         final now = DateTime.now();
         if (_lastBack == null ||
@@ -96,7 +96,7 @@ class _BottomNav extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              color: Sp.bg.withValues(alpha: 0.88),
+              color: Sp.bg.withOpacity(0.88),
               child: SafeArea(
                 top: false,
                 child: SizedBox(
