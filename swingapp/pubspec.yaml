@@ -1,0 +1,62 @@
+﻿name: askaria
+description: Askaria — Votre serveur de musique personnel
+publish_to: 'none'
+version: 1.0.83+83
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Audio + arrière-plan
+  just_audio: ^0.9.36
+  just_audio_background: ^0.0.1-beta.11
+
+  # HTTP & API
+  http: ^1.2.0
+  dio: ^5.4.0
+
+  # Auto-update
+  package_info_plus: ^8.0.0
+  open_file: ^3.3.2
+  path_provider: ^2.1.2
+  permission_handler: ^11.3.1
+
+  # State management
+  provider: ^6.1.1
+
+  # Storage
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.2.2
+
+  # UI
+  mobile_scanner: ^5.2.3
+  cupertino_icons: ^1.0.6
+
+  # Dynamic color from artwork
+  palette_generator: ^0.3.3
+
+  # Sélection photo profil
+  image_picker: ^1.0.7
+
+  # Partage de titre
+  share_plus: ^9.0.0
+
+  # Détection réseau (qualité auto)
+  connectivity_plus: ^6.0.3
+  nsd: ^5.0.0
+
+dependency_overrides:
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  assets:
+    - assets/logo.webp
+  uses-material-design: true

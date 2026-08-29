@@ -1,0 +1,574 @@
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../main.dart';
+import '../models/song.dart';
+import '../models/album.dart';
+import '../services/api_service.dart';
+import '../providers/player_provider.dart';
+import '../providers/downloads_provider.dart';
+import '../widgets/artwork_widget.dart';
+import 'artist_screen.dart';
+
+class SearchTab extends StatefulWidget {
+  const SearchTab({super.key});
+  @override
+  State<SearchTab> createState() => _SearchTabState();
+}
+
+class _SearchTabState extends State<SearchTab>
+    with AutomaticKeepAliveClientMixin {
+  final _ctrl  = TextEditingController();
+  final _focus = FocusNode();
+  Timer? _debounce;
+
+  List<Song>   _tracks  = [];
+  List<Album>  _albums  = [];
+  List<Artist> _artists = [];
+  bool   _loading = false;
+  String _query   = '';
+  String? _activeCategory;
+  String _filter = 'all';
+
+  static const _categories = [
+    ('Tous',      Color(0xFF535353), Icons.apps_rounded,         ''),
+    ('Hip-Hop',   Color(0xFFE8115B), Icons.headphones_rounded,   'hip hop'),
+    ('Pop',       Color(0xFFE91429), Icons.star_rounded,          'pop'),
+    ('Rock',      Color(0xFF148A08), Icons.electric_bolt_rounded, 'rock'),
+    ('Électro',   Color(0xFF509BF5), Icons.graphic_eq_rounded,    'electro'),
+    ('R&B',       Color(0xFFBA5D07), Icons.piano_rounded,         'rnb'),
+    ('Jazz',      Color(0xFF0D73EC), Icons.music_note_rounded,    'jazz'),
+    ('Classique', Color(0xFF7358FF), Icons.queue_music_rounded,   'classique'),
+  ];
+
+  bool get _hasResults =>
+      _tracks.isNotEmpty || _albums.isNotEmpty || _artists.isNotEmpty;
+
+  void _onChanged(String v) {
+    _debounce?.cancel();
+    if (v.trim().isEmpty && _activeCategory == null) {
+      setState(() { _tracks = []; _albums = []; _artists = [];
+                    _query = ''; _loading = false; });
+      return;
+    }
+    setState(() { _loading = true; _query = v; });
+    _debounce = Timer(const Duration(milliseconds: 400), _search);
+  }
+
+  void _selectCategory(String keyword) {
+    if (_activeCategory == keyword) {
+      setState(() => _activeCategory = null);
+      _onChanged(_ctrl.text);
+      return;
+    }
+    setState(() { _activeCategory = keyword; _loading = true; });
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 200), _search);
+  }
+
+  Future<void> _search() async {
+    final base  = _ctrl.text.trim();
+    final cat   = _activeCategory ?? '';
+    final query = [base, cat].where((s) => s.isNotEmpty).join(' ');
+    if (query.isEmpty) {
+      setState(() { _tracks = []; _albums = []; _artists = []; _loading = false; });
+      return;
+    }
+
+    try {
+      if (_filter == 'deezer') {
+        final deezerSongs = await SwingApiService().searchDeezer(query);
+        if (mounted) setState(() {
+          _tracks  = deezerSongs;
+          _albums  = [];
+          _artists = [];
+          _loading = false;
+        });
+        return;
+      }
+
+      final results = await Future.wait([
+        SwingApiService().searchSongs(query),
+        SwingApiService().searchTop(query),
+      ]).timeout(const Duration(seconds: 8));
+
+      final songs = results[0] as List<Song>;
+      final topData = results[1] as Map<String, dynamic>;
+
+      List<Album> albums = [];
+      List<Artist> artists = [];
+      final rawAlbums = topData['albums'];
+      final rawArtists = topData['artists'];
+      if (rawAlbums is List && rawAlbums.isNotEmpty) {
+        albums = rawAlbums.map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      if (rawArtists is List && rawArtists.isNotEmpty) {
+        artists = rawArtists.map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
+      }
+
+      if (mounted) setState(() {
+        _tracks  = songs;
+        _albums  = albums;
+        _artists = artists;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) _searchLocal(query);
+    }
+  }
+
+  void _searchLocal(String query) {
+    final q = query.toLowerCase();
+    final dlSongs = context.read<DownloadsProvider>().downloadedSongs;
+    final filtered = dlSongs.where((s) =>
+      s.title.toLowerCase().contains(q) ||
+      s.artist.toLowerCase().contains(q) ||
+      s.album.toLowerCase().contains(q)
+    ).toList();
+
+    final albumMap = <String, List<Song>>{};
+    for (final s in filtered) {
+      albumMap.putIfAbsent(s.album, () => []).add(s);
+    }
+    final albums = albumMap.entries.map((e) {
+      final first = e.value.first;
+      return Album(
+        hash: first.albumHash.isNotEmpty ? first.albumHash : e.key,
+        title: e.key, artist: first.artist, artistHash: first.artistHash,
+        trackCount: e.value.length, image: first.image ?? '',
+      );
+    }).toList();
+
+    final artistMap = <String, List<Song>>{};
+    for (final s in filtered) {
+      artistMap.putIfAbsent(s.artist, () => []).add(s);
+    }
+    final artists = artistMap.entries.map((e) {
+      final first = e.value.first;
+      final uniqueAlbums = e.value.map((s) => s.album).toSet();
+      return Artist(
+        hash: first.artistHash.isNotEmpty ? first.artistHash : e.key,
+        name: e.key, trackCount: e.value.length,
+        albumCount: uniqueAlbums.length, image: first.image ?? '',
+      );
+    }).toList();
+
+    setState(() {
+      _tracks  = filtered;
+      _albums  = albums;
+      _artists = artists;
+      _loading = false;
+    });
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return CustomScrollView(slivers: [
+
+      // ── App Bar ──────────────────────────────────────────────────
+      SliverAppBar(
+        pinned: true,
+        backgroundColor: Sp.bg,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Rechercher',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
+              color: Sp.white)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: _SearchBar(ctrl: _ctrl, focus: _focus, onChanged: _onChanged),
+          ),
+        ),
+      ),
+
+      // ── Filtre source ────────────────────────────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Row(children: [
+            _FilterChip(
+              label: 'Askaria', selected: _filter == 'all',
+              onTap: () { setState(() => _filter = 'all'); _onChanged(_ctrl.text); },
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: 'Deezer', selected: _filter == 'deezer',
+              onTap: () { setState(() => _filter = 'deezer'); _onChanged(_ctrl.text); },
+            ),
+          ]),
+        ),
+      ),
+
+      // ── Chips catégories ─────────────────────────────────────────
+      if (_filter == 'all')
+        SliverToBoxAdapter(child: SizedBox(
+          height: 46,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            itemCount: _categories.length,
+            itemBuilder: (ctx, i) {
+              final cat = _categories[i];
+              final keyword = cat.$4;
+              final isAll = keyword.isEmpty;
+              final isActive = isAll
+                  ? _activeCategory == null
+                  : _activeCategory == keyword;
+              return GestureDetector(
+                onTap: () => isAll
+                    ? _selectCategory('')
+                    : _selectCategory(keyword),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isActive ? cat.$2 : Sp.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: isActive ? null
+                        : Border.all(color: Sp.white12),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(cat.$3, size: 14,
+                      color: isActive ? Colors.white : Sp.white70),
+                    const SizedBox(width: 5),
+                    Text(cat.$1, style: TextStyle(
+                      color: isActive ? Colors.white : Sp.white70,
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              );
+            },
+          ),
+        )),
+
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+      // ── États ─────────────────────────────────────────────────────
+      if (_loading)
+        const SliverFillRemaining(child: Center(
+          child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2)))
+
+      else if (_hasResults) ...[
+        // Artistes
+        if (_artists.isNotEmpty) ...[
+          _SectionTitle('Artistes'),
+          SliverToBoxAdapter(child: SizedBox(
+            height: 130,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _artists.length,
+              itemBuilder: (ctx, i) => _ArtistChip(artist: _artists[i]),
+            ),
+          )),
+        ],
+        // Albums
+        if (_albums.isNotEmpty) ...[
+          _SectionTitle('Albums'),
+          SliverToBoxAdapter(child: SizedBox(
+            height: 190,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _albums.length,
+              itemBuilder: (ctx, i) => _AlbumChip(album: _albums[i]),
+            ),
+          )),
+        ],
+        // Titres
+        if (_tracks.isNotEmpty) ...[
+          _SectionTitle('Titres'),
+          SliverList(delegate: SliverChildBuilderDelegate(
+            (ctx, i) => _TrackRow(song: _tracks[i], all: _tracks, idx: i),
+            childCount: _tracks.length,
+          )),
+        ],
+      ]
+
+      else if (_query.isNotEmpty || _activeCategory != null)
+        SliverFillRemaining(child: Center(child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: Sp.card,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.search_off_rounded,
+                  color: Sp.white40, size: 40),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _activeCategory != null && _query.isEmpty
+                  ? 'Aucun résultat pour "$_activeCategory"'
+                  : 'Aucun résultat pour "$_query"',
+              style: const TextStyle(color: Sp.white70)),
+          ],
+        )))
+
+      else
+        SliverFillRemaining(child: Center(child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: Sp.card,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.search_rounded,
+                  color: Sp.white40, size: 40),
+            ),
+            const SizedBox(height: 16),
+            const Text('Recherchez un titre, artiste ou album',
+              style: TextStyle(color: Sp.white70)),
+          ],
+        ))),
+
+      const SliverToBoxAdapter(child: SizedBox(height: 100)),
+    ]);
+  }
+}
+
+// ── Barre de recherche ─────────────────────────────────────────────────────────
+class _SearchBar extends StatefulWidget {
+  final TextEditingController ctrl;
+  final FocusNode focus;
+  final ValueChanged<String> onChanged;
+  const _SearchBar({required this.ctrl, required this.focus,
+      required this.onChanged});
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focus.addListener(() {
+      setState(() => _focused = widget.focus.hasFocus);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 48,
+      decoration: BoxDecoration(
+        color: _focused ? Colors.white : const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(14),
+        border: _focused
+            ? null
+            : Border.all(color: Sp.white12),
+      ),
+      child: Row(children: [
+        const SizedBox(width: 12),
+        Icon(Icons.search,
+            color: _focused ? Colors.black54 : Sp.white70, size: 22),
+        const SizedBox(width: 8),
+        Expanded(child: TextField(
+          controller: widget.ctrl,
+          focusNode: widget.focus,
+          style: TextStyle(
+              color: _focused ? Colors.black : Colors.white, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: 'Artistes, titres, albums',
+            hintStyle: TextStyle(
+                color: _focused ? Colors.black38 : Sp.white40),
+            border: InputBorder.none, isDense: true),
+          onChanged: widget.onChanged,
+        )),
+        if (widget.ctrl.text.isNotEmpty)
+          GestureDetector(
+            onTap: () {
+              widget.ctrl.clear();
+              widget.onChanged('');
+              widget.focus.unfocus();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(Icons.clear,
+                  color: _focused ? Colors.black54 : Sp.white70,
+                  size: 20))),
+      ]),
+    );
+  }
+}
+
+// ── Filter chip ────────────────────────────────────────────────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({required this.label, required this.selected,
+      required this.onTap});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: selected ? kGrad : null,
+        color: selected ? null : Sp.card,
+        borderRadius: BorderRadius.circular(20),
+        border: selected ? null : Border.all(color: Sp.white12),
+        boxShadow: selected ? [BoxShadow(
+          color: Sp.g2.withValues(alpha: 0.3), blurRadius: 8,
+          offset: const Offset(0, 3))] : null,
+      ),
+      child: Text(label, style: TextStyle(
+        color: selected ? Colors.white : Sp.white70,
+        fontSize: 13, fontWeight: FontWeight.w600)),
+    ),
+  );
+}
+
+// ── Section title ──────────────────────────────────────────────────────────────
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle(this.title);
+  @override
+  Widget build(BuildContext ctx) => SliverToBoxAdapter(child: Padding(
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+    child: Text(title, style: const TextStyle(
+        color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
+  ));
+}
+
+// ── Artist chip ────────────────────────────────────────────────────────────────
+class _ArtistChip extends StatelessWidget {
+  final Artist artist;
+  const _ArtistChip({required this.artist});
+  @override
+  Widget build(BuildContext ctx) {
+    final api = SwingApiService();
+    return GestureDetector(
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => ArtistScreen(artist: artist))),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: SizedBox(width: 80, child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle, gradient: kGrad),
+              padding: const EdgeInsets.all(2),
+              child: ClipOval(child: Image.network(
+                '${api.baseUrl}/img/artist/small/${artist.image}',
+                width: 76, height: 76, fit: BoxFit.cover,
+                headers: api.authHeaders,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 76, height: 76, color: Sp.card,
+                  child: const Icon(Icons.person, color: Sp.white40, size: 36)))),
+            ),
+            const SizedBox(height: 6),
+            Text(artist.name,
+              style: const TextStyle(color: Sp.white,
+                  fontSize: 12, fontWeight: FontWeight.w500),
+              maxLines: 2, overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center),
+          ],
+        )),
+      ),
+    );
+  }
+}
+
+// ── Album chip ─────────────────────────────────────────────────────────────────
+class _AlbumChip extends StatelessWidget {
+  final Album album;
+  const _AlbumChip({required this.album});
+  @override
+  Widget build(BuildContext ctx) {
+    final api = SwingApiService();
+    final url = api.getThumbnailUrl(album.image);
+    return GestureDetector(
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => AlbumScreen(album: album))),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 14),
+        child: SizedBox(width: 130, child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                url,
+                width: 130, height: 130, fit: BoxFit.cover,
+                headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
+                errorBuilder: (_, __, ___) => Container(
+                  width: 130, height: 130, color: Sp.card,
+                  child: const Icon(Icons.album, color: Sp.white40, size: 40)))),
+            const SizedBox(height: 8),
+            Text(album.title,
+              style: const TextStyle(color: Sp.white,
+                  fontSize: 13, fontWeight: FontWeight.w500),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(album.artist,
+              style: const TextStyle(color: Sp.white70, fontSize: 11),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        )),
+      ),
+    );
+  }
+}
+
+// ── Track row ──────────────────────────────────────────────────────────────────
+class _TrackRow extends StatelessWidget {
+  final Song song; final List<Song> all; final int idx;
+  const _TrackRow({required this.song, required this.all, required this.idx});
+  @override
+  Widget build(BuildContext ctx) {
+    final isCurrent = ctx.watch<PlayerProvider>().currentSong == song;
+    return GestureDetector(
+      onTap: () => ctx.read<PlayerProvider>()
+          .playSong(song, queue: all, index: idx),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: ArtworkWidget(
+              key: ValueKey(song.hash), hash: song.image ?? song.hash,
+              size: 52, borderRadius: BorderRadius.circular(10))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(song.title, style: TextStyle(
+                color: isCurrent ? Sp.g2 : Sp.white,
+                fontSize: 15, fontWeight: FontWeight.w500),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(song.artist,
+                style: const TextStyle(color: Sp.white70, fontSize: 13),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ])),
+          if (isCurrent)
+            const GIcon(Icons.equalizer_rounded, size: 20),
+        ]),
+      ),
+    );
+  }
+}
