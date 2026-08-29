@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../screens/player_screen.dart';
@@ -55,15 +55,15 @@ class _MiniPlayerShell extends StatelessWidget {
           color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-              color: accent.withValues(alpha: 0.2), width: 0.8),
+              color: accent.withOpacity(0.2), width: 0.8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: Colors.black.withOpacity(0.4),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
             BoxShadow(
-              color: accent.withValues(alpha: 0.08),
+              color: accent.withOpacity(0.08),
               blurRadius: 20,
               offset: const Offset(0, 2),
             ),
@@ -210,3 +210,4 @@ class _MiniLikeBtn extends StatelessWidget {
     );
   }
 }
+

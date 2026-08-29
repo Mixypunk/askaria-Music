@@ -43,7 +43,7 @@ class _ProgressBar extends StatelessWidget {
             activeTrackColor: accent,
             inactiveTrackColor: Colors.white24,
             thumbColor: Colors.white,
-            overlayColor: accent.withValues(alpha: 0.2)),
+            overlayColor: accent.withOpacity(0.2)),
           child: Slider(
             min: 0.0,
             max: maxMs,
@@ -98,3 +98,4 @@ class _InfoRow extends StatelessWidget {
 }
 
 // ── Page File d'attente ────────────────────────────────────────────────────────
+

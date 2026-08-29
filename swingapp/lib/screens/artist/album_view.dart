@@ -61,7 +61,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
+                      color: Colors.black.withOpacity(0.5),
                       blurRadius: 30, offset: const Offset(0, 10))]),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -149,3 +149,4 @@ class _AlbumScreenState extends State<AlbumScreen> {
 }
 
 // ── Écran ajout de titres à une playlist ──────────────────────────────────────
+

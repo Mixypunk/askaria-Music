@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:provider/provider.dart';
 import '../models/album.dart';
@@ -132,7 +132,7 @@ class _AlbumCard extends StatelessWidget {
         Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
         Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
       ]),
     );
   }
@@ -200,7 +200,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                       const SizedBox(width: 16),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(widget.album.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
+                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
                         if (widget.album.year != null) Text('${widget.album.year}'),
                       ])),
                     ]),
@@ -215,3 +215,4 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
     );
   }
 }
+

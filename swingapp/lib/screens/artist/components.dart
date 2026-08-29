@@ -379,7 +379,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                         if (selected)
                           Positioned.fill(child: Container(
                             decoration: BoxDecoration(
-                              color: Sp.g2.withValues(alpha: 0.7),
+                              color: Sp.g2.withOpacity(0.7),
                               borderRadius: BorderRadius.circular(4)),
                             child: const Icon(Icons.check_rounded,
                                 color: Colors.white, size: 22))),
@@ -540,3 +540,4 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
     );
   }
 }
+

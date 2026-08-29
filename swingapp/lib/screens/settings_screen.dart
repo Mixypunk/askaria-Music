@@ -126,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   width: 32, height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF509BF5).withValues(alpha: 0.15),
+                    color: const Color(0xFF509BF5).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8)),
                   child: const Icon(Icons.volume_up_rounded,
                       color: Color(0xFF509BF5), size: 18)),
@@ -183,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     width: 32, height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFBA5D07).withValues(alpha: 0.15),
+                      color: const Color(0xFFBA5D07).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8)),
                     child: const Icon(Icons.swap_horiz_rounded,
                         color: Color(0xFFBA5D07), size: 18)),
@@ -308,10 +308,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Container(
               height: 54,
               decoration: BoxDecoration(
-                color: Colors.redAccent.withValues(alpha: 0.1),
+                color: Colors.redAccent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                    color: Colors.redAccent.withValues(alpha: 0.4))),
+                    color: Colors.redAccent.withOpacity(0.4))),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -442,7 +442,7 @@ class _SettingsTile extends StatelessWidget {
     leading: Container(
       width: 32, height: 32,
       decoration: BoxDecoration(
-        color: iconColor.withValues(alpha: 0.15),
+        color: iconColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8)),
       child: Icon(icon, color: iconColor, size: 18)),
     title: Text(title, style: const TextStyle(
@@ -479,7 +479,7 @@ class _SettingsTileSwitch extends StatelessWidget {
     secondary: Container(
       width: 32, height: 32,
       decoration: BoxDecoration(
-        color: iconColor.withValues(alpha: 0.15),
+        color: iconColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8)),
       child: Icon(icon, color: iconColor, size: 18)),
     title: Text(title, style: const TextStyle(color: Sp.white, fontSize: 15)),
@@ -514,7 +514,7 @@ class _SettingsTileDropdown<T> extends StatelessWidget {
     leading: Container(
       width: 32, height: 32,
       decoration: BoxDecoration(
-        color: iconColor.withValues(alpha: 0.15),
+        color: iconColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8)),
       child: Icon(icon, color: iconColor, size: 18)),
     title: Text(title, style: const TextStyle(color: Sp.white, fontSize: 15)),
@@ -550,7 +550,7 @@ class _GradientSlider extends StatelessWidget {
       activeTrackColor: Sp.g2,
       inactiveTrackColor: Colors.white12,
       thumbColor: Colors.white,
-      overlayColor: Sp.g2.withValues(alpha: 0.2),
+      overlayColor: Sp.g2.withOpacity(0.2),
       overlayShape: const RoundSliderOverlayShape(overlayRadius: 14)),
     child: Slider(
       value: value, min: min, max: max,
@@ -558,3 +558,4 @@ class _GradientSlider extends StatelessWidget {
       onChanged: onChanged),
   );
 }
+

@@ -159,7 +159,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   Positioned.fill(child: ImageFiltered(
                     imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
                     child: Image.memory(_bgImage!, fit: BoxFit.cover,
-                      color: Colors.black.withValues(alpha: 0.58),
+                      color: Colors.black.withOpacity(0.58),
                       colorBlendMode: BlendMode.darken)))
                 else
                   Positioned.fill(child: Container(
@@ -168,7 +168,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(
-                    colors: [dark.withValues(alpha: 0.5), Colors.transparent, Sp.bg.withValues(alpha: 0.65)],
+                    colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
                     begin: Alignment.topCenter, end: Alignment.bottomCenter,
                     stops: const [0.0, 0.4, 1.0])))),
 
@@ -265,3 +265,4 @@ class _PlayerScreenState extends State<PlayerScreen>
 }                         // class
 
 // ── Indicateur de page (3 points) ─────────────────────────────────────────────
+

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../main.dart';
 import '../services/api_service.dart';
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Sp.g2.withValues(alpha: 0.25),
+                        Sp.g2.withOpacity(0.25),
                         Colors.transparent,
                       ],
                     ),
@@ -133,7 +133,7 @@ class _TabPill extends StatelessWidget {
           gradient: sel ? kGrad : null,
           borderRadius: BorderRadius.circular(20),
           boxShadow: sel ? [BoxShadow(
-            color: Sp.g2.withValues(alpha: 0.3), blurRadius: 10,
+            color: Sp.g2.withOpacity(0.3), blurRadius: 10,
             offset: const Offset(0, 2))] : null,
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -203,7 +203,7 @@ class _QrTabState extends State<_QrTab> {
           borderRadius: BorderRadius.circular(20),
           gradient: kGradV,
           boxShadow: [BoxShadow(
-            color: Sp.g2.withValues(alpha: 0.3), blurRadius: 20,
+            color: Sp.g2.withOpacity(0.3), blurRadius: 20,
             offset: const Offset(0, 8))],
         ),
         padding: const EdgeInsets.all(3),
@@ -226,9 +226,9 @@ class _QrTabState extends State<_QrTab> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.redAccent.withValues(alpha: 0.12),
+            color: Colors.redAccent.withOpacity(0.12),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
           ),
           child: Text(_error!,
             style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
@@ -302,9 +302,9 @@ class _ManualTabState extends State<_ManualTab> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.redAccent.withValues(alpha: 0.1),
+            color: Colors.redAccent.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
           ),
           child: Text(_err!,
             style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
@@ -365,7 +365,7 @@ class _GlassFieldState extends State<_GlassField> {
       color: Sp.card,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(
-        color: _focused ? Sp.g2.withValues(alpha: 0.6) : Sp.white12,
+        color: _focused ? Sp.g2.withOpacity(0.6) : Sp.white12,
         width: _focused ? 1.5 : 0.8,
       ),
     ),
@@ -392,3 +392,4 @@ class _GlassFieldState extends State<_GlassField> {
     ]),
   );
 }
+

@@ -101,7 +101,7 @@ class GBtn extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: Sp.g2.withValues(alpha: 0.35),
+            color: Sp.g2.withOpacity(0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -280,7 +280,7 @@ class _SplashScreenState extends State<_SplashScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Sp.g2.withValues(alpha: 0.3 + _glow.value * 0.25),
+                        color: Sp.g2.withOpacity(0.3 + _glow.value * 0.25),
                         blurRadius: 40 + _glow.value * 30,
                         spreadRadius: 0,
                       ),
@@ -302,7 +302,7 @@ class _SplashScreenState extends State<_SplashScreen>
               SizedBox(
                 width: 20, height: 20,
                 child: CircularProgressIndicator(
-                  color: Sp.g2.withValues(alpha: 0.7),
+                  color: Sp.g2.withOpacity(0.7),
                   strokeWidth: 1.5,
                 ),
               ),
@@ -381,3 +381,4 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
   @override
   Widget build(BuildContext ctx) => widget.child;
 }
+

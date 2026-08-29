@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -96,7 +96,7 @@ class _BottomNav extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              color: Sp.bg.withValues(alpha: 0.88),
+              color: Sp.bg.withOpacity(0.88),
               child: SafeArea(
                 top: false,
                 child: SizedBox(
@@ -172,3 +172,4 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
+

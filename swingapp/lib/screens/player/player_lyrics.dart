@@ -116,7 +116,7 @@ class _LyricsPageState extends State<_LyricsPage> {
               style: active
                   ? TextStyle(color: accent, fontSize: 26,
                       fontWeight: FontWeight.bold, height: 1.4)
-                  : TextStyle(color: Colors.white.withValues(alpha: 0.22),
+                  : TextStyle(color: Colors.white.withOpacity(0.22),
                       fontSize: 18, height: 1.4, fontWeight: FontWeight.w600),
               child: Text(text, textAlign: TextAlign.left),
             ),
@@ -133,7 +133,7 @@ class _LyricsPageState extends State<_LyricsPage> {
           textAlign: TextAlign.left));
     }
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.lyrics_outlined, color: accent.withValues(alpha: 0.4), size: 56),
+      Icon(Icons.lyrics_outlined, color: accent.withOpacity(0.4), size: 56),
       const SizedBox(height: 16),
       const Text('Aucune parole disponible',
           style: TextStyle(color: Colors.white54)),
@@ -162,7 +162,7 @@ class _LyricsOverlay extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           color: HSLColor.fromColor(accent).withLightness(0.10).toColor()
-              .withValues(alpha: 0.97),
+              .withOpacity(0.97),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         margin: const EdgeInsets.only(top: 60),
@@ -186,7 +186,7 @@ class _LyricsOverlay extends StatelessWidget {
                     fontWeight: FontWeight.bold),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(song.artist, style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                    color: Colors.white.withOpacity(0.6), fontSize: 12),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 ])),
               GestureDetector(
@@ -199,7 +199,7 @@ class _LyricsOverlay extends StatelessWidget {
                     color: Colors.white, size: 22))),
             ]),
           ),
-          Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+          Divider(color: Colors.white.withOpacity(0.08), height: 1),
           // Paroles
           Expanded(child: ChangeNotifierProvider.value(
             value: player,
@@ -211,3 +211,4 @@ class _LyricsOverlay extends StatelessWidget {
     );
   }
 }
+
