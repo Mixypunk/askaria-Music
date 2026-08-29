@@ -946,7 +946,7 @@ class _AlbumCard extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
-    final url = '${api.baseUrl}/img/thumbnail/${album.image}';
+    final url = api.getThumbnailUrl(album.image);
     return GestureDetector(
       onTap: () async {
         final tracks = await SwingApiService().getAlbumTracks(album.hash);
@@ -964,7 +964,7 @@ class _AlbumCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: NetImage(url: url, width: 130, height: 130,
-              headers: api.authHeaders,
+              headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
               borderRadius: BorderRadius.circular(6),
               placeholder: Container(width: 130, height: 130, color: Sp.card,
                 child: const Icon(Icons.album, color: Sp.white40, size: 40)))),
@@ -1015,7 +1015,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
   @override
   Widget build(BuildContext context) {
     final api = SwingApiService();
-    final imgUrl = '${api.baseUrl}/img/thumbnail/${widget.album.image}';
+    final imgUrl = api.getThumbnailUrl(widget.album.image);
 
     return Scaffold(
       backgroundColor: Sp.bg,
@@ -1049,7 +1049,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: NetImage(url: imgUrl, width: 160, height: 160,
-                  headers: api.authHeaders,
+                  headers: imgUrl.startsWith(api.baseUrl) ? api.authHeaders : {},
                   borderRadius: BorderRadius.circular(8),
                   placeholder: Container(width: 160, height: 160, color: Sp.card,
                     child: const Icon(Icons.album, color: Sp.white40, size: 64))))),

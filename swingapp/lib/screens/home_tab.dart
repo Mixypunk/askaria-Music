@@ -535,7 +535,8 @@ class _AlbumCard extends StatelessWidget {
   const _AlbumCard({required this.album});
   @override
   Widget build(BuildContext ctx) {
-    final url = '${SwingApiService().baseUrl}/img/thumbnail/${album.image}';
+    final api = SwingApiService();
+    final url = api.getThumbnailUrl(album.image);
     return GestureDetector(
       onTap: () => _openAlbum(ctx),
       child: Padding(
@@ -547,7 +548,7 @@ class _AlbumCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               child: Stack(children: [
                 NetImage(url: url, width: 148, height: 148,
-                  headers: SwingApiService().authHeaders,
+                  headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
                   borderRadius: BorderRadius.circular(14),
                   placeholder: Container(width: 148, height: 148, color: Sp.card,
                     child: const Icon(Icons.album, color: Sp.white40, size: 48))),

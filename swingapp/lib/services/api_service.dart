@@ -628,12 +628,16 @@ class SwingApiService {
 
   // Format officiel: {baseUrl}img/artwork/{track.image}
   String getArtworkUrl(String imageHash, {String type = 'track'}) {
-    if (imageHash.startsWith('http')) return imageHash;
+    if (imageHash.startsWith('http')) {
+      return imageHash.replaceAll(RegExp(r'\d+x\d+(?=-)'), '500x500');
+    }
     return '$_baseUrl/img/artwork/$imageHash';
   }
 
   String getThumbnailUrl(String imageHash, {String type = 'track'}) {
-    if (imageHash.startsWith('http')) return imageHash;
+    if (imageHash.startsWith('http')) {
+      return imageHash.replaceAll(RegExp(r'\d+x\d+(?=-)'), '250x250');
+    }
     return '$_baseUrl/img/thumbnail/$imageHash';
   }
 

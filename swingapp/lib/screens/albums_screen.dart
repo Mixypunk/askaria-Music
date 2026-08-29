@@ -107,7 +107,7 @@ class _AlbumCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final api = SwingApiService();
-    final thumb = '${api.baseUrl}/img/thumbnail/${album.image}';
+    final thumb = api.getThumbnailUrl(album.image);
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => AlbumDetailScreen(album: album),
@@ -120,7 +120,7 @@ class _AlbumCard extends StatelessWidget {
             child: Image.network(
               thumb,
               fit: BoxFit.cover,
-              headers: api.authHeaders,
+              headers: thumb.startsWith(api.baseUrl) ? api.authHeaders : {},
               errorBuilder: (_, __, ___) => Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: const Icon(Icons.album, size: 48),
@@ -174,7 +174,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final api = SwingApiService();
-    final artwork = '${api.baseUrl}/img/thumbnail/${widget.album.image}';
+    final artwork = api.getThumbnailUrl(widget.album.image);
     return Scaffold(
       appBar: AppBar(title: Text(widget.album.title)),
       body: _loading
@@ -189,7 +189,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
                           artwork, width: 100, height: 100, fit: BoxFit.cover,
-                          headers: api.authHeaders,
+                          headers: artwork.startsWith(api.baseUrl) ? api.authHeaders : {},
                           errorBuilder: (_, __, ___) => Container(
                             width: 100, height: 100,
                             color: Theme.of(context).colorScheme.surfaceContainerHighest,

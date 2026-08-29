@@ -502,6 +502,7 @@ class _AlbumChip extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
+    final url = api.getThumbnailUrl(album.image);
     return GestureDetector(
       onTap: () => Navigator.push(ctx, MaterialPageRoute(
         builder: (_) => AlbumScreen(album: album))),
@@ -513,9 +514,9 @@ class _AlbumChip extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                '${api.baseUrl}/img/thumbnail/${album.image}',
+                url,
                 width: 130, height: 130, fit: BoxFit.cover,
-                headers: api.authHeaders,
+                headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
                 errorBuilder: (_, __, ___) => Container(
                   width: 130, height: 130, color: Sp.card,
                   child: const Icon(Icons.album, color: Sp.white40, size: 40)))),

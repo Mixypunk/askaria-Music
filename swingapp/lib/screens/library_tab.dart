@@ -402,6 +402,7 @@ class _AlbumTile extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
+    final url = api.getThumbnailUrl(album.image);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: GestureDetector(
@@ -414,9 +415,9 @@ class _AlbumTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: NetImage(
-                url: '${api.baseUrl}/img/thumbnail/${album.image}',
+                url: url,
                 width: 56, height: 56,
-                headers: api.authHeaders,
+                headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
                 borderRadius: BorderRadius.circular(10),
                 placeholder: Container(width: 56, height: 56, color: Sp.cardHi,
                   child: const Icon(Icons.album, color: Colors.white38, size: 28)))),

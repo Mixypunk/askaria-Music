@@ -74,7 +74,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _bgHash = imageField;
     // Réutiliser le cache artCache (déjà téléchargé par ArtworkWidget ou _fetchColors)
     final api = SwingApiService();
-    final url = '${api.baseUrl}/img/thumbnail/$imageField';
+    final url = api.getThumbnailUrl(imageField);
     final cached = artCache.get(url);
     if (cached != null) {
       if (mounted) setState(() => _bgImage = cached);
