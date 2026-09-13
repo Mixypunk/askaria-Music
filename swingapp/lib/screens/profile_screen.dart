@@ -15,6 +15,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _api = SwingApiService();
   Map<String, dynamic> _profile = {};
   bool _loading = true;
+  bool _isOffline = false;
 
   @override
   void initState() {
@@ -23,8 +24,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
-    final p = await _api.getMyProfile();
-    if (mounted) setState(() { _profile = p; _loading = false; });
+    var p = await _api.getMyProfile();
+    bool offline = false;
+    if (p.isEmpty) {
+      // Pas de réseau ou token invalide — tenter le cache
+      p = await _api.getCachedProfile();
+      offline = true;
+    }
+    if (mounted) setState(() { _profile = p; _loading = false; _isOffline = offline; });
   }
 
   @override
@@ -43,20 +50,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Sp.g2))
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              children: [
-                _AvatarSection(
-                    profile: _profile, api: _api, onUpdated: _load),
-                const SizedBox(height: 32),
-                _InfoSection(
-                    profile: _profile, api: _api, onUpdated: _load),
-                const SizedBox(height: 20),
-                _PasswordSection(api: _api),
-              ],
-            ),
+          : _profile.isEmpty
+              ? const _OfflineEmptyState()
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                  children: [
+                    if (_isOffline) _OfflineBanner(),
+                    if (_isOffline) const SizedBox(height: 16),
+                    _AvatarSection(
+                        profile: _profile, api: _api, onUpdated: _load,
+                        isOffline: _isOffline),
+                    const SizedBox(height: 32),
+                    _InfoSection(
+                        profile: _profile, api: _api, onUpdated: _load,
+                        isOffline: _isOffline),
+                    if (!_isOffline) ...[
+                      const SizedBox(height: 20),
+                      _PasswordSection(api: _api),
+                    ],
+                  ],
+                ),
     );
   }
+}
+
+// ── Bandeau hors-ligne ─────────────────────────────────────────────────────────
+class _OfflineBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: Colors.orange.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.orange.withOpacity(0.35)),
+    ),
+    child: const Row(children: [
+      Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 18),
+      SizedBox(width: 10),
+      Expanded(child: Text(
+        'Mode hors-ligne — données non actualisées',
+        style: TextStyle(color: Colors.orange, fontSize: 13),
+      )),
+    ]),
+  );
+}
+
+class _OfflineEmptyState extends StatelessWidget {
+  const _OfflineEmptyState();
+  @override
+  Widget build(BuildContext context) => const Center(child: Padding(
+    padding: EdgeInsets.all(32),
+    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 56),
+      SizedBox(height: 16),
+      Text('Profil indisponible',
+          style: TextStyle(color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
+      SizedBox(height: 8),
+      Text('Connectez-vous au moins une fois en ligne\npour accéder à votre profil hors-ligne.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Sp.white40, fontSize: 13)),
+    ]),
+  ));
 }
 
 // ── Section avatar ─────────────────────────────────────────────────────────────
@@ -64,8 +118,9 @@ class _AvatarSection extends StatefulWidget {
   final Map<String, dynamic> profile;
   final SwingApiService api;
   final VoidCallback onUpdated;
+  final bool isOffline;
   const _AvatarSection({required this.profile, required this.api,
-      required this.onUpdated});
+      required this.onUpdated, this.isOffline = false});
   @override
   State<_AvatarSection> createState() => _AvatarSectionState();
 }
@@ -112,7 +167,7 @@ class _AvatarSectionState extends State<_AvatarSection> {
     return Center(child: Column(children: [
       Stack(children: [
         GestureDetector(
-          onTap: _uploading ? null : _pickAndUpload,
+          onTap: (_uploading || widget.isOffline) ? null : _pickAndUpload,
           child: Container(
             width: 110, height: 110,
             decoration: const BoxDecoration(
@@ -130,8 +185,8 @@ class _AvatarSectionState extends State<_AvatarSection> {
                 : _DefaultAvatar(username)),
           ),
         ),
-        // Bouton caméra
-        Positioned(
+        // Bouton caméra — masqué en mode hors-ligne
+        if (!widget.isOffline) Positioned(
           bottom: 0, right: 0,
           child: GestureDetector(
             onTap: _uploading ? null : _pickAndUpload,
@@ -171,8 +226,9 @@ class _AvatarSectionState extends State<_AvatarSection> {
               style: TextStyle(color: Sp.g2, fontSize: 12,
                   fontWeight: FontWeight.bold))),
       const SizedBox(height: 4),
-      Text('Appuyer sur la photo pour modifier',
-        style: const TextStyle(color: Sp.white40, fontSize: 12)),
+      if (!widget.isOffline)
+        const Text('Appuyer sur la photo pour modifier',
+          style: TextStyle(color: Sp.white40, fontSize: 12)),
     ]));
   }
 }
@@ -195,8 +251,9 @@ class _InfoSection extends StatefulWidget {
   final Map<String, dynamic> profile;
   final SwingApiService api;
   final VoidCallback onUpdated;
+  final bool isOffline;
   const _InfoSection({required this.profile, required this.api,
-      required this.onUpdated});
+      required this.onUpdated, this.isOffline = false});
   @override
   State<_InfoSection> createState() => _InfoSectionState();
 }
@@ -324,9 +381,27 @@ class _InfoSectionState extends State<_InfoSection> {
           label: 'Bio (courte)', ctrl: _bioCtrl,
           icon: Icons.edit_note_rounded, maxLines: 3, maxLength: 300),
       const SizedBox(height: 16),
-      SizedBox(width: double.infinity,
-        child: GBtn('Enregistrer',
-            onTap: _saving ? null : _save, loading: _saving)),
+      if (widget.isOffline)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.25)),
+          ),
+          child: const Row(children: [
+            Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 16),
+            SizedBox(width: 10),
+            Expanded(child: Text(
+              'Reconnectez-vous au réseau pour modifier votre profil.',
+              style: TextStyle(color: Colors.orange, fontSize: 12),
+            )),
+          ]),
+        )
+      else
+        SizedBox(width: double.infinity,
+          child: GBtn('Enregistrer',
+              onTap: _saving ? null : _save, loading: _saving)),
     ],
   );
 

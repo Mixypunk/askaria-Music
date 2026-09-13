@@ -17,6 +17,21 @@ allprojects {
     }
 }
 
+// Fix pour les plugins tiers (ex: nsd_android) qui utilisent
+// flutter.compileSdkVersion / flutter.minSdkVersion dans leur build.gradle.
+// Ces propriétés doivent être injectées AVANT l'évaluation du sous-projet.
+subprojects {
+    beforeEvaluate { project ->
+        if (project.name != 'app') {
+            // Injecter un objet 'flutter' avec les valeurs SDK attendues par les vieux plugins
+            project.extensions.extraProperties['flutter'] = new Expando()
+            project.extensions.extraProperties['flutter'].minSdkVersion     = 21
+            project.extensions.extraProperties['flutter'].targetSdkVersion  = 34
+            project.extensions.extraProperties['flutter'].compileSdkVersion = 34
+        }
+    }
+}
+
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"

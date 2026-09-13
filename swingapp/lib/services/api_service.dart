@@ -330,9 +330,14 @@ class SwingApiService {
         return true;
       }
       if (response.statusCode == 401) {
-        return false;
+        // Token potentiellement expiré → tenter un refresh avant de déconnecter
+        final refreshed = await _refreshAccessToken();
+        if (refreshed) return true;
+        return false; // Vraiment invalide
       }
-      return false;
+      // 5xx, 502, 503, 504, etc. → serveur indisponible mais token présent → mode offline
+      debugPrint('checkAuth server error ${response.statusCode} — mode offline');
+      return true;
     } on TimeoutException catch (_) {
       // Timeout = serveur inaccessible mais token présent → mode offline
       debugPrint('checkAuth timeout — mode offline');

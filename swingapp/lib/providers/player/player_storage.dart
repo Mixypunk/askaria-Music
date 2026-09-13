@@ -128,8 +128,10 @@ extension PlayerStorage on PlayerProvider {
       _queue = restored;
       _currentIndex = savedIndex.clamp(0, restored.length - 1);
 
-      // Construire la playlist et charger sans jouer
-      final sources = _queue.map(_buildSource).toList();
+      // Construire la playlist avec _buildSourceAsync → token frais garanti.
+      // _buildSource (sync) utilisait _streamToken qui est null au redémarrage
+      // et ne demande jamais de nouveau token → l'audio échoue après 1h.
+      final sources = await Future.wait(_queue.map(_buildSourceAsync));
       await _playlist.addAll(sources);
       await _player.setAudioSource(
         _playlist,

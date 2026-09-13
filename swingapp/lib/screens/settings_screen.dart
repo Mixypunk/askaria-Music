@@ -73,7 +73,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
 
-          // ── SERVEUR ──────────────────────────────────────────────
+          // ── COMPTE (mini header, visible même hors-ligne) ─────────
+          const _ProfileHeader(),
+          const SizedBox(height: 24),
+
           _SectionTitle('Serveur', Icons.dns_rounded),
           _SettingsCard(children: [
             _SettingsTile(
@@ -287,19 +290,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           const SizedBox(height: 24),
 
-          // ── PROFIL ───────────────────────────────────────────────
-          _SectionTitle('Mon profil', Icons.manage_accounts_rounded),
-          _SettingsCard(children: [
-            _SettingsTile(
-              icon: Icons.manage_accounts_rounded,
-              iconColor: const Color(0xFF4776E6),
-              title: 'Modifier mon profil',
-              subtitle: 'Photo, nom, email, bio',
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const ProfileScreen())),
-            ),
-          ]),
-          const SizedBox(height: 24),
 
           // ── COMPTE ───────────────────────────────────────────────
           _SectionTitle('Compte', Icons.logout_rounded),
@@ -559,3 +549,111 @@ class _GradientSlider extends StatelessWidget {
   );
 }
 
+// ── Mini header profil (lit le cache — fonctionne hors-ligne) ─────────────────
+class _ProfileHeader extends StatefulWidget {
+  const _ProfileHeader();
+  @override
+  State<_ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends State<_ProfileHeader> {
+  Map<String, dynamic> _profile = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    // Essayer le réseau d'abord ; si ça échoue, lire le cache
+    var p = await SwingApiService().getMyProfile();
+    if (p.isEmpty) p = await SwingApiService().getCachedProfile();
+    if (mounted) setState(() => _profile = p);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final username = _profile['username'] as String? ?? '';
+    final role     = _profile['role']     as String? ?? '';
+    final userId   = _profile['id']       as int?    ?? 0;
+    final avatarUrl = userId > 0 ? SwingApiService().getAvatarUrl(userId) : null;
+
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()));
+        _load(); // Actualiser après retour du profil
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Sp.card,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(children: [
+          // Avatar initiale ou image
+          Container(
+            width: 48, height: 48,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: kGrad,
+            ),
+            padding: const EdgeInsets.all(2),
+            child: ClipOval(
+              child: avatarUrl != null && username.isNotEmpty
+                  ? Image.network(
+                      avatarUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _InitialAvatar(username),
+                    )
+                  : _InitialAvatar(username),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                username.isNotEmpty ? username : 'Mon compte',
+                style: const TextStyle(color: Sp.white,
+                    fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              if (role == 'admin')
+                Container(
+                  margin: const EdgeInsets.only(top: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Sp.g2.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Sp.g2.withOpacity(0.4)),
+                  ),
+                  child: const Text('Admin',
+                      style: TextStyle(color: Sp.g2,
+                          fontSize: 10, fontWeight: FontWeight.bold)),
+                )
+              else
+                const Text('Voir et modifier le profil',
+                    style: TextStyle(color: Sp.white40, fontSize: 12)),
+            ],
+          )),
+          const Icon(Icons.chevron_right_rounded, color: Sp.white40, size: 20),
+        ]),
+      ),
+    );
+  }
+}
+
+class _InitialAvatar extends StatelessWidget {
+  final String username;
+  const _InitialAvatar(this.username);
+  @override
+  Widget build(BuildContext context) => Container(
+    color: Sp.surface,
+    child: Center(child: Text(
+      username.isNotEmpty ? username[0].toUpperCase() : '?',
+      style: const TextStyle(color: Sp.white,
+          fontSize: 20, fontWeight: FontWeight.bold),
+    )),
+  );
+}

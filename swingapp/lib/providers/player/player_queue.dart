@@ -40,10 +40,59 @@ extension PlayerQueueExt on PlayerProvider {
     );
   }
 
+  /// Version async de _buildSource — obtient un stream token frais via await.
+  /// À utiliser dans _restoreQueue et _rebuildPlaylist pour éviter le bug
+  /// où le stream token (durée 13 min) est expiré après un redémarrage ou
+  /// après 1h d'inactivité.
+  Future<AudioSource> _buildSourceAsync(Song song) async {
+    String? localPath = song.filepath;
+
+    if (localPath == null || !localPath.contains('/offline/')) {
+      final offlineDir = _api.offlineDirPath;
+      if (offlineDir != null) {
+        final extRaw = (song.filepath ?? '').split('.').last.toLowerCase();
+        final ext = (extRaw.isNotEmpty && extRaw.length <= 4 && extRaw != song.filepath) ? extRaw : 'mp3';
+        final possibleLocalPath = '$offlineDir/${song.hash}.$ext';
+        if (File(possibleLocalPath).existsSync()) {
+          localPath = possibleLocalPath;
+        }
+      }
+    }
+
+    final isLocal = localPath != null && localPath.contains('/offline/');
+    final isDeezerPreview = song.hash.startsWith('dz_');
+
+    Uri uri;
+    if (isLocal) {
+      uri = Uri.file(localPath!);
+    } else if (isDeezerPreview) {
+      uri = Uri.parse(song.filepath ?? '');
+    } else {
+      // Utilise buildStreamUrl (async) → obtient un token frais si expiré
+      final streamUrl = await _api.buildStreamUrl(song.hash, filepath: song.filepath);
+      uri = Uri.parse(streamUrl);
+    }
+
+    final headers = (isLocal || isDeezerPreview) ? null : _api.authHeaders;
+
+    return AudioSource.uri(
+      uri,
+      headers: headers,
+      tag: MediaItem(
+        id:     song.hash,
+        title:  song.title,
+        artist: song.artist,
+        album:  song.album,
+        artUri: Uri.parse(_api.getArtworkUrl(song.image ?? song.hash)),
+      ),
+    );
+  }
+
   // Reconstruit toute la ConcatenatingAudioSource depuis _queue
+  // Utilise _buildSourceAsync pour garantir un stream token valide
   Future<void> _rebuildPlaylist({int startIndex = 0}) async {
     try {
-      final sources = _queue.map(_buildSource).toList();
+      final sources = await Future.wait(_queue.map(_buildSourceAsync));
       _playlist = ConcatenatingAudioSource(children: sources);
 
       await _player.setAudioSource(

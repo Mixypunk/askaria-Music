@@ -1,4 +1,4 @@
-﻿part of '../api_service.dart';
+part of '../api_service.dart';
 
 extension ApiProfile on SwingApiService {
   // ── PROFIL ────────────────────────────────────────────────────────────────
@@ -8,9 +8,25 @@ extension ApiProfile on SwingApiService {
       if (r.statusCode == 200) {
         final data = json.decode(r.body) as Map<String, dynamic>;
         _canDownload = data['can_download'] ?? false;
+        // Persister le profil pour le mode hors-ligne
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_profile', r.body);
         return data;
       }
     } catch (e) { LoggerService.warning('Silent error caught in api_profile.dart', e); }
+    return {};
+  }
+
+  /// Retourne le profil mis en cache (SharedPreferences).
+  /// Utilisé comme fallback quand le réseau est indisponible.
+  Future<Map<String, dynamic>> getCachedProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('cached_profile');
+      if (raw != null && raw.isNotEmpty) {
+        return json.decode(raw) as Map<String, dynamic>;
+      }
+    } catch (e) { LoggerService.warning('getCachedProfile error', e); }
     return {};
   }
 
