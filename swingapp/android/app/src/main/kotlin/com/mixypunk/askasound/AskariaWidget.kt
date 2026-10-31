@@ -26,7 +26,6 @@ class AskariaWidget : AppWidgetProvider() {
         const val KEY_ARTIST   = "widget_artist"
         const val KEY_PLAYING  = "widget_playing"
         const val KEY_ART_URL  = "widget_art_url"
-        const val KEY_TOKEN    = "widget_auth_token"
 
         fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
@@ -65,7 +64,6 @@ class AskariaWidget : AppWidgetProvider() {
         val artist  = prefs.getString(KEY_ARTIST,  "Aucun titre en cours") ?: "Aucun titre"
         val playing = prefs.getBoolean(KEY_PLAYING, false)
         val artUrl  = prefs.getString(KEY_ART_URL, null)
-        val token   = prefs.getString(KEY_TOKEN, null)
 
         val views = RemoteViews(ctx.packageName, R.layout.askaria_widget)
 
@@ -94,11 +92,11 @@ class AskariaWidget : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.widget_title,   openPending)
         views.setOnClickPendingIntent(R.id.widget_artist,  openPending)
 
-        // Charger la pochette en arrière-plan
+        // Charger la pochette en arrière-plan (sans aucun jeton d'authentification exposé)
         if (artUrl != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val bmp = loadBitmap(artUrl, token)
+                    val bmp = loadBitmap(artUrl)
                     if (bmp != null) {
                         views.setImageViewBitmap(R.id.widget_artwork, bmp)
                         mgr.updateAppWidget(id, views)
@@ -111,19 +109,19 @@ class AskariaWidget : AppWidgetProvider() {
     }
 
     private fun makePending(ctx: Context, action: String): PendingIntent {
-        val intent = Intent(ctx, AskariaWidget::class.java).apply { this.action = action }
+        val intent = Intent(ctx, AskariaWidget::class.java).apply {
+            this.action = action
+            this.setPackage(ctx.packageName)
+        }
         return PendingIntent.getBroadcast(
             ctx, action.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
-    private fun loadBitmap(url: String, token: String?): Bitmap? {
+    private fun loadBitmap(url: String): Bitmap? {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 6000
         conn.readTimeout    = 6000
-        if (!token.isNullOrEmpty()) {
-            conn.setRequestProperty("Authorization", "Bearer $token")
-        }
         return try {
             conn.connect()
             if (conn.responseCode == 200)

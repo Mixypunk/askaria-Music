@@ -172,11 +172,91 @@ class _QrTabState extends State<_QrTab> {
       setState(() { _loading = false; _error = 'QR invalide — format inconnu'; _scanning = true; });
       return;
     }
-    final serverUrl = trimmed.substring(0, lastSpace);
-    final code      = trimmed.substring(lastSpace + 1);
+    final serverUrl = trimmed.substring(0, lastSpace).trim();
+    final code      = trimmed.substring(lastSpace + 1).trim();
 
     if (serverUrl.isEmpty || code.isEmpty) {
       setState(() { _loading = false; _error = 'QR invalide — données manquantes'; _scanning = true; });
+      return;
+    }
+
+    // Validation stricte de l'URL du serveur
+    final parsedUri = Uri.tryParse(serverUrl);
+    if (parsedUri == null ||
+        !parsedUri.hasScheme ||
+        (parsedUri.scheme != 'https' && parsedUri.scheme != 'http') ||
+        parsedUri.host.isEmpty) {
+      setState(() { _loading = false; _error = 'URL de serveur invalide dans le QR code'; _scanning = true; });
+      return;
+    }
+
+    // Demande de confirmation explicite pour éviter tout détournement d'URL par QR code piège
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        backgroundColor: Sp.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Connexion au serveur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Souhaitez-vous connecter votre application au serveur suivant ?', style: TextStyle(color: Sp.white70, fontSize: 14)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Sp.bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Sp.white12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    parsedUri.scheme == 'https' ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
+                    color: parsedUri.scheme == 'https' ? Colors.greenAccent : Colors.orangeAccent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      serverUrl,
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (parsedUri.scheme != 'https') ...[
+              const SizedBox(height: 10),
+              const Text(
+                '⚠️ Attention : Connexion HTTP non chiffrée. À réserver au réseau local.',
+                style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Annuler', style: TextStyle(color: Sp.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Sp.g2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Se connecter', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      if (mounted) setState(() { _loading = false; _scanning = true; });
       return;
     }
 

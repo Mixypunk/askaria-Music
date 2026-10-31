@@ -12,6 +12,7 @@ import '../models/album.dart';
 import 'logger_service.dart';
 import 'resilient_http_client.dart';
 import 'api_cache_service.dart';
+import 'widget_service.dart';
 
 part 'api/api_music.dart';
 part 'api/api_playlists.dart';
@@ -228,13 +229,41 @@ class SwingApiService {
 
 
   Future<void> logout() async {
+    // 1. Tenter d'invalider la session côté serveur
+    try {
+      if (_accessToken != null) {
+        await _client.post(
+          Uri.parse('$_baseUrl/auth/logout'),
+          headers: _headers,
+        ).timeout(const Duration(seconds: 4));
+      }
+    } catch (_) {}
+
+    // 2. Nettoyer les tokens en mémoire
     _accessToken = null;
     _refreshToken = null;
-    await _secure.delete(key: 'access_token');
-    await _secure.delete(key: 'refresh_token');
+    _streamToken = null;
+    _streamTokenExpiry = null;
+    _canDownload = false;
+
+    // 3. Purger le stockage sécurisé
+    try {
+      await _secure.deleteAll();
+    } catch (e) {
+      LoggerService.warning('Erreur lors du nettoyage de SecureStorage', e);
+    }
+
+    // 4. Nettoyer SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+    await prefs.remove('cached_profile');
+
+    // 5. Purger le cache des requêtes JSON
+    await ApiCacheService.instance.clearCache();
+
+    // 6. Réinitialiser le widget Android natif
+    await WidgetService.instance.clear();
   }
 
   // ── Refresh token automatique ────────────────────────────────────────

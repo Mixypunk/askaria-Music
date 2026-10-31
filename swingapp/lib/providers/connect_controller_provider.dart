@@ -165,7 +165,7 @@ class ConnectControllerProvider extends ChangeNotifier {
   // --- Remote Control Commands ---
   
   void playSong(Song song) {
-    // Send full song metadata so the receiver can play it
+    // Transmettre uniquement les métadonnées de présentation au récepteur distant (sans exposer de chemins internes)
     _sendCommand('play', {
       'song': {
         'hash': song.hash,
@@ -173,7 +173,6 @@ class ConnectControllerProvider extends ChangeNotifier {
         'artist': song.artist,
         'album': song.album,
         'image': song.image,
-        'filepath': song.filepath,
       }
     });
   }

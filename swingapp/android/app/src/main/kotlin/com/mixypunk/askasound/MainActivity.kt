@@ -53,18 +53,27 @@ class MainActivity : AudioServiceActivity() {
         // ── Canal mise à jour widget ────────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL)
             .setMethodCallHandler { call, result ->
-                if (call.method == "updateWidget") {
-                    val intent = Intent(WidgetReceiver.ACTION_UPDATE).apply {
-                        setPackage(packageName)
-                        putExtra("title",      call.argument<String>("title")      ?: "")
-                        putExtra("artist",     call.argument<String>("artist")     ?: "")
-                        putExtra("art_url",    call.argument<String>("art_url")    ?: "")
-                        putExtra("auth_token", call.argument<String>("auth_token") ?: "")
-                        putExtra("playing",    call.argument<Boolean>("playing")   ?: false)
+                when (call.method) {
+                    "updateWidget" -> {
+                        val intent = Intent(WidgetReceiver.ACTION_UPDATE).apply {
+                            setPackage(packageName)
+                            putExtra("title",   call.argument<String>("title")   ?: "")
+                            putExtra("artist",  call.argument<String>("artist")  ?: "")
+                            putExtra("art_url", call.argument<String>("art_url") ?: "")
+                            putExtra("playing", call.argument<Boolean>("playing") ?: false)
+                        }
+                        sendBroadcast(intent)
+                        result.success(true)
                     }
-                    sendBroadcast(intent)
-                    result.success(true)
-                } else result.notImplemented()
+                    "clearWidget" -> {
+                        val intent = Intent(WidgetReceiver.ACTION_CLEAR).apply {
+                            setPackage(packageName)
+                        }
+                        sendBroadcast(intent)
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
             }
 
         // ── EventChannel — actions widget → Flutter ─────────────────────
@@ -98,6 +107,24 @@ class MainActivity : AudioServiceActivity() {
     private fun installApk(apkPath: String) {
         val file = File(apkPath)
         if (!file.exists()) throw Exception("Fichier introuvable : $apkPath")
+        if (!file.name.endsWith(".apk", ignoreCase = true)) {
+            throw SecurityException("Seuls les fichiers .apk sont autorisés pour l'installation")
+        }
+
+        // Vérification de sécurité : le fichier doit être situé dans un répertoire de l'application
+        val canonicalPath = file.canonicalPath
+        val allowedCache = cacheDir.canonicalPath
+        val allowedExternal = getExternalFilesDir(null)?.canonicalPath ?: ""
+        val allowedExternalCache = externalCacheDir?.canonicalPath ?: ""
+
+        val isAllowed = canonicalPath.startsWith(allowedCache) ||
+                (allowedExternal.isNotEmpty() && canonicalPath.startsWith(allowedExternal)) ||
+                (allowedExternalCache.isNotEmpty() && canonicalPath.startsWith(allowedExternalCache))
+
+        if (!isAllowed) {
+            throw SecurityException("Accès refusé : chemin d'installation hors des répertoires applicatifs autorisés")
+        }
+
         val uri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             FileProvider.getUriForFile(this, "${applicationContext.packageName}.fileprovider", file)
         } else Uri.fromFile(file)

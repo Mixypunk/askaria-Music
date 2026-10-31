@@ -16,7 +16,6 @@ extension PlayerMetadata on PlayerProvider {
       artist:    song.artist,
       artUrl:    artUrl,
       isPlaying: _isPlaying,
-      authToken: _api.accessToken,
     );
   }
 

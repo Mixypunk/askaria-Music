@@ -105,19 +105,33 @@ class UpdateService {
     return false;
   }
 
-  // ── Téléchargement ─────────────────────────────────────────────────────
+  // ── Téléchargement sécurisé ──────────────────────────────────────────
   Future<String> downloadApk(
     UpdateInfo info,
     ValueNotifier<double> progress,
   ) async {
-    // Sauvegarder dans le répertoire de téléchargements externe
-    // pour que FileProvider puisse y accéder
-    final dir = await getExternalStorageDirectory()
-        ?? await getTemporaryDirectory();
-    final path = '${dir.path}/Askaria-${info.version}.apk';
+    // 1. Vérification de sécurité : HTTPS obligatoire pour le téléchargement
+    if (!info.downloadUrl.startsWith('https://')) {
+      throw Exception('Téléchargement rejeté : URL non sécurisée (HTTPS requis).');
+    }
 
+    // 2. Sauvegarder dans le sous-répertoire isolé "updates/"
+    final baseDir = await getExternalStorageDirectory() ?? await getTemporaryDirectory();
+    final updatesDir = Directory('${baseDir.path}/updates');
+    if (!await updatesDir.exists()) {
+      await updatesDir.create(recursive: true);
+    }
+
+    // Nettoyer les anciens fichiers APK temporaires
+    try {
+      final oldFiles = updatesDir.listSync().whereType<File>();
+      for (final f in oldFiles) {
+        if (f.path.endsWith('.apk')) await f.delete();
+      }
+    } catch (_) {}
+
+    final path = '${updatesDir.path}/Askaria-${info.version}.apk';
     final file = File(path);
-    if (await file.exists()) await file.delete();
 
     final dio = Dio()
       ..options.receiveTimeout = const Duration(minutes: 10);
@@ -130,7 +144,28 @@ class UpdateService {
       },
     );
 
-    debugPrint('APK téléchargé : $path (${await file.length()} bytes)');
+    // 3. Validation de l'intégrité de base du fichier APK
+    if (!await file.exists()) {
+      throw Exception('Fichier APK manquant après téléchargement.');
+    }
+    final length = await file.length();
+    if (length < 1000000) { // Un APK Flutter fait au minimum plusieurs mégaoctets
+      await file.delete();
+      throw Exception('Téléchargement invalide : taille de fichier anormale ($length octets).');
+    }
+
+    // 4. Vérification des magic bytes ZIP/APK (PK\x03\x04)
+    final handle = await file.open(mode: FileMode.read);
+    final header = await handle.read(4);
+    await handle.close();
+    if (header.length < 4 ||
+        header[0] != 0x50 || header[1] != 0x4B ||
+        header[2] != 0x03 || header[3] != 0x04) {
+      await file.delete();
+      throw Exception('Fichier corrompu ou altéré : signature APK invalide.');
+    }
+
+    debugPrint('APK sécurisé téléchargé : $path ($length bytes)');
     return path;
   }
 

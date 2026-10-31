@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Cache interne -->
-    <cache-path name="cache" path="." />
-    <!-- Cache externe (nécessaire pour servir l'APK à l'installeur) -->
-    <external-cache-path name="external_cache" path="." />
-    <!-- Fichiers externes -->
-    <external-files-path name="external_files" path="." />
-    <!-- Fichiers internes -->
-    <files-path name="files" path="." />
+    <!-- Répertoire strictement réservé au téléchargement et à l'installation des mises à jour APK -->
+    <cache-path name="apk_cache" path="updates/" />
+    <external-cache-path name="external_apk_cache" path="updates/" />
+    <external-files-path name="external_apk_files" path="updates/" />
 </paths>

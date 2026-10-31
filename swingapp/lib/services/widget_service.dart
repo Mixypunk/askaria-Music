@@ -33,24 +33,31 @@ class WidgetService {
     });
   }
 
-  /// Met à jour le widget avec les infos du titre en cours.
+  /// Met à jour le widget avec les infos du titre en cours (sans exposer de jeton d'authentification).
   Future<void> update({
     required String title,
     required String artist,
     required String artUrl,
     required bool isPlaying,
-    String? authToken,
   }) async {
     try {
       await _channel.invokeMethod('updateWidget', {
-        'title':      title,
-        'artist':     artist,
-        'art_url':    artUrl,
-        'playing':    isPlaying,
-        'auth_token': authToken ?? '',
+        'title':   title,
+        'artist':  artist,
+        'art_url': artUrl,
+        'playing': isPlaying,
       });
     } catch (e) {
-      debugPrint('Widget update error: \$e');
+      debugPrint('Widget update error: $e');
+    }
+  }
+
+  /// Réinitialise l'état du widget lors de la déconnexion ou de l'arrêt complet.
+  Future<void> clear() async {
+    try {
+      await _channel.invokeMethod('clearWidget');
+    } catch (e) {
+      debugPrint('Widget clear error: $e');
     }
   }
 }
