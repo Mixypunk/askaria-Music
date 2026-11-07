@@ -615,30 +615,8 @@ class _PlayerPage extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // ── Slider volume ─────────────────────────────────────────
-        Row(children: [
-          Icon(
-            player.volume == 0
-                ? Icons.volume_off_rounded
-                : player.volume < 0.5
-                    ? Icons.volume_down_rounded
-                    : Icons.volume_up_rounded,
-            size: 18, color: Colors.white38),
-          Expanded(child: SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-              activeTrackColor: accent,
-              inactiveTrackColor: Colors.white24,
-              thumbColor: Colors.white,
-              overlayColor: accent.withOpacity(0.2)),
-            child: Slider(
-              value: player.volume,
-              onChanged: (v) => player.setVolume(v)),
-          )),
-          Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
-        ]),
+        // ── Slider volume — autonome avec Consumer ────────────────
+        _VolumeBar(accent: accent),
         const SizedBox(height: 6),
 
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [

@@ -10,22 +10,60 @@ extension ApiStats on SwingApiService {
     return {};
   }
 
-  Future<Map<String, dynamic>> getTopTracks({int limit = 10, String period = 'all'}) async {
+  Future<Map<String, dynamic>> getTopTracks({int limit = 10, String period = 'all', bool forceRefresh = false}) async {
     try {
       final uri = Uri.parse('$_baseUrl/stats/top-tracks')
           .replace(queryParameters: {'limit': '$limit', 'period': period});
-      final r = await _authedGet(uri, useCache: true);
-      if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
+      var r = await _authedGet(uri, useCache: true, forceRefresh: forceRefresh);
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body);
+        if (data is Map<String, dynamic>) {
+          final items = data['items'] as List?;
+          if ((items == null || items.isEmpty) && !forceRefresh) {
+            await ApiCacheService.instance.deleteCachedResponse(uri.toString());
+            try {
+              r = await _authedGet(uri, useCache: false);
+              if (r.statusCode == 200) {
+                final fresh = json.decode(r.body);
+                if (fresh is Map<String, dynamic>) {
+                  ApiCacheService.instance.saveResponse(uri.toString(), r.body);
+                  return fresh;
+                }
+              }
+            } catch (_) {}
+          }
+          return data;
+        }
+      }
     } catch (e) { LoggerService.warning('Silent error caught in api_stats.dart', e); }
     return {};
   }
 
-  Future<Map<String, dynamic>> getTopArtists({int limit = 10, String period = 'all'}) async {
+  Future<Map<String, dynamic>> getTopArtists({int limit = 10, String period = 'all', bool forceRefresh = false}) async {
     try {
       final uri = Uri.parse('$_baseUrl/stats/top-artists')
           .replace(queryParameters: {'limit': '$limit', 'period': period});
-      final r = await _authedGet(uri, useCache: true);
-      if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
+      var r = await _authedGet(uri, useCache: true, forceRefresh: forceRefresh);
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body);
+        if (data is Map<String, dynamic>) {
+          final items = data['items'] as List?;
+          if ((items == null || items.isEmpty) && !forceRefresh) {
+            await ApiCacheService.instance.deleteCachedResponse(uri.toString());
+            try {
+              r = await _authedGet(uri, useCache: false);
+              if (r.statusCode == 200) {
+                final fresh = json.decode(r.body);
+                if (fresh is Map<String, dynamic>) {
+                  ApiCacheService.instance.saveResponse(uri.toString(), r.body);
+                  return fresh;
+                }
+              }
+            } catch (_) {}
+          }
+          return data;
+        }
+      }
     } catch (e) { LoggerService.warning('Silent error caught in api_stats.dart', e); }
     return {};
   }

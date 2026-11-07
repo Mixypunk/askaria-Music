@@ -27,21 +27,57 @@ part 'api/api_offline.dart';
 // Doivent être top-level (pas des méthodes) pour être envoyées dans un isolate.
 
 List<Album> _decodeAlbums(String body) {
-  final data = json.decode(body) as Map<String, dynamic>;
-  final items = data['items'] ?? data['albums'] ?? [];
-  return (items as List).map((e) => Album.fromJson(e as Map<String, dynamic>)).toList();
+  try {
+    final decoded = json.decode(body);
+    if (decoded is Map<String, dynamic>) {
+      final items = decoded['items'] ?? decoded['albums'] ?? [];
+      if (items is List) {
+        return items
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Album.fromJson(e))
+            .toList();
+      }
+    }
+  } catch (e) {
+    debugPrint('_decodeAlbums parse error: $e');
+  }
+  return [];
 }
 
 List<Artist> _decodeArtists(String body) {
-  final data = json.decode(body) as Map<String, dynamic>;
-  final items = data['items'] ?? data['artists'] ?? [];
-  return (items as List).map((e) => Artist.fromJson(e as Map<String, dynamic>)).toList();
+  try {
+    final decoded = json.decode(body);
+    if (decoded is Map<String, dynamic>) {
+      final items = decoded['items'] ?? decoded['artists'] ?? [];
+      if (items is List) {
+        return items
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Artist.fromJson(e))
+            .toList();
+      }
+    }
+  } catch (e) {
+    debugPrint('_decodeArtists parse error: $e');
+  }
+  return [];
 }
 
 List<Song> _decodeSongs(String body) {
-  final data = json.decode(body) as Map<String, dynamic>;
-  final tracks = data['tracks'] ?? [];
-  return (tracks as List).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
+  try {
+    final decoded = json.decode(body);
+    if (decoded is Map<String, dynamic>) {
+      final tracks = decoded['tracks'] ?? decoded['items'] ?? [];
+      if (tracks is List) {
+        return tracks
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Song.fromJson(e))
+            .toList();
+      }
+    }
+  } catch (e) {
+    debugPrint('_decodeSongs parse error: $e');
+  }
+  return [];
 }
 
 
@@ -291,12 +327,13 @@ class SwingApiService {
   Future<http.Response> _authedGet(
     Uri uri, {
     bool useCache = false,
+    bool forceRefresh = false,
     Duration cacheMaxAge = const Duration(hours: 4),
   }) async {
     final urlStr = uri.toString();
 
-    // 1. Stratégie Cache-First
-    if (useCache) {
+    // 1. Stratégie Cache-First (sauf si forceRefresh)
+    if (useCache && !forceRefresh) {
       final cachedBody = await ApiCacheService.instance.getCachedResponse(urlStr, maxAge: cacheMaxAge);
       if (cachedBody != null) {
         // Stale-While-Revalidate : on lance la requête réseau en fond pour MAJ le cache
@@ -308,6 +345,21 @@ class SwingApiService {
 
     // 2. Fetch Réseau classique avec gestion 401
     return await _fetchWith401Retry(uri, urlStr, useCache);
+  }
+
+  /// Vérifie rapidement si le serveur Askaria répond sur le réseau.
+  Future<bool> isServerReachable() async {
+    try {
+      final r = await _client.get(Uri.parse('$_baseUrl/auth/ping')).timeout(const Duration(seconds: 4));
+      return r.statusCode < 500;
+    } catch (_) {
+      try {
+        final r2 = await _client.get(Uri.parse('$_baseUrl/')).timeout(const Duration(seconds: 4));
+        return r2.statusCode < 500;
+      } catch (_) {
+        return false;
+      }
+    }
   }
 
   Future<void> _fetchAndCacheInBackground(Uri uri, String urlStr) async {

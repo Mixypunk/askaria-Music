@@ -64,7 +64,7 @@ extension PlayerQueueExt on PlayerProvider {
 
     Uri uri;
     if (isLocal) {
-      uri = Uri.file(localPath!);
+      uri = Uri.file(localPath);
     } else if (isDeezerPreview) {
       uri = Uri.parse(song.filepath ?? '');
     } else {
@@ -206,6 +206,9 @@ extension PlayerQueueExt on PlayerProvider {
   }
 
   Future<void> seek(Duration position) async {
+    _position = position;
+    _lastPositionNotify = DateTime.now();
+    notify();
     await _player.seek(position);
     _persistQueue();
   }

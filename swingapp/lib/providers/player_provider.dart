@@ -48,9 +48,9 @@ class PlayerProvider extends ChangeNotifier {
   bool _disposed = false;
   final List<StreamSubscription> _subs = [];
 
-  // Throttle positionStream — évite des milliers de notifyListeners/min
+  // Throttle positionStream — équilibre fluidité UI (4x/sec) et conso CPU
   DateTime _lastPositionNotify = DateTime.fromMillisecondsSinceEpoch(0);
-  static const _positionNotifyThrottle = Duration(milliseconds: 500);
+  static const _positionNotifyThrottle = Duration(milliseconds: 250);
 
   // Debounce _persistQueue — évite d'écrire sur disque à chaque seekbar drag
   Timer? _persistDebounce;
@@ -81,7 +81,13 @@ class PlayerProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get mounted => !_disposed;
   Duration get position => _position;
-  Duration get duration => _duration;
+  Duration get duration {
+    if (_duration > Duration.zero) return _duration;
+    if (currentSong != null && currentSong!.duration > 0) {
+      return Duration(seconds: currentSong!.duration);
+    }
+    return Duration.zero;
+  }
   RepeatMode get repeatMode => _repeatMode;
   bool get shuffle => _shuffle;
   String? get lyrics => _lyrics;
@@ -94,9 +100,12 @@ class PlayerProvider extends ChangeNotifier {
       ((_syncedLines != null && _syncedLines!.isNotEmpty) ||
           (_unsyncedLines != null && _unsyncedLines!.isNotEmpty));
   String? get error => _error;
-  double get progress => _duration.inMilliseconds > 0
-      ? _position.inMilliseconds / _duration.inMilliseconds
-      : 0.0;
+  double get progress {
+    final d = duration;
+    return d.inMilliseconds > 0
+        ? _position.inMilliseconds / d.inMilliseconds
+        : 0.0;
+  }
 
   // Volume
   double _volume = 1.0;

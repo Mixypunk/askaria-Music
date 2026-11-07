@@ -22,9 +22,16 @@ class _PageDots extends StatelessWidget {
 }
 
 // ── Page Player ────────────────────────────────────────────────────────────────
-class _ProgressBar extends StatelessWidget {
+class _ProgressBar extends StatefulWidget {
   final Color accent;
   const _ProgressBar({required this.accent});
+
+  @override
+  State<_ProgressBar> createState() => _ProgressBarState();
+}
+
+class _ProgressBarState extends State<_ProgressBar> {
+  double? _dragValue;
 
   @override
   Widget build(BuildContext ctx) {
@@ -35,28 +42,91 @@ class _ProgressBar extends StatelessWidget {
         final maxMs = dur.inMilliseconds.toDouble() > 0
             ? dur.inMilliseconds.toDouble()
             : 1.0;
+        final currentMs = _dragValue ?? pos.inMilliseconds.toDouble().clamp(0.0, maxMs);
+
         return SliderTheme(
           data: SliderThemeData(
             trackHeight: 4,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-            activeTrackColor: accent,
+            activeTrackColor: widget.accent,
             inactiveTrackColor: Colors.white24,
             thumbColor: Colors.white,
-            overlayColor: accent.withOpacity(0.2)),
+            overlayColor: widget.accent.withOpacity(0.2)),
           child: Slider(
             min: 0.0,
             max: maxMs,
-            value: pos.inMilliseconds.toDouble().clamp(0.0, maxMs),
+            value: currentMs.clamp(0.0, maxMs),
+            onChangeStart: (v) {
+              setState(() => _dragValue = v);
+            },
             onChanged: (v) {
+              setState(() => _dragValue = v);
+            },
+            onChangeEnd: (v) {
+              final target = Duration(milliseconds: v.round());
               if (c.isConnected) {
-                c.seek(Duration(milliseconds: v.round()));
+                c.seek(target);
               } else {
-                p.seek(Duration(milliseconds: v.round()));
+                p.seek(target);
               }
+              setState(() => _dragValue = null);
             },
           ),
         );
+      },
+    );
+  }
+}
+
+class _VolumeBar extends StatefulWidget {
+  final Color accent;
+  const _VolumeBar({required this.accent});
+
+  @override
+  State<_VolumeBar> createState() => _VolumeBarState();
+}
+
+class _VolumeBarState extends State<_VolumeBar> {
+  double? _dragVolume;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<PlayerProvider>(
+      builder: (_, p, __) {
+        final currentVol = (_dragVolume ?? p.volume).clamp(0.0, 1.0);
+        return Row(children: [
+          Icon(
+            currentVol == 0
+                ? Icons.volume_off_rounded
+                : currentVol < 0.5
+                    ? Icons.volume_down_rounded
+                    : Icons.volume_up_rounded,
+            size: 18, color: Colors.white38),
+          Expanded(child: SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              activeTrackColor: widget.accent,
+              inactiveTrackColor: Colors.white24,
+              thumbColor: Colors.white,
+              overlayColor: widget.accent.withOpacity(0.2)),
+            child: Slider(
+              value: currentVol,
+              onChangeStart: (v) => setState(() => _dragVolume = v),
+              onChanged: (v) {
+                setState(() => _dragVolume = v);
+                p.setVolume(v);
+              },
+              onChangeEnd: (v) {
+                p.setVolume(v);
+                setState(() => _dragVolume = null);
+              },
+            ),
+          )),
+          const Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
+        ]);
       },
     );
   }

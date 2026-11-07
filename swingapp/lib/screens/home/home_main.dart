@@ -38,36 +38,69 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refresh = false}) async {
     setState(() { _loading = true; _offline = false; });
+    final api = SwingApiService();
+
     try {
-      final api = SwingApiService();
-      final results = await Future.wait([
-        api.getTopTracks(limit: 30),
-        api.getAlbums(limit: 20),
-        api.getTopArtists(limit: 15),
-      ]).timeout(const Duration(seconds: 15));
-
-      _albums = results[1] as List<Album>;
-
-      final topTracksData = results[0] as Map<String, dynamic>;
-      _songs = (topTracksData['items'] as List?)
-          ?.map((x) => Song.fromJson(x as Map<String, dynamic>))
-          .toList() ?? [];
-      if (_songs.isEmpty) {
-        _songs = await api.getSongs(limit: 30);
+      // 1. Charger les albums
+      try {
+        _albums = await api.getAlbums(limit: 20, forceRefresh: refresh);
+      } catch (e) {
+        debugPrint('Home _load albums error: $e');
       }
 
-      final topArtistsData = results[2] as Map<String, dynamic>;
-      _artists = (topArtistsData['items'] as List?)
-          ?.map((x) => Artist.fromJson(x as Map<String, dynamic>))
-          .toList() ?? [];
-      if (_artists.isEmpty) {
-        _artists = await api.getArtists(limit: 15);
+      // 2. Charger les top titres ou les chansons
+      try {
+        final topTracksData = await api.getTopTracks(limit: 30, forceRefresh: refresh);
+        final rawItems = topTracksData['items'];
+        if (rawItems is List) {
+          _songs = rawItems
+              .whereType<Map<String, dynamic>>()
+              .map((x) => Song.fromJson(x))
+              .toList();
+        } else {
+          _songs = [];
+        }
+        if (_songs.isEmpty) {
+          _songs = await api.getSongs(limit: 30);
+        }
+      } catch (e) {
+        try {
+          _songs = await api.getSongs(limit: 30);
+        } catch (_) {}
       }
-    } catch (_) {
-      _offline = _songs.isEmpty;
+
+      // 3. Charger les artistes
+      try {
+        final topArtistsData = await api.getTopArtists(limit: 15, forceRefresh: refresh);
+        final rawItems = topArtistsData['items'];
+        if (rawItems is List) {
+          _artists = rawItems
+              .whereType<Map<String, dynamic>>()
+              .map((x) => Artist.fromJson(x))
+              .toList();
+        } else {
+          _artists = [];
+        }
+        if (_artists.isEmpty) {
+          _artists = await api.getArtists(limit: 15, forceRefresh: refresh);
+        }
+      } catch (e) {
+        try {
+          _artists = await api.getArtists(limit: 15, forceRefresh: refresh);
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    // On ne bascule en mode offline que si TOUTES les sections sont vides ET que le serveur est réellement injoignable
+    if (_songs.isEmpty && _albums.isEmpty && _artists.isEmpty) {
+      final reachable = await api.isServerReachable();
+      _offline = !reachable;
+    } else {
+      _offline = false;
     }
+
     if (mounted) setState(() => _loading = false);
   }
 
@@ -85,7 +118,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
       color: Sp.g2,
       backgroundColor: Sp.card,
       displacement: 80,
-      onRefresh: _load,
+      onRefresh: () => _load(refresh: true),
       child: CustomScrollView(slivers: [
 
         // ── App Bar ───────────────────────────────────────────────
@@ -277,7 +310,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   ),
                   const SizedBox(height: 28),
                   GestureDetector(
-                    onTap: _load,
+                    onTap: () => _load(refresh: true),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 14),

@@ -90,13 +90,13 @@ class _LibraryTabState extends State<LibraryTab>
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refresh = false}) async {
     setState(() { _loading = true; _error = null; });
     try {
       final results = await Future.wait([
         SwingApiService().getPlaylists(),
-        SwingApiService().getAlbums(limit: 200),
-        SwingApiService().getArtists(limit: 200),
+        SwingApiService().getAlbums(limit: 200, forceRefresh: refresh),
+        SwingApiService().getArtists(limit: 200, forceRefresh: refresh),
       ]);
       _playlists = results[0] as List<Playlist>;
       _albums    = results[1] as List<Album>;
@@ -238,7 +238,7 @@ class _LibraryTabState extends State<LibraryTab>
             ? const Center(child: CircularProgressIndicator(
                 color: Sp.g2, strokeWidth: 2))
             : _error != null
-                ? _ErrorView(error: _error!, onRetry: _load)
+                ? _ErrorView(error: _error!, onRetry: () => _load(refresh: true))
                 : TabBarView(
                     controller: _tabCtrl,
                     children: [

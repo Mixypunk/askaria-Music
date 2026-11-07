@@ -52,7 +52,7 @@ extension ApiMusic on SwingApiService {
   }
 
   // ── ALBUMS ─────────────────────────────────────────────────────────────
-  Future<List<Album>> getAlbums({int start = 0, int limit = 500}) async {
+  Future<List<Album>> getAlbums({int start = 0, int limit = 500, bool forceRefresh = false}) async {
     final uri = Uri.parse('$_baseUrl/getall/albums').replace(
       queryParameters: {
         'start': '$start',
@@ -61,12 +61,26 @@ extension ApiMusic on SwingApiService {
         'reverse': '1',
       },
     );
-    final response = await _authedGet(uri, useCache: true);
+    var response = await _authedGet(uri, useCache: true, forceRefresh: forceRefresh);
     if (response.statusCode != 200) {
       throw Exception('getAlbums HTTP ${response.statusCode}');
     }
-    // Décodage dans un isolate → pas de freeze UI même avec 200 albums
-    return compute(_decodeAlbums, response.body);
+    var albums = await compute(_decodeAlbums, response.body);
+    // Si le cache a retourné 0 album mais qu'on n'était pas en forceRefresh,
+    // invalider le cache et tenter une requête directe réseau pour éviter le blocage offline
+    if (albums.isEmpty && !forceRefresh) {
+      await ApiCacheService.instance.deleteCachedResponse(uri.toString());
+      try {
+        response = await _authedGet(uri, useCache: false);
+        if (response.statusCode == 200) {
+          albums = await compute(_decodeAlbums, response.body);
+          if (albums.isNotEmpty) {
+            ApiCacheService.instance.saveResponse(uri.toString(), response.body);
+          }
+        }
+      } catch (_) {}
+    }
+    return albums;
   }
 
   // POST /album avec {albumhash: hash}
@@ -81,7 +95,7 @@ extension ApiMusic on SwingApiService {
   }
 
   // ── ARTISTS ────────────────────────────────────────────────────────────
-  Future<List<Artist>> getArtists({int start = 0, int limit = 500}) async {
+  Future<List<Artist>> getArtists({int start = 0, int limit = 500, bool forceRefresh = false}) async {
     final uri = Uri.parse('$_baseUrl/getall/artists').replace(
       queryParameters: {
         'start': '$start',
@@ -90,12 +104,24 @@ extension ApiMusic on SwingApiService {
         'reverse': '0',
       },
     );
-    final response = await _authedGet(uri, useCache: true);
+    var response = await _authedGet(uri, useCache: true, forceRefresh: forceRefresh);
     if (response.statusCode != 200) {
       throw Exception('getArtists HTTP ${response.statusCode}');
     }
-    // Décodage dans un isolate → pas de freeze UI même avec 200 artistes
-    return compute(_decodeArtists, response.body);
+    var artists = await compute(_decodeArtists, response.body);
+    if (artists.isEmpty && !forceRefresh) {
+      await ApiCacheService.instance.deleteCachedResponse(uri.toString());
+      try {
+        response = await _authedGet(uri, useCache: false);
+        if (response.statusCode == 200) {
+          artists = await compute(_decodeArtists, response.body);
+          if (artists.isNotEmpty) {
+            ApiCacheService.instance.saveResponse(uri.toString(), response.body);
+          }
+        }
+      } catch (_) {}
+    }
+    return artists;
   }
 
   Future<List<Song>> getArtistTracks(String artistHash) async {
