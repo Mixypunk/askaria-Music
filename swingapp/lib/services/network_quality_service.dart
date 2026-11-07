@@ -10,7 +10,7 @@ class NetworkQualityService extends ChangeNotifier {
   NetworkQualityService._();
 
   bool _autoQuality = false;
-  String _manualQuality = 'high'; // 'low', 'medium', 'high'
+  String _manualQuality = 'high'; // 'low', 'medium', 'high', 'lossless'
   String _effectiveQuality = 'high';
   StreamSubscription? _connSub;
 
@@ -71,7 +71,7 @@ class NetworkQualityService extends ChangeNotifier {
   }
 
   Future<void> setAudioQuality(String quality) async {
-    if (!{'low', 'medium', 'high'}.contains(quality)) return;
+    if (!{'low', 'medium', 'high', 'lossless'}.contains(quality)) return;
     if (_manualQuality == quality) return;
     _manualQuality = quality;
     final prefs = await SharedPreferences.getInstance();

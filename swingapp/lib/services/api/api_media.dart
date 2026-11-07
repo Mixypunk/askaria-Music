@@ -1,5 +1,20 @@
 part of '../api_service.dart';
 
+/// Convertit la qualité choisie en paramètre `bitrate` du endpoint legacy.
+/// `0` = fichier original sans transcodage (FLAC/WAV/AIFF/… conservés tels quels).
+String _bitrateForQuality(String quality) {
+  switch (quality) {
+    case 'low':
+      return '128';
+    case 'medium':
+      return '192';
+    case 'lossless':
+      return '0';
+    default:
+      return '320';
+  }
+}
+
 extension ApiMedia on SwingApiService {
   // ── LYRICS ─────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>?> getLyrics(String trackHash, {String? filepath}) async {
@@ -27,9 +42,7 @@ extension ApiMedia on SwingApiService {
   Future<String> buildStreamUrl(String trackHash,
       {String? filepath, String? quality}) async {
     final effectiveQuality = quality ?? NetworkQualityService.instance.currentQuality;
-    final bitrate = effectiveQuality == 'low' ? '128'
-                  : effectiveQuality == 'medium' ? '192'
-                  : '320';
+    final bitrate = _bitrateForQuality(effectiveQuality);
     final token = await _getStreamToken();
     if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);
@@ -42,9 +55,7 @@ extension ApiMedia on SwingApiService {
   String getStreamUrl(String trackHash,
       {String? filepath, String? quality}) {
     final effectiveQuality = quality ?? NetworkQualityService.instance.currentQuality;
-    final bitrate = effectiveQuality == 'low' ? '128'
-                  : effectiveQuality == 'medium' ? '192'
-                  : '320';
+    final bitrate = _bitrateForQuality(effectiveQuality);
     final token = _streamToken ?? _accessToken ?? '';
     if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);

@@ -160,6 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 DropdownMenuItem(value: 'low',    child: Text('Économique (128 kbps)')),
                 DropdownMenuItem(value: 'medium', child: Text('Standard (192 kbps)')),
                 DropdownMenuItem(value: 'high',   child: Text('Haute qualité (320 kbps)')),
+                DropdownMenuItem(value: 'lossless', child: Text('Lossless (FLAC)')),
               ],
               onChanged: _autoQuality ? null : (v) async {
                 if (v == null) return;
