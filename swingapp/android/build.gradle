@@ -1,15 +1,3 @@
-buildscript {
-    ext.kotlin_version = '1.9.0'
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
 allprojects {
     repositories {
         google()
@@ -26,8 +14,9 @@ subprojects {
             // Injecter un objet 'flutter' avec les valeurs SDK attendues par les vieux plugins
             project.extensions.extraProperties['flutter'] = new Expando()
             project.extensions.extraProperties['flutter'].minSdkVersion     = 21
-            project.extensions.extraProperties['flutter'].targetSdkVersion  = 34
-            project.extensions.extraProperties['flutter'].compileSdkVersion = 34
+            project.extensions.extraProperties['flutter'].targetSdkVersion  = 35
+            project.extensions.extraProperties['flutter'].compileSdkVersion = 35
+            project.extensions.extraProperties['flutter'].ndkVersion        = '27.0.12077973'
         }
     }
 }

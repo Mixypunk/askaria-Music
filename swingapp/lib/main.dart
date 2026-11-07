@@ -7,26 +7,34 @@ import 'providers/downloads_provider.dart';
 import 'providers/connect_controller_provider.dart';
 import 'services/api_service.dart';
 import 'services/theme_notifier.dart';
+import 'services/network_quality_service.dart';
 import 'services/widget_service.dart';
 import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/eq_screen.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
-// ── Palette ────────────────────────────────────────────────────────────────────
+// ── Palette (theme-aware) ───────────────────────────────────────────────────────
 class Sp {
-  static const bg      = Color(0xFF0D0D0D);
-  static const bg2     = Color(0xFF111111);
-  static const surface = Color(0xFF161616);
-  static const card    = Color(0xFF1A1A1A);
-  static const cardHi  = Color(0xFF252525);
-  static const glass   = Color(0x14FFFFFF);
-  static const white   = Color(0xFFFFFFFF);
-  static const white70 = Color(0xFFB3B3B3);
-  static const white40 = Color(0xFF666666);
-  static const white12 = Color(0x1FFFFFFF);
+  Sp._();
+  static bool get _dark => ThemeNotifier.instance.isDark;
+
+  // Backgrounds
+  static Color get bg      => _dark ? const Color(0xFF0D0D0D) : const Color(0xFFF5F5F5);
+  static Color get bg2     => _dark ? const Color(0xFF111111) : const Color(0xFFEEEEEE);
+  static Color get surface => _dark ? const Color(0xFF161616) : const Color(0xFFE8E8E8);
+  static Color get card    => _dark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF);
+  static Color get cardHi  => _dark ? const Color(0xFF252525) : const Color(0xFFF0F0F0);
+  static Color get glass   => _dark ? const Color(0x14FFFFFF) : const Color(0x14000000);
+
+  // Text / icon colors (inverted for light)
+  static Color get white   => _dark ? const Color(0xFFFFFFFF) : const Color(0xFF1A1A1A);
+  static Color get white70 => _dark ? const Color(0xFFB3B3B3) : const Color(0xFF555555);
+  static Color get white40 => _dark ? const Color(0xFF666666) : const Color(0xFF999999);
+  static Color get white12 => _dark ? const Color(0x1FFFFFFF) : const Color(0x1F000000);
+
+  // Accent gradients – brand colors, same in both themes
   static const g1 = Color(0xFF4776E6);
   static const g2 = Color(0xFF8E54E9);
   static const g3 = Color(0xFFD63AF9);
@@ -101,7 +109,7 @@ class GBtn extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: Sp.g2.withOpacity(0.35),
+            color: Sp.g2.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -194,6 +202,7 @@ class _SplashWrapperState extends State<_SplashWrapper> {
     }
     try {
       await ThemeNotifier.instance.load();
+      await NetworkQualityService.instance.load();
       final api = SwingApiService();
       await api.loadSettings();
       _logged = await api.checkAuth();
@@ -280,7 +289,7 @@ class _SplashScreenState extends State<_SplashScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Sp.g2.withOpacity(0.3 + _glow.value * 0.25),
+                        color: Sp.g2.withValues(alpha: 0.3 + _glow.value * 0.25),
                         blurRadius: 40 + _glow.value * 30,
                         spreadRadius: 0,
                       ),
@@ -302,7 +311,7 @@ class _SplashScreenState extends State<_SplashScreen>
               SizedBox(
                 width: 20, height: 20,
                 child: CircularProgressIndicator(
-                  color: Sp.g2.withOpacity(0.7),
+                  color: Sp.g2.withValues(alpha: 0.7),
                   strokeWidth: 1.5,
                 ),
               ),
@@ -323,35 +332,60 @@ class _App extends StatelessWidget {
     builder: (ctx, theme, _) => MaterialApp(
     title: 'Askaria',
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(
+    themeMode: theme.mode,
+    // ── Dark theme ──
+    darkTheme: ThemeData(
       useMaterial3: false,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: Sp.bg,
+      scaffoldBackgroundColor: const Color(0xFF0D0D0D),
       colorScheme: const ColorScheme.dark(
         primary: Sp.g2, secondary: Sp.g3,
-        surface: Sp.surface, surfaceContainer: Sp.bg,
+        surface: Color(0xFF161616), surfaceContainer: Color(0xFF0D0D0D),
       ),
       textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Sp.white),
-        bodyMedium: TextStyle(color: Sp.white70),
+        bodyLarge: TextStyle(color: Color(0xFFFFFFFF)),
+        bodyMedium: TextStyle(color: Color(0xFFB3B3B3)),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent, elevation: 0,
         scrolledUnderElevation: 0,
-        iconTheme: IconThemeData(color: Sp.white),
-        titleTextStyle: TextStyle(color: Sp.white,
+        iconTheme: IconThemeData(color: Color(0xFFFFFFFF)),
+        titleTextStyle: TextStyle(color: Color(0xFFFFFFFF),
             fontSize: 18, fontWeight: FontWeight.bold),
       ),
-      iconTheme: const IconThemeData(color: Sp.white),
+      iconTheme: const IconThemeData(color: Color(0xFFFFFFFF)),
       splashColor: Colors.white10,
       highlightColor: Colors.white10,
     ),
+    // ── Light theme ──
+    theme: ThemeData(
+      useMaterial3: false,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+      colorScheme: const ColorScheme.light(
+        primary: Sp.g2, secondary: Sp.g3,
+        surface: Color(0xFFE8E8E8), surfaceContainer: Color(0xFFF5F5F5),
+      ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: Color(0xFF1A1A1A)),
+        bodyMedium: TextStyle(color: Color(0xFF555555)),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent, elevation: 0,
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: Color(0xFF1A1A1A)),
+        titleTextStyle: TextStyle(color: Color(0xFF1A1A1A),
+            fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF1A1A1A)),
+      splashColor: Colors.black12,
+      highlightColor: Colors.black12,
+    ),
     initialRoute: logged ? '/root' : '/login',
     routes: {
-      '/login':   (_) => const LoginScreen(),
+      '/login':   (_) => LoginScreen(),
       '/root':    (_) => const RootScreen(),
-      '/profile': (_) => const ProfileScreen(),
-      '/eq':      (_) => const EqScreen(),
+      '/profile': (_) => ProfileScreen(),
     },
     builder: (ctx, child) => _UpdateChecker(child: child!),
   ),

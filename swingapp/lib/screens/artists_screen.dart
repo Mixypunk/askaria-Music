@@ -9,7 +9,7 @@ import '../providers/downloads_provider.dart';
 import '../widgets/song_tile.dart';
 
 class ArtistsScreen extends StatefulWidget {
-  const ArtistsScreen({super.key});
+  ArtistsScreen({super.key});
   @override
   State<ArtistsScreen> createState() => _ArtistsScreenState();
 }
@@ -64,24 +64,24 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
     return Scaffold(
       appBar: AppBar(
           backgroundColor: Sp.bg,
-          title: GText('Artistes', s: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          title: GText('Artistes', s: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(24),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    const SizedBox(height: 12),
+                    Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    SizedBox(height: 12),
                     Text(_error!, textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red, fontSize: 12)),
-                    const SizedBox(height: 16),
-                    ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
+                        style: TextStyle(color: Colors.red, fontSize: 12)),
+                    SizedBox(height: 16),
+                    ElevatedButton(onPressed: _load, child: Text('Réessayer')),
                   ]),
                 ))
               : _artists.isEmpty
-                  ? const Center(child: Text('Aucun artiste', style: TextStyle(color: Sp.white70)))
+                  ? Center(child: Text('Aucun artiste', style: TextStyle(color: Sp.white70)))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.builder(
@@ -106,7 +106,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                               )),
                             ),
                             title: Text(a.name,
-                                style: const TextStyle(fontWeight: FontWeight.w500)),
+                                style: TextStyle(fontWeight: FontWeight.w500)),
                             subtitle: Text(
                               a.helpText.isNotEmpty ? a.helpText : 'Artiste',
                             ),
@@ -123,7 +123,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
 
 class ArtistDetailScreen extends StatefulWidget {
   final Artist artist;
-  const ArtistDetailScreen({super.key, required this.artist});
+  ArtistDetailScreen({super.key, required this.artist});
   @override
   State<ArtistDetailScreen> createState() => _ArtistDetailScreenState();
 }
@@ -173,18 +173,18 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
               headers: api.authHeaders,
               errorBuilder: (_, __, ___) => Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.person_rounded, size: 80),
+                child: Icon(Icons.person_rounded, size: 80),
               ),
             ),
           ),
         ),
         if (_loading)
-          const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
         else if (_error != null)
           SliverFillRemaining(child: Center(child: Text(_error!,
-              style: const TextStyle(color: Colors.red))))
+              style: TextStyle(color: Colors.red))))
         else if (_tracks.isEmpty)
-          const SliverFillRemaining(child: Center(child: Text('Aucun titre')))
+          SliverFillRemaining(child: Center(child: Text('Aucun titre')))
         else
           SliverList(delegate: SliverChildBuilderDelegate(
             (ctx, i) => SongTile(

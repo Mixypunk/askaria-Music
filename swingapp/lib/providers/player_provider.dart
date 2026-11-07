@@ -12,7 +12,7 @@ import '../models/song.dart';
 import '../services/api_service.dart';
 import '../services/color_service.dart';
 import '../services/widget_service.dart';
-import '../services/eq_service.dart';
+import '../services/network_quality_service.dart';
 import '../widgets/artwork_widget.dart' show artCache;
 import 'package:askaria/services/logger_service.dart';
 
@@ -144,11 +144,47 @@ class PlayerProvider extends ChangeNotifier {
     _loadFavourites();
     _loadCrossfade();
     _restoreQueue();
+    NetworkQualityService.instance.addListener(_onQualityChanged);
+  }
+
+  void _onQualityChanged() {
+    final song = currentSong;
+    if (song != null && mounted) {
+      final isLocal = song.filepath != null && song.filepath!.contains('/offline/');
+      if (!isLocal && !song.hash.startsWith('dz_')) {
+        _reloadPlaylistForQuality(song);
+      }
+    }
+  }
+
+  Future<void> _reloadPlaylistForQuality(Song song) async {
+    final playing = _isPlaying;
+    final position = _player.position;
+    final index = _player.currentIndex ?? _currentIndex;
+    final queue = List<Song>.from(_queue);
+    if (queue.isEmpty || index < 0 || index >= queue.length) return;
+    try {
+      final sources = await Future.wait(queue.map(_buildSourceAsync));
+      final queueUnchanged = _queue.length == queue.length &&
+          Iterable<int>.generate(queue.length)
+              .every((i) => _queue[i].hash == queue[i].hash);
+      if (!mounted || !queueUnchanged || currentSong?.hash != song.hash) return;
+      _playlist = ConcatenatingAudioSource(children: sources);
+      await _player.setAudioSource(
+        _playlist,
+        initialIndex: index,
+        initialPosition: position,
+      );
+      if (playing && mounted) await _player.play();
+    } catch (_) {
+      // Conserver la lecture en cours si le serveur ne peut pas changer le flux.
+    }
   }
 
   @override
   void dispose() {
     _disposed = true;
+    NetworkQualityService.instance.removeListener(_onQualityChanged);
     for (final sub in _subs) { sub.cancel(); }
     _sleepTimer?.cancel();
     _periodicTimer?.cancel();

@@ -5,7 +5,7 @@ import '../services/api_service.dart';
 import '../widgets/song_tile.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  SearchScreen({super.key});
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
@@ -46,18 +46,18 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             child: TextField(
               controller: _ctrl,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+              style: TextStyle(color: Colors.white, fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Titres, artistes, albums...',
-                hintStyle: const TextStyle(color: Sp.white70),
-                prefixIcon: const Icon(Icons.search_rounded, color: Sp.white70, size: 20),
+                hintStyle: TextStyle(color: Sp.white70),
+                prefixIcon: Icon(Icons.search_rounded, color: Sp.white70, size: 20),
                 suffixIcon: _ctrl.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18, color: Sp.white70),
+                        icon: Icon(Icons.clear, size: 18, color: Sp.white70),
                         onPressed: () { _ctrl.clear(); _search(''); })
                     : null,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
                 fillColor: Colors.transparent, filled: true,
               ),
               onChanged: (v) { if (v.length >= 2 || v.isEmpty) _search(v); setState(() {}); },
@@ -66,25 +66,25 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
         if (_loading)
-          const SliverFillRemaining(
+          SliverFillRemaining(
             child: Center(child: CircularProgressIndicator(color: Sp.g2)))
         else if (_results.isEmpty && _query.isNotEmpty)
           SliverFillRemaining(child: Center(child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const GIcon(Icons.search_off_rounded, size: 56),
-              const SizedBox(height: 16),
+              GIcon(Icons.search_off_rounded, size: 56),
+              SizedBox(height: 16),
               Text('Aucun résultat pour "$_query"',
-                style: const TextStyle(color: Sp.white70)),
+                style: TextStyle(color: Sp.white70)),
             ],
           )))
         else if (_results.isEmpty)
           SliverFillRemaining(child: Center(child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const GIcon(Icons.search_rounded, size: 56),
-              const SizedBox(height: 16),
-              const Text('Cherche une musique, un artiste...',
+              GIcon(Icons.search_rounded, size: 56),
+              SizedBox(height: 16),
+              Text('Cherche une musique, un artiste...',
                 style: TextStyle(color: Sp.white70)),
             ],
           )))

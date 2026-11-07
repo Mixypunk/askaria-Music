@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
 
-  static const _pages = [
+  static final _pages = [
     SongsScreen(), AlbumsScreen(), ArtistsScreen(), PlaylistsScreen(), SearchScreen(),
   ];
 

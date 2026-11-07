@@ -2,17 +2,48 @@ part of '../library_tab.dart';
 
 class _PlaylistsList extends StatelessWidget {
   final List<Playlist> playlists;
+  final String? error;
+  final Future<void> Function()? onRefresh;
   final void Function(String id)? onDeleted;
-  const _PlaylistsList({required this.playlists, this.onDeleted});
+  _PlaylistsList({
+    required this.playlists,
+    this.error,
+    this.onRefresh,
+    this.onDeleted,
+  });
+
+  Future<void> _refresh() async {
+    final cb = onRefresh;
+    if (cb != null) await cb();
+  }
+
   @override
   Widget build(BuildContext ctx) {
-    if (playlists.isEmpty) return const _EmptyView(
-      icon: Icons.queue_music_rounded, label: 'Aucune playlist');
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 120, top: 8),
-      itemCount: playlists.length,
-      itemBuilder: (ctx, i) => _PlaylistTile(
-        playlist: playlists[i], onDeleted: onDeleted),
+    return RefreshIndicator(
+      color: Sp.g2,
+      backgroundColor: Sp.card,
+      onRefresh: _refresh,
+      child: playlists.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: 360,
+                  child: error != null
+                      ? _ErrorView(error: error!, onRetry: _refresh)
+                      : _EmptyView(
+                          icon: Icons.queue_music_rounded,
+                          label: 'Aucune playlist'),
+                ),
+              ],
+            )
+          : ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(bottom: 120, top: 8),
+              itemCount: playlists.length,
+              itemBuilder: (ctx, i) => _PlaylistTile(
+                  playlist: playlists[i], onDeleted: onDeleted),
+            ),
     );
   }
 }
@@ -20,12 +51,12 @@ class _PlaylistsList extends StatelessWidget {
 class _PlaylistTile extends StatelessWidget {
   final Playlist playlist;
   final void Function(String id)? onDeleted;
-  const _PlaylistTile({required this.playlist, this.onDeleted});
+  _PlaylistTile({required this.playlist, this.onDeleted});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: GestureDetector(
         onTap: () async {
           final result = await Navigator.push(ctx, MaterialPageRoute(
@@ -35,7 +66,7 @@ class _PlaylistTile extends StatelessWidget {
           }
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: kCardDecoration(radius: 14),
           child: Row(children: [
             ClipRRect(
@@ -46,21 +77,21 @@ class _PlaylistTile extends StatelessWidget {
                 headers: api.authHeaders,
                 borderRadius: BorderRadius.circular(10),
                 placeholder: Container(width: 56, height: 56, color: Sp.cardHi,
-                  child: const Icon(Icons.queue_music_rounded,
+                  child: Icon(Icons.queue_music_rounded,
                       color: Colors.white38, size: 28)))),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(playlist.name, style: const TextStyle(
+                Text(playlist.name, style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(
                   'Playlist · ${playlist.trackCount} titre${playlist.trackCount != 1 ? "s" : ""}',
-                  style: const TextStyle(color: Sp.white70, fontSize: 12)),
+                  style: TextStyle(color: Sp.white70, fontSize: 12)),
               ])),
-            const Icon(Icons.chevron_right_rounded, color: Sp.white40, size: 20),
+            Icon(Icons.chevron_right_rounded, color: Sp.white40, size: 20),
           ]),
         ),
       ),

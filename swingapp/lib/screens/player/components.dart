@@ -52,7 +52,7 @@ class _ProgressBarState extends State<_ProgressBar> {
             activeTrackColor: widget.accent,
             inactiveTrackColor: Colors.white24,
             thumbColor: Colors.white,
-            overlayColor: widget.accent.withOpacity(0.2)),
+            overlayColor: widget.accent.withValues(alpha: 0.2)),
           child: Slider(
             min: 0.0,
             max: maxMs,
@@ -111,7 +111,7 @@ class _VolumeBarState extends State<_VolumeBar> {
               activeTrackColor: widget.accent,
               inactiveTrackColor: Colors.white24,
               thumbColor: Colors.white,
-              overlayColor: widget.accent.withOpacity(0.2)),
+              overlayColor: widget.accent.withValues(alpha: 0.2)),
             child: Slider(
               value: currentVol,
               onChangeStart: (v) => setState(() => _dragVolume = v),

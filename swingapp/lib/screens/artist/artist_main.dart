@@ -2,7 +2,7 @@ part of '../artist_screen.dart';
 
 class ArtistScreen extends StatefulWidget {
   final Artist artist;
-  const ArtistScreen({super.key, required this.artist});
+  ArtistScreen({super.key, required this.artist});
   @override
   State<ArtistScreen> createState() => _ArtistScreenState();
 }
@@ -110,17 +110,17 @@ class _ArtistScreenState extends State<ArtistScreen> {
                   decoration: BoxDecoration(
                     color: Colors.black45,
                     shape: BoxShape.circle),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  child: Icon(Icons.arrow_back_ios_new_rounded,
                       color: Colors.white, size: 18)),
                 onPressed: () => Navigator.pop(context)),
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
                 title: ValueListenableBuilder<double>(
                   valueListenable: _headerOpacity,
                   builder: (context, opacity, child) => Opacity(
                     opacity: opacity,
                     child: Text(widget.artist.name,
-                      style: const TextStyle(color: Colors.white,
+                      style: TextStyle(color: Colors.white,
                           fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
@@ -128,9 +128,9 @@ class _ArtistScreenState extends State<ArtistScreen> {
                   NetImage(url: imgUrl, width: double.infinity, height: double.infinity,
                     headers: api.authHeaders,
                     placeholder: Container(color: Sp.card,
-                      child: const Icon(Icons.person_rounded, color: Sp.white40, size: 80))),
+                      child: Icon(Icons.person_rounded, color: Sp.white40, size: 80))),
                   // Dégradé bas
-                  const DecoratedBox(decoration: BoxDecoration(
+                  DecoratedBox(decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Colors.transparent, Sp.bg],
                       begin: Alignment.topCenter,
@@ -142,19 +142,19 @@ class _ArtistScreenState extends State<ArtistScreen> {
 
             // ── Nom + stats ──────────────────────────────────────
             SliverToBoxAdapter(child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.artist.name,
-                    style: const TextStyle(color: Sp.white,
+                    style: TextStyle(color: Sp.white,
                         fontSize: 28, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     '${widget.artist.trackCount} titre${widget.artist.trackCount != 1 ? 's' : ''}'
                     ' · ${widget.artist.albumCount} album${widget.artist.albumCount != 1 ? 's' : ''}',
-                    style: const TextStyle(color: Sp.white70, fontSize: 13)),
-                  const SizedBox(height: 16),
+                    style: TextStyle(color: Sp.white70, fontSize: 13)),
+                  SizedBox(height: 16),
 
                   // Boutons Lecture / Aléatoire
                   if (!_loading) Row(children: [
@@ -163,7 +163,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                       label: 'Lecture',
                       filled: true,
                       onTap: () => _play(shuffle: false))),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(child: _ActionBtn(
                       icon: Icons.shuffle_rounded,
                       label: 'Aléatoire',
@@ -174,14 +174,14 @@ class _ArtistScreenState extends State<ArtistScreen> {
             )),
 
             if (_loading)
-              const SliverFillRemaining(child: Center(
+              SliverFillRemaining(child: Center(
                 child: CircularProgressIndicator(
                     color: Sp.g2, strokeWidth: 2)))
             else ...[
 
               // ── Titres populaires ────────────────────────────
               if (_tracks.isNotEmpty) ...[
-                const _Header('Titres populaires'),
+                _Header('Titres populaires'),
                 SliverList(delegate: SliverChildBuilderDelegate(
                   (ctx, i) => _TrackRow(
                     song: _tracks[i],
@@ -200,12 +200,12 @@ class _ArtistScreenState extends State<ArtistScreen> {
 
               // ── Albums ───────────────────────────────────────
               if (_albums.isNotEmpty) ...[
-                const _Header('Albums'),
+                _Header('Albums'),
                 SliverToBoxAdapter(child: SizedBox(
                   height: 200,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _albums.length,
                     itemBuilder: (ctx, i) =>
                         _AlbumCard(album: _albums[i]),
@@ -213,7 +213,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                 )),
               ],
 
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ],
         ),

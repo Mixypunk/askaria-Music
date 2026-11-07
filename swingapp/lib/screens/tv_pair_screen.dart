@@ -8,7 +8,7 @@ import '../services/api_service.dart';
 /// Écran permettant au mobile de connecter une TV Askaria
 /// via un code à 6 chiffres affiché sur la TV.
 class TvPairScreen extends StatefulWidget {
-  const TvPairScreen({super.key});
+  TvPairScreen({super.key});
   @override
   State<TvPairScreen> createState() => _TvPairScreenState();
 }
@@ -119,11 +119,11 @@ class _TvPairScreenState extends State<TvPairScreen>
       backgroundColor: Sp.bg,
       appBar: AppBar(
         backgroundColor: Sp.bg,
-        title: const Text('Connecter la TV',
+        title: Text('Connecter la TV',
             style: TextStyle(
                 color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
               color: Sp.white, size: 20),
           onPressed: () => Navigator.pop(context)),
       ),
@@ -131,7 +131,7 @@ class _TvPairScreenState extends State<TvPairScreen>
         children: [
           // Onglets
           Container(
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
             decoration: BoxDecoration(
               color: Sp.card,
               borderRadius: BorderRadius.circular(8),
@@ -146,9 +146,9 @@ class _TvPairScreenState extends State<TvPairScreen>
               dividerColor: Colors.transparent,
               labelColor: Colors.white,
               unselectedLabelColor: Sp.white70,
-              labelStyle: const TextStyle(
+              labelStyle: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.bold),
-              tabs: const [
+              tabs: [
                 Tab(icon: Icon(Icons.keyboard_rounded, size: 18),
                     text: 'Code manuel'),
                 Tab(icon: Icon(Icons.qr_code_scanner_rounded, size: 18),
@@ -173,46 +173,46 @@ class _TvPairScreenState extends State<TvPairScreen>
   // ── Onglet 1 : saisie manuelle ────────────────────────────────────────────────
   Widget _buildManualTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // Icone TV
           Center(
             child: ShaderMask(
               shaderCallback: (b) => kGrad.createShader(b),
-              child: const Icon(Icons.tv_rounded, size: 72, color: Colors.white),
+              child: Icon(Icons.tv_rounded, size: 72, color: Colors.white),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
-          const Text(
+          Text(
             'Entrez le code affiché\nsur votre TV',
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: Sp.white, fontSize: 20, fontWeight: FontWeight.bold,
                 height: 1.4),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'L\'app TV → onglet "Via l\'app mobile"',
             textAlign: TextAlign.center,
             style: TextStyle(color: Sp.white70, fontSize: 13),
           ),
-          const SizedBox(height: 36),
+          SizedBox(height: 36),
 
           // Feedback erreur
           if (_error != null) ...[
             _FeedbackBanner(message: _error!, isError: true),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // Feedback succès
           if (_success != null) ...[
             _FeedbackBanner(message: _success!, isError: false),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // Champ de saisie du code
@@ -235,11 +235,11 @@ class _TvPairScreenState extends State<TvPairScreen>
                 fontWeight: FontWeight.w900,
                 letterSpacing: 10,
                 color: Sp.g2,
-                fontFeatures: const [FontFeature.tabularFigures()],
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
               decoration: InputDecoration(
                 hintText: '_ _ _  _ _ _',
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                     color: Sp.white40,
                     fontSize: 36,
                     letterSpacing: 8,
@@ -252,18 +252,18 @@ class _TvPairScreenState extends State<TvPairScreen>
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Sp.g2, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 24),
+                contentPadding: EdgeInsets.symmetric(vertical: 24),
               ),
               onSubmitted: (_) => _submit(),
             ),
           ),
-          const SizedBox(height: 28),
+          SizedBox(height: 28),
 
           // Bouton Valider
           GestureDetector(
             onTap: _loading ? null : _submit,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
+              duration: Duration(milliseconds: 150),
               height: 54,
               decoration: BoxDecoration(
                 gradient: _loading ? null : kGrad,
@@ -272,11 +272,11 @@ class _TvPairScreenState extends State<TvPairScreen>
               ),
               alignment: Alignment.center,
               child: _loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22, height: 22,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2))
-                  : const Text('Connecter la TV',
+                  : Text('Connecter la TV',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -284,17 +284,17 @@ class _TvPairScreenState extends State<TvPairScreen>
             ),
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
 
           // Note sécurité
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
+              color: Colors.white.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white12),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.security_rounded, color: Sp.white70, size: 16),
                 SizedBox(width: 10),
@@ -320,12 +320,12 @@ class _TvPairScreenState extends State<TvPairScreen>
         // Feedback
         if (_error != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: _FeedbackBanner(message: _error!, isError: true),
           ),
         if (_success != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: _FeedbackBanner(message: _success!, isError: false),
           ),
 
@@ -338,16 +338,16 @@ class _TvPairScreenState extends State<TvPairScreen>
                     children: [
                       ShaderMask(
                         shaderCallback: (b) => kGrad.createShader(b),
-                        child: const Icon(Icons.check_circle_rounded,
+                        child: Icon(Icons.check_circle_rounded,
                             size: 80, color: Colors.white),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('TV connectée !',
+                      SizedBox(height: 16),
+                      Text('TV connectée !',
                           style: TextStyle(
                               color: Sp.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       TextButton.icon(
                         onPressed: () {
                           setState(() {
@@ -356,9 +356,9 @@ class _TvPairScreenState extends State<TvPairScreen>
                             _scannerActive = true;
                           });
                         },
-                        icon: const Icon(Icons.refresh_rounded,
+                        icon: Icon(Icons.refresh_rounded,
                             color: Sp.white70),
-                        label: const Text('Scanner une autre TV',
+                        label: Text('Scanner une autre TV',
                             style: TextStyle(color: Sp.white70)),
                       ),
                     ],
@@ -382,13 +382,13 @@ class _TvPairScreenState extends State<TvPairScreen>
                         height: 220,
                         decoration: BoxDecoration(
                           border: Border.all(
-                              color: Sp.g2.withOpacity(0.8), width: 3),
+                              color: Sp.g2.withValues(alpha: 0.8), width: 3),
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                     ),
                     // Instruction en bas
-                    const Positioned(
+                    Positioned(
                       bottom: 32,
                       left: 0, right: 0,
                       child: Text(
@@ -400,7 +400,7 @@ class _TvPairScreenState extends State<TvPairScreen>
                     if (_loading)
                       Container(
                         color: Colors.black54,
-                        child: const Center(
+                        child: Center(
                           child: CircularProgressIndicator(color: Sp.g2),
                         ),
                       ),
@@ -447,22 +447,22 @@ class _CodeFormatter extends TextInputFormatter {
 class _FeedbackBanner extends StatelessWidget {
   final String message;
   final bool   isError;
-  const _FeedbackBanner({required this.message, required this.isError});
+  _FeedbackBanner({required this.message, required this.isError});
   @override
   Widget build(BuildContext context) {
     final color = isError ? Colors.redAccent : Colors.greenAccent.shade400;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        border: Border.all(color: color.withOpacity(0.4)),
+        color: color.withValues(alpha: 0.12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
           Icon(isError ? Icons.error_outline : Icons.check_circle_outline,
               color: color, size: 18),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Text(message,
                 style: TextStyle(color: color, fontSize: 13, height: 1.4)),

@@ -4,7 +4,7 @@ class _AvatarButton extends StatelessWidget {
   final String? avatarUrl;
   final String username;
   final VoidCallback onTap;
-  const _AvatarButton({required this.avatarUrl, required this.username,
+  _AvatarButton({required this.avatarUrl, required this.username,
       required this.onTap});
   @override
   Widget build(BuildContext context) {
@@ -14,8 +14,8 @@ class _AvatarButton extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: 36, height: 36,
-          decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
-          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
+          padding: EdgeInsets.all(2),
           child: ClipOval(
             child: SizedBox(
               width: 32, height: 32,
@@ -36,14 +36,14 @@ class _AvatarButton extends StatelessWidget {
 
 class _InitialFallback extends StatelessWidget {
   final String initial;
-  const _InitialFallback(this.initial);
+  _InitialFallback(this.initial);
   @override
   Widget build(BuildContext context) => Container(
     color: Sp.card,
     child: initial.isEmpty
-        ? const Icon(Icons.person_rounded, size: 18, color: Colors.white)
+        ? Icon(Icons.person_rounded, size: 18, color: Colors.white)
         : Center(child: Text(initial,
-            style: const TextStyle(color: Colors.white,
+            style: TextStyle(color: Colors.white,
                 fontSize: 14, fontWeight: FontWeight.bold))),
   );
 }
@@ -53,16 +53,16 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final IconData? icon;
   final Widget? trailing;
-  const _SectionHeader({required this.title, this.icon, this.trailing});
+  _SectionHeader({required this.title, this.icon, this.trailing});
   @override
   Widget build(BuildContext ctx) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 28, 16, 14),
+    padding: EdgeInsets.fromLTRB(16, 28, 16, 14),
     child: Row(children: [
       if (icon != null) ...[
         Icon(icon, color: Sp.white70, size: 16),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
       ],
-      Expanded(child: Text(title, style: const TextStyle(
+      Expanded(child: Text(title, style: TextStyle(
         color: Sp.white, fontSize: 20, fontWeight: FontWeight.bold))),
       if (trailing != null) trailing!,
     ]),
@@ -72,31 +72,31 @@ class _SectionHeader extends StatelessWidget {
 // ── Recent tile ────────────────────────────────────────────────────────────────
 class _RecentTile extends StatelessWidget {
   final Song song; final List<Song> allSongs; final int idx;
-  const _RecentTile({required this.song, required this.allSongs, required this.idx});
+  _RecentTile({required this.song, required this.allSongs, required this.idx});
   @override
   Widget build(BuildContext ctx) => GestureDetector(
     onTap: () => ctx.read<PlayerProvider>()
         .playSong(song, queue: allSongs, index: idx),
     child: Container(
       width: 230,
-      margin: const EdgeInsets.only(right: 10, bottom: 4),
+      margin: EdgeInsets.only(right: 10, bottom: 4),
       decoration: BoxDecoration(
         color: Sp.card, borderRadius: BorderRadius.circular(12)),
       child: Row(children: [
         ClipRRect(
-          borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+          borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
           child: ArtworkWidget(
             key: ValueKey(song.hash),
             hash: song.image ?? song.hash,
             size: 62,
             borderRadius: BorderRadius.zero),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Expanded(child: Text(song.title,
-          style: const TextStyle(color: Sp.white,
+          style: TextStyle(color: Sp.white,
               fontSize: 13, fontWeight: FontWeight.w600),
           maxLines: 2, overflow: TextOverflow.ellipsis)),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
       ]),
     ),
   );
@@ -105,7 +105,7 @@ class _RecentTile extends StatelessWidget {
 // ── Album card ─────────────────────────────────────────────────────────────────
 class _AlbumCard extends StatelessWidget {
   final Album album;
-  const _AlbumCard({required this.album});
+  _AlbumCard({required this.album});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
@@ -113,7 +113,7 @@ class _AlbumCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => _openAlbum(ctx),
       child: Padding(
-        padding: const EdgeInsets.only(right: 14),
+        padding: EdgeInsets.only(right: 14),
         child: SizedBox(width: 148, child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -124,16 +124,16 @@ class _AlbumCard extends StatelessWidget {
                   headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
                   borderRadius: BorderRadius.circular(14),
                   placeholder: Container(width: 148, height: 148, color: Sp.card,
-                    child: const Icon(Icons.album, color: Sp.white40, size: 48))),
+                    child: Icon(Icons.album, color: Sp.white40, size: 48))),
               ]),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(album.title,
-              style: const TextStyle(color: Sp.white,
+              style: TextStyle(color: Sp.white,
                   fontSize: 13, fontWeight: FontWeight.w600),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             Text(album.artist,
-              style: const TextStyle(color: Sp.white70, fontSize: 12),
+              style: TextStyle(color: Sp.white70, fontSize: 12),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         )),
@@ -150,7 +150,7 @@ class _AlbumCard extends StatelessWidget {
 // ── Artist card ────────────────────────────────────────────────────────────────
 class _ArtistCard extends StatelessWidget {
   final Artist artist;
-  const _ArtistCard({required this.artist});
+  _ArtistCard({required this.artist});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
@@ -159,27 +159,27 @@ class _ArtistCard extends StatelessWidget {
       onTap: () => Navigator.push(ctx, MaterialPageRoute(
         builder: (_) => ArtistScreen(artist: artist))),
       child: Padding(
-        padding: const EdgeInsets.only(right: 16),
+        padding: EdgeInsets.only(right: 16),
         child: SizedBox(width: 90, child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: kGrad,
               ),
-              padding: const EdgeInsets.all(2),
+              padding: EdgeInsets.all(2),
               child: ClipOval(child: NetImage(
                 url: url, width: 86, height: 86,
                 headers: api.authHeaders,
                 circular: true,
                 placeholder: Container(width: 86, height: 86, color: Sp.card,
-                  child: const Icon(Icons.person, color: Sp.white40, size: 40)),
+                  child: Icon(Icons.person, color: Sp.white40, size: 40)),
               )),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(artist.name,
-              style: const TextStyle(color: Sp.white,
+              style: TextStyle(color: Sp.white,
                   fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 2, overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center),
@@ -193,7 +193,7 @@ class _ArtistCard extends StatelessWidget {
 // ── Song row ───────────────────────────────────────────────────────────────────
 class _SongRow extends StatelessWidget {
   final Song song; final List<Song> all; final int idx; final int index;
-  const _SongRow({required this.song, required this.all,
+  _SongRow({required this.song, required this.all,
       required this.idx, required this.index});
   @override
   Widget build(BuildContext ctx) {
@@ -203,25 +203,25 @@ class _SongRow extends StatelessWidget {
       onTap: () => ctx.read<PlayerProvider>()
           .playSong(song, queue: all, index: idx),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         child: Row(children: [
           // Numéro de piste ou equalizer
           SizedBox(
             width: 24,
             child: isCurrent
-                ? const GIcon(Icons.equalizer_rounded, size: 18)
+                ? GIcon(Icons.play_arrow_rounded, size: 18)
                 : Text('${index + 1}',
-                    style: const TextStyle(color: Sp.white40, fontSize: 13),
+                    style: TextStyle(color: Sp.white40, fontSize: 13),
                     textAlign: TextAlign.center),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: ArtworkWidget(
               key: ValueKey(song.hash), hash: song.image ?? song.hash,
               size: 50, borderRadius: BorderRadius.circular(8)),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -229,12 +229,12 @@ class _SongRow extends StatelessWidget {
                 color: isCurrent ? Sp.g2 : Sp.white,
                 fontSize: 15, fontWeight: FontWeight.w500),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(song.artist,
-                style: const TextStyle(color: Sp.white70, fontSize: 13),
+                style: TextStyle(color: Sp.white70, fontSize: 13),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
-          const Icon(Icons.more_horiz, color: Sp.white40, size: 20),
+          Icon(Icons.more_horiz, color: Sp.white40, size: 20),
         ]),
       ),
     );

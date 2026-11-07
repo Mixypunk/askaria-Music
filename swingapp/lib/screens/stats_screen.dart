@@ -7,7 +7,7 @@ import '../services/api_service.dart';
 import '../widgets/artwork_widget.dart';
 
 class StatsScreen extends StatefulWidget {
-  const StatsScreen({super.key});
+  StatsScreen({super.key});
   @override
   State<StatsScreen> createState() => _StatsScreenState();
 }
@@ -87,11 +87,11 @@ class _StatsScreenState extends State<StatsScreen>
       backgroundColor: Sp.bg,
       appBar: AppBar(
         backgroundColor: Sp.bg,
-        title: const Text('Statistiques',
+        title: Text('Statistiques',
             style: TextStyle(color: Sp.white, fontSize: 18,
                 fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
               color: Sp.white, size: 20),
           onPressed: () => Navigator.pop(context)),
         bottom: TabBar(
@@ -99,7 +99,7 @@ class _StatsScreenState extends State<StatsScreen>
           indicatorColor: Sp.g2,
           labelColor: Sp.white,
           unselectedLabelColor: Sp.white70,
-          tabs: const [
+          tabs: [
             Tab(text: 'Résumé'),
             Tab(text: 'Top'),
             Tab(text: 'Historique'),
@@ -107,7 +107,7 @@ class _StatsScreenState extends State<StatsScreen>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Sp.g2))
+          ? Center(child: CircularProgressIndicator(color: Sp.g2))
           : TabBarView(
               controller: _tabs,
               children: [
@@ -130,49 +130,49 @@ class _StatsScreenState extends State<StatsScreen>
       onRefresh: _load,
       color: Sp.g2,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
           // Cards stats
           Row(children: [
             _StatCard('Lectures', '$totalPlays', Icons.play_circle_rounded, Sp.g2),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             _StatCard('Heures', '${listenHours}h', Icons.schedule_rounded, Sp.g1),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             _StatCard('Titres', '$totalSongs', Icons.music_note_rounded, Sp.g3),
           ]),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(children: [
             _StatCard('Albums', '$totalAlbums',
-                Icons.album_rounded, const Color(0xFF1DB954)),
-            const SizedBox(width: 10),
+                Icons.album_rounded, Color(0xFF1DB954)),
+            SizedBox(width: 10),
             _StatCard('Artistes',
                 '${_overview['total_artists'] ?? 0}',
-                Icons.person_rounded, const Color(0xFFE8375A)),
-            const SizedBox(width: 10),
-            Expanded(child: const SizedBox()),
+                Icons.person_rounded, Color(0xFFE8375A)),
+            SizedBox(width: 10),
+            Expanded(child: SizedBox()),
           ]),
-          const SizedBox(height: 28),
+          SizedBox(height: 28),
 
           // Graphique écoutes 7 derniers jours
           if (_daily.isNotEmpty) ...[
-            const _SectionTitle('Écoutes — 7 derniers jours'),
-            const SizedBox(height: 12),
+            _SectionTitle('Écoutes — 7 derniers jours'),
+            SizedBox(height: 12),
             _DailyChart(data: _daily),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
           ],
 
           // Heatmap heures actives
           if (_heatmap.isNotEmpty) ...[
-            const _SectionTitle('Heures les plus actives'),
-            const SizedBox(height: 12),
+            _SectionTitle('Heures les plus actives'),
+            SizedBox(height: 12),
             _Heatmap(data: _heatmap),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
           ],
 
           // Top genres
           if (_genres.isNotEmpty) ...[
-            const _SectionTitle('Genres favoris'),
-            const SizedBox(height: 12),
+            _SectionTitle('Genres favoris'),
+            SizedBox(height: 12),
             ..._genres.take(5).map((g) => _GenreBar(
               genre:  g['genre'] ?? '',
               plays:  g['plays'] ?? 0,
@@ -189,31 +189,31 @@ class _StatsScreenState extends State<StatsScreen>
     return Column(children: [
       // Sélecteur de période
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: Row(children: [
           _PeriodChip('Tout', 'all', _period, _setPeriod),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _PeriodChip('Ce mois', 'month', _period, _setPeriod),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _PeriodChip('Cette semaine', 'week', _period, _setPeriod),
         ]),
       ),
       Expanded(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
             // Top titres
             if (_topTracks.isNotEmpty) ...[
-              const _SectionTitle('Titres les plus joués'),
-              const SizedBox(height: 8),
+              _SectionTitle('Titres les plus joués'),
+              SizedBox(height: 8),
               ..._topTracks.asMap().entries.map((e) =>
                 _TopTrackRow(rank: e.key + 1, data: e.value)),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
             ],
             // Top artistes
             if (_topArtists.isNotEmpty) ...[
-              const _SectionTitle('Artistes les plus écoutés'),
-              const SizedBox(height: 8),
+              _SectionTitle('Artistes les plus écoutés'),
+              SizedBox(height: 8),
               ..._topArtists.asMap().entries.map((e) =>
                 _TopArtistRow(
                   rank: e.key + 1,
@@ -223,7 +223,7 @@ class _StatsScreenState extends State<StatsScreen>
                 )),
             ],
             if (_topTracks.isEmpty && _topArtists.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 60),
                 child: Center(child: Text('Aucune écoute sur cette période',
                     style: TextStyle(color: Sp.white40))),
@@ -237,12 +237,12 @@ class _StatsScreenState extends State<StatsScreen>
   // ── Onglet Historique ─────────────────────────────────────────────────────
   Widget _buildHistory() {
     if (_history.isEmpty) {
-      return const Center(child: Text('Aucun historique',
+      return Center(child: Text('Aucun historique',
           style: TextStyle(color: Sp.white40)));
     }
     final player = context.read<PlayerProvider>();
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 100),
       itemCount: _history.length,
       itemBuilder: (ctx, i) {
         final item = _history[i];
@@ -279,36 +279,36 @@ class _StatCard extends StatelessWidget {
   final String label, value;
   final IconData icon;
   final Color color;
-  const _StatCard(this.label, this.value, this.icon, this.color);
+  _StatCard(this.label, this.value, this.icon, this.color);
   @override
   Widget build(BuildContext ctx) => Expanded(child: Container(
-    padding: const EdgeInsets.all(12),
+    padding: EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: color.withOpacity(0.25))),
+      border: Border.all(color: color.withValues(alpha: 0.25))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Icon(icon, color: color, size: 20),
-      const SizedBox(height: 8),
+      SizedBox(height: 8),
       Text(value, style: TextStyle(color: color,
           fontSize: 20, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: Sp.white70, fontSize: 10)),
+      SizedBox(height: 2),
+      Text(label, style: TextStyle(color: Sp.white70, fontSize: 10)),
     ]),
   ));
 }
 
 class _SectionTitle extends StatelessWidget {
   final String title;
-  const _SectionTitle(this.title);
+  _SectionTitle(this.title);
   @override
-  Widget build(BuildContext ctx) => Text(title, style: const TextStyle(
+  Widget build(BuildContext ctx) => Text(title, style: TextStyle(
       color: Sp.white, fontSize: 16, fontWeight: FontWeight.bold));
 }
 
 class _DailyChart extends StatelessWidget {
   final List<dynamic> data;
-  const _DailyChart({required this.data});
+  _DailyChart({required this.data});
   @override
   Widget build(BuildContext ctx) {
     final maxVal = data.map((d) => (d['plays'] as int?) ?? 0)
@@ -323,23 +323,23 @@ class _DailyChart extends StatelessWidget {
           final ratio  = maxVal > 0 ? plays / maxVal : 0.0;
           final day    = date.length >= 10 ? date.substring(8) : '';
           return Expanded(child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
+            padding: EdgeInsets.symmetric(horizontal: 3),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (plays > 0) Text('$plays',
-                  style: const TextStyle(color: Sp.white70, fontSize: 9)),
-                const SizedBox(height: 2),
+                  style: TextStyle(color: Sp.white70, fontSize: 9)),
+                SizedBox(height: 2),
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
+                  duration: Duration(milliseconds: 400),
                   height: (ratio * 52).clamp(3, 52),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter, end: Alignment.topCenter,
                       colors: [Sp.g1, Sp.g2]),
                     borderRadius: BorderRadius.circular(3))),
-                const SizedBox(height: 4),
-                Text(day, style: const TextStyle(
+                SizedBox(height: 4),
+                Text(day, style: TextStyle(
                     color: Sp.white40, fontSize: 9)),
               ],
             ),
@@ -352,7 +352,7 @@ class _DailyChart extends StatelessWidget {
 
 class _Heatmap extends StatelessWidget {
   final List<dynamic> data;
-  const _Heatmap({required this.data});
+  _Heatmap({required this.data});
   @override
   Widget build(BuildContext ctx) {
     final maxVal = data.map((d) => (d['plays'] as int?) ?? 0)
@@ -367,10 +367,10 @@ class _Heatmap extends StatelessWidget {
           return Expanded(child: Tooltip(
             message: '${hour}h : $plays écoutes',
             child: Container(
-              margin: const EdgeInsets.all(1.5),
+              margin: EdgeInsets.all(1.5),
               decoration: BoxDecoration(
                 color: Color.lerp(
-                  Colors.white.withOpacity(0.04),
+                  Colors.white.withValues(alpha: 0.04),
                   Sp.g2,
                   ratio,
                 ),
@@ -386,19 +386,19 @@ class _Heatmap extends StatelessWidget {
 class _GenreBar extends StatelessWidget {
   final String genre;
   final int plays, maxPlays;
-  const _GenreBar({required this.genre, required this.plays,
+  _GenreBar({required this.genre, required this.plays,
       required this.maxPlays});
   @override
   Widget build(BuildContext ctx) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
+    padding: EdgeInsets.only(bottom: 10),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Expanded(child: Text(genre, style: const TextStyle(
+        Expanded(child: Text(genre, style: TextStyle(
             color: Sp.white, fontSize: 13, fontWeight: FontWeight.w500))),
-        Text('$plays écoutes', style: const TextStyle(
+        Text('$plays écoutes', style: TextStyle(
             color: Sp.white70, fontSize: 11)),
       ]),
-      const SizedBox(height: 4),
+      SizedBox(height: 4),
       ClipRRect(
         borderRadius: BorderRadius.circular(2),
         child: LinearProgressIndicator(
@@ -413,15 +413,15 @@ class _GenreBar extends StatelessWidget {
 class _PeriodChip extends StatelessWidget {
   final String label, value, current;
   final void Function(String) onTap;
-  const _PeriodChip(this.label, this.value, this.current, this.onTap);
+  _PeriodChip(this.label, this.value, this.current, this.onTap);
   @override
   Widget build(BuildContext ctx) {
     final sel = value == current;
     return GestureDetector(
       onTap: () => onTap(value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        duration: Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           gradient: sel ? kGrad : null,
           color: sel ? null : Sp.card,
@@ -439,7 +439,7 @@ class _PeriodChip extends StatelessWidget {
 class _TopTrackRow extends StatelessWidget {
   final int rank;
   final dynamic data;
-  const _TopTrackRow({required this.rank, required this.data});
+  _TopTrackRow({required this.rank, required this.data});
   @override
   Widget build(BuildContext ctx) {
     final song  = Song.fromJson(data as Map<String, dynamic>);
@@ -448,25 +448,25 @@ class _TopTrackRow extends StatelessWidget {
     return GestureDetector(
       onTap: () => player.playSong(song),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.symmetric(vertical: 6),
         child: Row(children: [
           SizedBox(width: 26, child: Text('$rank',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: rank <= 3 ? Sp.g2 : Sp.white40,
               fontWeight: FontWeight.bold, fontSize: 14))),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           ArtworkWidget(key: ValueKey(song.hash),
               hash: song.image ?? song.hash, size: 42,
               borderRadius: BorderRadius.circular(4)),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Sp.white,
+                style: TextStyle(color: Sp.white,
                     fontWeight: FontWeight.w500, fontSize: 13)),
               Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Sp.white70, fontSize: 11)),
+                style: TextStyle(color: Sp.white70, fontSize: 11)),
             ])),
           Text('$plays×', style: TextStyle(
             color: plays > 1 ? Sp.g2 : Sp.white40,
@@ -480,24 +480,24 @@ class _TopTrackRow extends StatelessWidget {
 class _TopArtistRow extends StatelessWidget {
   final int rank, plays, maxPlays;
   final String name;
-  const _TopArtistRow({required this.rank, required this.name,
+  _TopArtistRow({required this.rank, required this.name,
       required this.plays, required this.maxPlays});
   @override
   Widget build(BuildContext ctx) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+    padding: EdgeInsets.only(bottom: 12),
     child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
       SizedBox(width: 26, child: Text('$rank',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: rank <= 3 ? Sp.g2 : Sp.white40,
           fontWeight: FontWeight.bold, fontSize: 14))),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       Expanded(child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Sp.white,
+            style: TextStyle(color: Sp.white,
                 fontWeight: FontWeight.w500, fontSize: 13)),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
@@ -506,8 +506,8 @@ class _TopArtistRow extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation(Sp.g2),
               minHeight: 3)),
         ])),
-      const SizedBox(width: 12),
-      Text('$plays', style: const TextStyle(
+      SizedBox(width: 12),
+      Text('$plays', style: TextStyle(
           color: Sp.white70, fontSize: 12, fontWeight: FontWeight.w500)),
     ]),
   );
@@ -517,27 +517,27 @@ class _HistoryRow extends StatelessWidget {
   final Song song;
   final String playedAt;
   final VoidCallback onTap;
-  const _HistoryRow({required this.song, required this.playedAt,
+  _HistoryRow({required this.song, required this.playedAt,
       required this.onTap});
   @override
   Widget build(BuildContext ctx) => GestureDetector(
     onTap: onTap,
     child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6),
       child: Row(children: [
         ArtworkWidget(key: ValueKey(song.hash),
             hash: song.image ?? song.hash, size: 44,
             borderRadius: BorderRadius.circular(4)),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Sp.white,
+              style: TextStyle(color: Sp.white,
                   fontWeight: FontWeight.w500, fontSize: 13)),
             Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Sp.white70, fontSize: 11)),
+              style: TextStyle(color: Sp.white70, fontSize: 11)),
           ])),
-        Text(playedAt, style: const TextStyle(
+        Text(playedAt, style: TextStyle(
             color: Sp.white40, fontSize: 11)),
       ]),
     ),

@@ -10,7 +10,7 @@ import '../widgets/song_tile.dart';
 import '../widgets/artwork_widget.dart';
 
 class PlaylistsScreen extends StatefulWidget {
-  const PlaylistsScreen({super.key});
+  PlaylistsScreen({super.key});
   @override
   State<PlaylistsScreen> createState() => _PlaylistsScreenState();
 }
@@ -80,41 +80,41 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
         builder: (ctx, setSt) => AlertDialog(
           backgroundColor: Sp.card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Nouvelle playlist',
+          title: Text('Nouvelle playlist',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(
               controller: nameCtrl,
               autofocus: true,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Nom de la playlist',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(color: Colors.white38),
                 filled: true, fillColor: Colors.white10,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(children: [
               Checkbox(
                 value: isPublic,
                 activeColor: Sp.g1,
                 onChanged: (v) => setSt(() => isPublic = v ?? false),
               ),
-              const Text('Rendre publique', style: TextStyle(color: Colors.white70)),
+              Text('Rendre publique', style: TextStyle(color: Colors.white70)),
             ]),
           ]),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+              child: Text('Annuler', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Sp.g1),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Créer'),
+              child: Text('Créer'),
             ),
           ],
         ),
@@ -136,10 +136,10 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
       backgroundColor: Sp.bg,
       appBar: AppBar(
         backgroundColor: Sp.bg,
-        title: GText('Playlists', s: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        title: GText('Playlists', s: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_rounded),
+            icon: Icon(Icons.add_rounded),
             tooltip: 'Nouvelle playlist',
             onPressed: _createPlaylist,
           ),
@@ -149,7 +149,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
           indicatorColor: Sp.g1,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white38,
-          tabs: const [
+          tabs: [
             Tab(text: 'Mes playlists'),
             Tab(text: 'Partagées'),
           ],
@@ -160,26 +160,26 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
         children: [
           // ── Mes playlists ────────────────────────────────────────
           _loadingMine
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : _error != null
                   ? Center(child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24),
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 12),
+                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        SizedBox(height: 12),
                         Text(_error!, textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red, fontSize: 12)),
-                        const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _loadMine, child: const Text('Réessayer')),
+                            style: TextStyle(color: Colors.red, fontSize: 12)),
+                        SizedBox(height: 16),
+                        ElevatedButton(onPressed: _loadMine, child: Text('Réessayer')),
                       ]),
                     ))
                   : _mine.isEmpty
                       ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.queue_music_rounded, size: 64, color: Colors.white24),
-                          const SizedBox(height: 16),
-                          const Text('Aucune playlist', style: TextStyle(color: Sp.white70)),
-                          const SizedBox(height: 8),
-                          const Text('Appuie sur + pour en créer une',
+                          Icon(Icons.queue_music_rounded, size: 64, color: Colors.white24),
+                          SizedBox(height: 16),
+                          Text('Aucune playlist', style: TextStyle(color: Sp.white70)),
+                          SizedBox(height: 8),
+                          Text('Appuie sur + pour en créer une',
                               style: TextStyle(color: Colors.white38, fontSize: 13)),
                         ]))
                       : RefreshIndicator(
@@ -198,21 +198,21 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
 
           // ── Playlists partagées ──────────────────────────────────
           _loadingPublic
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : _public.isEmpty
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.public_off_rounded, size: 64, color: Colors.white24),
-                      const SizedBox(height: 16),
-                      const Text('Aucune playlist partagée', style: TextStyle(color: Sp.white70)),
-                      const SizedBox(height: 8),
-                      const Text('Les playlists publiques des autres utilisateurs\napparaîtront ici',
+                      Icon(Icons.public_off_rounded, size: 64, color: Colors.white24),
+                      SizedBox(height: 16),
+                      Text('Aucune playlist partagée', style: TextStyle(color: Sp.white70)),
+                      SizedBox(height: 8),
+                      Text('Les playlists publiques des autres utilisateurs\napparaîtront ici',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white38, fontSize: 13)),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       TextButton.icon(
                         onPressed: _loadPublic,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Actualiser'),
+                        icon: Icon(Icons.refresh),
+                        label: Text('Actualiser'),
                         style: TextButton.styleFrom(foregroundColor: Sp.g2),
                       ),
                     ]))
@@ -243,7 +243,7 @@ class _PlaylistTile extends StatelessWidget {
   final Playlist playlist;
   final VoidCallback onTap;
   final bool showPublicBadge;
-  const _PlaylistTile({required this.playlist, required this.onTap, this.showPublicBadge = false});
+  _PlaylistTile({required this.playlist, required this.onTap, this.showPublicBadge = false});
 
   @override
   Widget build(BuildContext context) {
@@ -257,28 +257,28 @@ class _PlaylistTile extends StatelessWidget {
         child: playlist.imageHash != null && playlist.imageHash!.isNotEmpty
             ? ArtworkWidget(hash: playlist.imageHash!, size: 48,
                 borderRadius: BorderRadius.circular(6))
-            : const Icon(Icons.queue_music_rounded, color: Colors.white38),
+            : Icon(Icons.queue_music_rounded, color: Colors.white38),
       ),
-      title: Text(playlist.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+      title: Text(playlist.name, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
       subtitle: Row(mainAxisSize: MainAxisSize.min, children: [
         Text('${playlist.trackCount} titre${playlist.trackCount != 1 ? 's' : ''}',
-            style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            style: TextStyle(color: Colors.white54, fontSize: 12)),
         if (showPublicBadge && playlist.isPublic) ...[ 
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.2),
+              color: Colors.blueAccent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+              border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.5)),
             ),
-            child: const Text('Public',
+            child: Text('Public',
                 style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.w600)),
           ),
         ],
       ]),
       onTap: onTap,
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+      trailing: Icon(Icons.chevron_right_rounded, color: Colors.white24),
     );
   }
 }
@@ -287,7 +287,7 @@ class _PlaylistTile extends StatelessWidget {
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
   final bool readOnly;
-  const PlaylistDetailScreen({super.key, required this.playlist, this.readOnly = false});
+  PlaylistDetailScreen({super.key, required this.playlist, this.readOnly = false});
   @override
   State<PlaylistDetailScreen> createState() => _PlaylistDetailScreenState();
 }
@@ -347,7 +347,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(newVal ? 'Playlist rendue publique' : 'Playlist rendue privée'),
         backgroundColor: Sp.card,
-        duration: const Duration(seconds: 2),
+        duration: Duration(seconds: 2),
       ));
     }
   }
@@ -364,19 +364,19 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           children: [
             Text(_playlist.name),
             if (_playlist.isPublic)
-              const Text('Publique', style: TextStyle(fontSize: 11, color: Colors.blueAccent)),
+              Text('Publique', style: TextStyle(fontSize: 11, color: Colors.blueAccent)),
           ],
         ),
         actions: [
           if (_tracks.isNotEmpty) ...[
             Consumer<DownloadsProvider>(
               builder: (ctx, dl, _) {
-                if (!SwingApiService().canDownload) return const SizedBox.shrink();
+                if (!SwingApiService().canDownload) return SizedBox.shrink();
 
                 final isOffline = dl.isPlaylistOffline(_playlist.id);
                 
                 if (dl.isDownloadingPlaylist) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.only(right: 16),
                     child: Center(child: SizedBox(
                       width: 20, height: 20,
@@ -394,13 +394,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   onPressed: () {
                     if (isOffline) {
                       dl.unsyncPlaylist(_playlist.id);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text('Synchronisation hors-ligne désactivée'),
                         behavior: SnackBarBehavior.floating,
                       ));
                     } else {
                       dl.syncPlaylist(_playlist, _tracks, context: context);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text('Synchronisation hors-ligne activée'),
                         behavior: SnackBarBehavior.floating,
                       ));
@@ -410,7 +410,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.play_circle_rounded),
+              icon: Icon(Icons.play_circle_rounded),
               onPressed: () => context.read<PlayerProvider>().playSong(
                 _tracks.first, queue: _tracks, index: 0,
               ),
@@ -428,11 +428,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
               : _tracks.isEmpty
-                  ? const Center(child: Text('Playlist vide', style: TextStyle(color: Colors.white54)))
+                  ? Center(child: Text('Playlist vide', style: TextStyle(color: Colors.white54)))
                   : widget.readOnly
                       // Lecture seule → liste simple (playlist d'un autre user)
                       ? ListView.builder(
@@ -459,7 +459,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             );
                             if (!ok && mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Erreur lors du réordonnancement')),
+                                SnackBar(content: Text('Erreur lors du réordonnancement')),
                               );
                               _load();
                             }
@@ -480,7 +480,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                 );
                                 if (!ok && mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Erreur lors de la suppression')),
+                                    SnackBar(content: Text('Erreur lors de la suppression')),
                                   );
                                   _load();
                                 }

@@ -1,7 +1,7 @@
 part of '../home_tab.dart';
 
 class HomeTab extends StatefulWidget {
-  const HomeTab({super.key});
+  HomeTab({super.key});
   @override
   State<HomeTab> createState() => _HomeTabState();
 }
@@ -130,13 +130,13 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           title: Row(children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_greeting(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13, color: Sp.white70,
                   fontWeight: FontWeight.w400)),
-              const SizedBox(height: 1),
+              SizedBox(height: 1),
               if (_username != null)
                 Text(_username!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20, fontWeight: FontWeight.bold,
                     color: Sp.white)),
             ]),
@@ -146,14 +146,14 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               avatarUrl: _avatarUrl,
               username: _username ?? '',
               onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                  MaterialPageRoute(builder: (_) => SettingsScreen())),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
           ],
         ),
 
         if (_loading)
-          const SliverFillRemaining(child: Center(
+          SliverFillRemaining(child: Center(
             child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2)))
 
         else if (_offline)
@@ -167,7 +167,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
             selector: (_, p) => p.history,
             shouldRebuild: (prev, next) => prev.length != next.length,
             builder: (ctx, recent, _) {
-              if (recent.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+              if (recent.isEmpty) return SliverToBoxAdapter(child: SizedBox.shrink());
               return SliverToBoxAdapter(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _SectionHeader(
@@ -178,7 +178,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                     height: 70,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16),
                       itemCount: recent.length.clamp(0, 8),
                       itemBuilder: (ctx, i) => _RecentTile(
                         song: recent[i], allSongs: recent, idx: i),
@@ -200,7 +200,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               height: 210,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _albums.length,
                 itemBuilder: (ctx, i) => _AlbumCard(album: _albums[i]),
               ),
@@ -219,7 +219,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               height: 148,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _artists.length,
                 itemBuilder: (ctx, i) => _ArtistCard(artist: _artists[i]),
               ),
@@ -236,10 +236,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   onTap: () => _showAllSongs(context),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text('Voir tout (${_songs.length})',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Sp.white70, fontSize: 13)),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.chevron_right_rounded,
+                    SizedBox(width: 2),
+                    Icon(Icons.chevron_right_rounded,
                       color: Sp.white40, size: 18),
                   ]),
                 ),
@@ -250,7 +250,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               childCount: _songs.length.clamp(0, 10),
             )),
             SliverToBoxAdapter(child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: GestureDetector(
                 onTap: () => _showAllSongs(context),
                 child: Container(
@@ -258,14 +258,14 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   decoration: BoxDecoration(
                     border: Border.all(color: Sp.white12),
                     borderRadius: BorderRadius.circular(14)),
-                  child: const Center(child: Text('Voir tous les titres',
+                  child: Center(child: Text('Voir tous les titres',
                     style: TextStyle(color: Sp.white70,
                         fontSize: 14, fontWeight: FontWeight.w500)))),
               ),
             )),
           ],
 
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ]),
     );
@@ -294,34 +294,34 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                       color: Sp.card,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(Icons.wifi_off_rounded,
+                    child: Icon(Icons.wifi_off_rounded,
                         color: Sp.white40, size: 40),
                   ),
-                  const SizedBox(height: 20),
-                  const Text('Serveur inaccessible',
+                  SizedBox(height: 20),
+                  Text('Serveur inaccessible',
                     style: TextStyle(color: Sp.white, fontSize: 18,
                         fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Padding(
+                  SizedBox(height: 8),
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 48),
                     child: Text('Aucune musique téléchargée pour le mode hors connexion.',
                       style: TextStyle(color: Sp.white70, fontSize: 14),
                       textAlign: TextAlign.center),
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: 28),
                   GestureDetector(
                     onTap: () => _load(refresh: true),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: 32, vertical: 14),
                       decoration: BoxDecoration(
                         gradient: kGrad,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [BoxShadow(
-                          color: Sp.g2.withOpacity(0.3),
-                          blurRadius: 12, offset: const Offset(0, 4))],
+                          color: Sp.g2.withValues(alpha: 0.3),
+                          blurRadius: 12, offset: Offset(0, 4))],
                       ),
-                      child: const Text('Réessayer',
+                      child: Text('Réessayer',
                         style: TextStyle(color: Colors.white,
                             fontWeight: FontWeight.bold)))),
                 ],
@@ -334,8 +334,8 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           delegate: SliverChildListDelegate([
             // Banner hors connexion
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              padding: const EdgeInsets.all(16),
+              margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Sp.card,
                 borderRadius: BorderRadius.circular(16),
@@ -345,13 +345,13 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: Sp.g2.withOpacity(0.15),
+                    color: Sp.g2.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.cloud_off_rounded, color: Sp.g2, size: 22),
+                  child: Icon(Icons.cloud_off_rounded, color: Sp.g2, size: 22),
                 ),
-                const SizedBox(width: 14),
-                const Expanded(child: Column(
+                SizedBox(width: 14),
+                Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Mode hors connexion',
@@ -363,7 +363,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   ],
                 )),
                 IconButton(
-                  icon: const Icon(Icons.refresh_rounded, color: Sp.white70, size: 20),
+                  icon: Icon(Icons.refresh_rounded, color: Sp.white70, size: 20),
                   onPressed: _load,
                 ),
               ]),
@@ -371,8 +371,8 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
             if (offlinePlaylists.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Row(children: const [
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Row(children: [
                   Icon(Icons.queue_music_rounded, color: Sp.white70, size: 16),
                   SizedBox(width: 8),
                   Text('Playlists hors connexion',
@@ -384,7 +384,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                 height: 168,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16),
                   itemCount: offlinePlaylists.length,
                   itemBuilder: (ctx, i) {
                     final pl = offlinePlaylists[i];
@@ -392,7 +392,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                       onTap: () => Navigator.push(context, MaterialPageRoute(
                         builder: (_) => PlaylistDetailScreen(playlist: pl, readOnly: true))),
                       child: Padding(
-                        padding: const EdgeInsets.only(right: 14),
+                        padding: EdgeInsets.only(right: 14),
                         child: SizedBox(
                           width: 120,
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,16 +403,16 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                                   color: Sp.card,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
-                                child: const Icon(Icons.queue_music_rounded,
+                                child: Icon(Icons.queue_music_rounded,
                                     color: Sp.white40, size: 48),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(pl.name,
-                                style: const TextStyle(color: Sp.white,
+                                style: TextStyle(color: Sp.white,
                                     fontSize: 13, fontWeight: FontWeight.w500),
                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                               Text('${pl.trackCount} titres',
-                                style: const TextStyle(color: Sp.white70, fontSize: 11)),
+                                style: TextStyle(color: Sp.white70, fontSize: 11)),
                             ],
                           ),
                         ),
@@ -425,8 +425,8 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
             if (offlineSongs.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-                child: Row(children: const [
+                padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+                child: Row(children: [
                   Icon(Icons.download_done_rounded, color: Sp.white70, size: 16),
                   SizedBox(width: 8),
                   Text('Titres téléchargés',
@@ -436,14 +436,14 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               ),
               ListView.builder(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: NeverScrollableScrollPhysics(),
                 itemCount: offlineSongs.length,
                 itemBuilder: (ctx, i) =>
                     _SongRow(song: offlineSongs[i], all: offlineSongs, idx: i, index: i),
               ),
             ],
 
-            const SizedBox(height: 100),
+            SizedBox(height: 100),
           ]),
         );
       },

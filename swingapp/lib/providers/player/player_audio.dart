@@ -2,28 +2,7 @@ part of '../player_provider.dart';
 
 extension PlayerAudio on PlayerProvider {
   void _initPlayer() {
-    // Créer le player avec l'EQ dans le pipeline (Android uniquement)
-    // L'EQ DOIT être dans le constructeur — impossible à ajouter après
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      _player = AudioPlayer(
-        audioPipeline: AudioPipeline(
-          androidAudioEffects: [EqService.instance.equalizer],
-        ),
-      );
-    } else {
-      _player = AudioPlayer();
-    }
-    // Charger les réglages EQ — deux déclencheurs pour fiabilité :
-    // 1. Dès la première source audio
-    _player.playbackEventStream.first.then((_) {
-      EqService.instance.loadSettings();
-    }).catchError((_) {});
-    // 2. Fallback après 2s si aucun event (player idle au démarrage)
-    Future.delayed(const Duration(seconds: 2), () {
-      if (EqService.instance.gains.isEmpty) {
-        EqService.instance.loadSettings();
-      }
-    });
+    _player = AudioPlayer();
 
     // Écouter l'index courant — just_audio gère le passage automatique entre titres
     _subs.add(_player.currentIndexStream.listen((idx) {

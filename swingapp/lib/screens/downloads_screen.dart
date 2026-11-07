@@ -9,7 +9,7 @@ import '../providers/downloads_provider.dart';
 import '../widgets/artwork_widget.dart';
 
 class DownloadsScreen extends StatefulWidget {
-  const DownloadsScreen({super.key});
+  DownloadsScreen({super.key});
   @override
   State<DownloadsScreen> createState() => _DownloadsScreenState();
 }
@@ -51,14 +51,14 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: Sp.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Retirer la playlist', style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
+        title: Text('Retirer la playlist', style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
         content: Text('Supprimer "${pl.name}" du mode hors-ligne ?',
-            style: const TextStyle(color: Sp.white70)),
+            style: TextStyle(color: Sp.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler', style: TextStyle(color: Sp.white70))),
+              child: Text('Annuler', style: TextStyle(color: Sp.white70))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Supprimer', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+              child: Text('Supprimer', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -80,17 +80,17 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           backgroundColor: Sp.bg,
           appBar: AppBar(
             backgroundColor: Sp.bg,
-            title: const Text('Hors-ligne',
+            title: Text('Hors-ligne',
                 style: TextStyle(color: Sp.white, fontSize: 18,
                     fontWeight: FontWeight.bold)),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
                   color: Sp.white, size: 20),
               onPressed: () => Navigator.pop(context)),
             actions: [
               if (songs.isNotEmpty)
                 IconButton(
-                  icon: const Icon(Icons.delete_sweep_rounded,
+                  icon: Icon(Icons.delete_sweep_rounded,
                       color: Sp.white70, size: 22),
                   tooltip: 'Tout supprimer',
                   onPressed: () => _confirmDeleteAll(ctx, dl, songs),
@@ -98,9 +98,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
             ],
           ),
           body: isEmpty
-              ? const _EmptyState()
+              ? _EmptyState()
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 120),
                   children: [
                     // ── Résumé stockage ─────────────────────────────────
                     _StorageSummary(
@@ -108,7 +108,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                       playlistCount: playlists.length,
                       totalSize: _fmtSize(totalSize),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // ── Section Playlists ────────────────────────────────
                     if (playlists.isNotEmpty) ...[
@@ -117,11 +117,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                         label: 'Playlists',
                         count: playlists.length,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       GridView.builder(
                         shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        physics: NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
@@ -140,7 +140,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                     ],
 
                     // ── Section Titres ───────────────────────────────────
@@ -157,9 +157,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                               })
                             : null,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       ...songs.asMap().entries.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: EdgeInsets.only(bottom: 8),
                         child: _SongTileOffline(
                           song: e.value,
                           onPlay: () {
@@ -185,15 +185,15 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: Sp.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Tout supprimer',
+        title: Text('Tout supprimer',
             style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
         content: Text('Supprimer ${songs.length} titre(s) hors-ligne ?',
-            style: const TextStyle(color: Sp.white70)),
+            style: TextStyle(color: Sp.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler', style: TextStyle(color: Sp.white70))),
+              child: Text('Annuler', style: TextStyle(color: Sp.white70))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Supprimer',
+              child: Text('Supprimer',
                   style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
         ],
       ),
@@ -211,7 +211,7 @@ class _StorageSummary extends StatelessWidget {
   final int songCount;
   final int playlistCount;
   final String totalSize;
-  const _StorageSummary({
+  _StorageSummary({
     required this.songCount,
     required this.playlistCount,
     required this.totalSize,
@@ -219,40 +219,40 @@ class _StorageSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: EdgeInsets.all(14),
     decoration: BoxDecoration(
       gradient: LinearGradient(
-        colors: [Sp.g1.withOpacity(0.12), Sp.g2.withOpacity(0.12)],
+        colors: [Sp.g1.withValues(alpha: 0.12), Sp.g2.withValues(alpha: 0.12)],
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
       ),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Sp.g2.withOpacity(0.2)),
+      border: Border.all(color: Sp.g2.withValues(alpha: 0.2)),
     ),
     child: Row(children: [
       Container(
         width: 38, height: 38,
         decoration: BoxDecoration(
-          color: Sp.g2.withOpacity(0.15),
+          color: Sp.g2.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10)),
-        child: const Icon(Icons.wifi_off_rounded, color: Sp.g2, size: 20),
+        child: Icon(Icons.wifi_off_rounded, color: Sp.g2, size: 20),
       ),
-      const SizedBox(width: 12),
+      SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Disponible hors-ligne',
+        Text('Disponible hors-ligne',
             style: TextStyle(color: Sp.white, fontSize: 14,
                 fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           [
             if (songCount > 0) '$songCount titre${songCount > 1 ? 's' : ''}',
             if (playlistCount > 0) '$playlistCount playlist${playlistCount > 1 ? 's' : ''}',
           ].join(' · '),
-          style: const TextStyle(color: Sp.white70, fontSize: 12),
+          style: TextStyle(color: Sp.white70, fontSize: 12),
         ),
       ])),
       Text(totalSize,
-          style: const TextStyle(color: Sp.white40, fontSize: 12)),
+          style: TextStyle(color: Sp.white40, fontSize: 12)),
     ]),
   );
 }
@@ -263,7 +263,7 @@ class _SectionHeader extends StatelessWidget {
   final String label;
   final int count;
   final Widget? trailing;
-  const _SectionHeader({
+  _SectionHeader({
     required this.icon,
     required this.label,
     required this.count,
@@ -273,12 +273,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
     Icon(icon, color: Sp.white40, size: 14),
-    const SizedBox(width: 6),
+    SizedBox(width: 6),
     Text('$label ($count)'.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           color: Sp.white40, fontSize: 11,
           letterSpacing: 1.4, fontWeight: FontWeight.w700)),
-    const Spacer(),
+    Spacer(),
     if (trailing != null) trailing!,
   ]);
 }
@@ -286,18 +286,18 @@ class _SectionHeader extends StatelessWidget {
 // ── Bouton Tout lire ──────────────────────────────────────────────────────────
 class _PlayAllButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _PlayAllButton({required this.onTap});
+  _PlayAllButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         gradient: kGrad,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.play_arrow_rounded, color: Colors.white, size: 14),
         SizedBox(width: 4),
         Text('Tout lire', style: TextStyle(
@@ -312,7 +312,7 @@ class _PlaylistCard extends StatefulWidget {
   final Playlist playlist;
   final VoidCallback onDelete;
   final void Function(List<Song>) onPlay;
-  const _PlaylistCard({
+  _PlaylistCard({
     required this.playlist,
     required this.onDelete,
     required this.onPlay,
@@ -354,7 +354,7 @@ class _PlaylistCardState extends State<_PlaylistCard> {
                       borderRadius: BorderRadius.zero)
                   : Container(
                       color: Sp.surface,
-                      child: const Icon(Icons.queue_music_rounded,
+                      child: Icon(Icons.queue_music_rounded,
                           color: Sp.white40, size: 40)),
             ),
             // Bouton play overlay
@@ -365,7 +365,7 @@ class _PlaylistCardState extends State<_PlaylistCard> {
                   color: Colors.black45,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white30)),
-                child: const Icon(Icons.play_arrow_rounded,
+                child: Icon(Icons.play_arrow_rounded,
                     color: Colors.white, size: 26),
               ),
             )),
@@ -378,7 +378,7 @@ class _PlaylistCardState extends State<_PlaylistCard> {
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     shape: BoxShape.circle),
-                  child: const Icon(Icons.delete_outline_rounded,
+                  child: Icon(Icons.delete_outline_rounded,
                       color: Colors.redAccent, size: 16),
                 ),
               ),
@@ -386,15 +386,15 @@ class _PlaylistCardState extends State<_PlaylistCard> {
           ]),
           // Infos
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            padding: EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(pl.name,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Sp.white,
+                  style: TextStyle(color: Sp.white,
                       fontSize: 13, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text('${_tracks.isNotEmpty ? _tracks.length : pl.trackCount} titres',
-                  style: const TextStyle(color: Sp.white40, fontSize: 11)),
+                  style: TextStyle(color: Sp.white40, fontSize: 11)),
             ]),
           ),
         ]),
@@ -408,7 +408,7 @@ class _SongTileOffline extends StatelessWidget {
   final Song song;
   final VoidCallback onPlay;
   final VoidCallback onDelete;
-  const _SongTileOffline({
+  _SongTileOffline({
     required this.song,
     required this.onPlay,
     required this.onDelete,
@@ -420,19 +420,19 @@ class _SongTileOffline extends StatelessWidget {
     direction: DismissDirection.endToStart,
     background: Container(
       alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 20),
+      padding: EdgeInsets.only(right: 20),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.15),
+        color: Colors.redAccent.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Icon(Icons.delete_outline_rounded,
+      child: Icon(Icons.delete_outline_rounded,
           color: Colors.redAccent, size: 24),
     ),
     onDismissed: (_) => onDelete(),
     child: GestureDetector(
       onTap: onPlay,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: Sp.card,
           borderRadius: BorderRadius.circular(10)),
@@ -442,24 +442,24 @@ class _SongTileOffline extends StatelessWidget {
             hash: song.image ?? song.hash,
             size: 46,
             borderRadius: BorderRadius.circular(6)),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(song.title,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Sp.white,
+                  style: TextStyle(color: Sp.white,
                       fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(
                 [
                   if (song.artist.isNotEmpty) song.artist,
                   if (song.duration > 0) _fmtDuration(song.duration),
                 ].join(' · '),
                 maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Sp.white40, fontSize: 11)),
+                style: TextStyle(color: Sp.white40, fontSize: 11)),
             ])),
-          const Icon(Icons.play_circle_outline_rounded,
+          Icon(Icons.play_circle_outline_rounded,
               color: Sp.g2, size: 28),
         ]),
       ),
@@ -475,9 +475,9 @@ class _SongTileOffline extends StatelessWidget {
 
 // ── État vide ─────────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  _EmptyState();
   @override
-  Widget build(BuildContext ctx) => const Center(child: Column(
+  Widget build(BuildContext ctx) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Icon(Icons.wifi_off_rounded, color: Colors.white12, size: 64),

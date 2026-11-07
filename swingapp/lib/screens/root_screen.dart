@@ -19,12 +19,14 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen>
     with SingleTickerProviderStateMixin {
   int _tab = 0;
-  final _tabs = const [HomeTab(), SearchTab(), LibraryTab()];
+  final _libraryKey = GlobalKey<LibraryTabState>();
+  late final List<Widget> _tabs;
   DateTime? _lastBack;
 
   @override
   void initState() {
     super.initState();
+    _tabs = [HomeTab(), SearchTab(), LibraryTab(key: _libraryKey)];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final player = context.read<PlayerProvider>();
       WidgetService.instance.onAction = (action) {
@@ -38,11 +40,25 @@ class _RootScreenState extends State<RootScreen>
     });
   }
 
+  void _onTabTap(int i) {
+    if (i == 2) {
+      // Revenir sur Bibliothèque recharge les playlists si elles sont
+      // vides/en erreur (un échec réseau au démarrage ne doit pas rester
+      // définitif).
+      if (_tab == 2) {
+        _libraryKey.currentState?.refresh();
+      } else {
+        _libraryKey.currentState?.refreshIfNeeded();
+      }
+    }
+    setState(() => _tab = i);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final now = DateTime.now();
         if (_lastBack == null ||
@@ -67,7 +83,7 @@ class _RootScreenState extends State<RootScreen>
         body: IndexedStack(index: _tab, children: _tabs),
         bottomNavigationBar: _BottomNav(
           currentIndex: _tab,
-          onTap: (i) => setState(() => _tab = i),
+          onTap: _onTabTap,
         ),
       ),
     );
@@ -96,7 +112,7 @@ class _BottomNav extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              color: Sp.bg.withOpacity(0.88),
+              color: Sp.bg.withValues(alpha: 0.88),
               child: SafeArea(
                 top: false,
                 child: SizedBox(

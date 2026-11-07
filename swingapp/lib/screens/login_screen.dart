@@ -4,7 +4,7 @@ import '../main.dart';
 import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
     _anim = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 600));
+      vsync: this, duration: Duration(milliseconds: 600));
     _fadeIn = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
     _anim.forward();
   }
@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext ctx) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF0D0D0D), Color(0xFF0F0A1E), Color(0xFF0D0D0D)],
             begin: Alignment.topCenter,
@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: SafeArea(child: FadeTransition(
           opacity: _fadeIn,
           child: Column(children: [
-            const SizedBox(height: 52),
+            SizedBox(height: 52),
 
             // ── Logo avec glow ─────────────────────────────────────
             Center(
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Sp.g2.withOpacity(0.25),
+                        Sp.g2.withValues(alpha: 0.25),
                         Colors.transparent,
                       ],
                     ),
@@ -65,27 +65,27 @@ class _LoginScreenState extends State<LoginScreen>
                   width: 100,
                   errorBuilder: (_, __, ___) => ShaderMask(
                     shaderCallback: (b) => kGradV.createShader(b),
-                    child: const Icon(Icons.music_note_rounded,
+                    child: Icon(Icons.music_note_rounded,
                         size: 80, color: Colors.white),
                   ),
                 ),
               ]),
             ),
 
-            const SizedBox(height: 28),
-            const Text('Bienvenue sur Askaria',
+            SizedBox(height: 28),
+            Text('Bienvenue sur Askaria',
               textAlign: TextAlign.center,
               style: TextStyle(color: Sp.white, fontSize: 26,
                   fontWeight: FontWeight.bold, height: 1.2)),
-            const SizedBox(height: 8),
-            const Text('Votre musique. Partout, chez vous.',
+            SizedBox(height: 8),
+            Text('Votre musique. Partout, chez vous.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Sp.white70, fontSize: 15)),
-            const SizedBox(height: 36),
+            SizedBox(height: 36),
 
             // ── Pill switcher tabs ─────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: EdgeInsets.symmetric(horizontal: 24),
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen>
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Sp.white12),
                 ),
-                padding: const EdgeInsets.all(4),
+                padding: EdgeInsets.all(4),
                 child: Row(children: [
                   _TabPill(0, Icons.qr_code_scanner_rounded, 'QR Code',
                       _tab, (i) => setState(() => _tab = i)),
@@ -102,9 +102,9 @@ class _LoginScreenState extends State<LoginScreen>
                 ]),
               ),
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
 
-            Expanded(child: _tab == 0 ? const _QrTab() : const _ManualTab()),
+            Expanded(child: _tab == 0 ? _QrTab() : _ManualTab()),
           ]),
         )),
       ),
@@ -119,7 +119,7 @@ class _TabPill extends StatelessWidget {
   final String label;
   final int current;
   final ValueChanged<int> onTap;
-  const _TabPill(this.idx, this.icon, this.label, this.current, this.onTap);
+  _TabPill(this.idx, this.icon, this.label, this.current, this.onTap);
 
   @override
   Widget build(BuildContext context) {
@@ -127,18 +127,18 @@ class _TabPill extends StatelessWidget {
     return Expanded(child: GestureDetector(
       onTap: () => onTap(idx),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           gradient: sel ? kGrad : null,
           borderRadius: BorderRadius.circular(20),
           boxShadow: sel ? [BoxShadow(
-            color: Sp.g2.withOpacity(0.3), blurRadius: 10,
-            offset: const Offset(0, 2))] : null,
+            color: Sp.g2.withValues(alpha: 0.3), blurRadius: 10,
+            offset: Offset(0, 2))] : null,
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, size: 15, color: sel ? Colors.white : Sp.white70),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(label, style: TextStyle(
             color: sel ? Colors.white : Sp.white70,
             fontWeight: sel ? FontWeight.bold : FontWeight.normal,
@@ -151,7 +151,7 @@ class _TabPill extends StatelessWidget {
 
 // ── QR Tab ────────────────────────────────────────────────────────────────────
 class _QrTab extends StatefulWidget {
-  const _QrTab();
+  _QrTab();
   @override
   State<_QrTab> createState() => _QrTabState();
 }
@@ -197,15 +197,15 @@ class _QrTabState extends State<_QrTab> {
       builder: (c) => AlertDialog(
         backgroundColor: Sp.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Connexion au serveur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Connexion au serveur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Souhaitez-vous connecter votre application au serveur suivant ?', style: TextStyle(color: Sp.white70, fontSize: 14)),
-            const SizedBox(height: 12),
+            Text('Souhaitez-vous connecter votre application au serveur suivant ?', style: TextStyle(color: Sp.white70, fontSize: 14)),
+            SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Sp.bg,
                 borderRadius: BorderRadius.circular(12),
@@ -218,11 +218,11 @@ class _QrTabState extends State<_QrTab> {
                     color: parsedUri.scheme == 'https' ? Colors.greenAccent : Colors.orangeAccent,
                     size: 20,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       serverUrl,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -230,8 +230,8 @@ class _QrTabState extends State<_QrTab> {
               ),
             ),
             if (parsedUri.scheme != 'https') ...[
-              const SizedBox(height: 10),
-              const Text(
+              SizedBox(height: 10),
+              Text(
                 '⚠️ Attention : Connexion HTTP non chiffrée. À réserver au réseau local.',
                 style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
               ),
@@ -241,7 +241,7 @@ class _QrTabState extends State<_QrTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Annuler', style: TextStyle(color: Sp.white70)),
+            child: Text('Annuler', style: TextStyle(color: Sp.white70)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(c, true),
@@ -249,7 +249,7 @@ class _QrTabState extends State<_QrTab> {
               backgroundColor: Sp.g2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Se connecter', style: TextStyle(color: Colors.white)),
+            child: Text('Se connecter', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -271,28 +271,28 @@ class _QrTabState extends State<_QrTab> {
 
   @override
   Widget build(BuildContext ctx) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+    padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
     child: Column(children: [
-      const Text(
+      Text(
         'Paramètres → Appairer un appareil sur Askaria',
         textAlign: TextAlign.center,
         style: TextStyle(color: Sp.white70, fontSize: 13)),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       Expanded(child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: kGradV,
           boxShadow: [BoxShadow(
-            color: Sp.g2.withOpacity(0.3), blurRadius: 20,
-            offset: const Offset(0, 8))],
+            color: Sp.g2.withValues(alpha: 0.3), blurRadius: 20,
+            offset: Offset(0, 8))],
         ),
-        padding: const EdgeInsets.all(3),
+        padding: EdgeInsets.all(3),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(17),
           child: _loading
               ? Container(
                   color: Sp.card,
-                  child: const Center(child: Column(
+                  child: Center(child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(color: Sp.g2, strokeWidth: 2),
@@ -302,16 +302,16 @@ class _QrTabState extends State<_QrTab> {
               : MobileScanner(onDetect: _onDetect)),
       )),
       if (_error != null) ...[
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.redAccent.withOpacity(0.12),
+            color: Colors.redAccent.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
           ),
           child: Text(_error!,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+            style: TextStyle(color: Colors.redAccent, fontSize: 13)),
         ),
       ],
     ]),
@@ -320,7 +320,7 @@ class _QrTabState extends State<_QrTab> {
 
 // ── Manual Tab ────────────────────────────────────────────────────────────────
 class _ManualTab extends StatefulWidget {
-  const _ManualTab();
+  _ManualTab();
   @override
   State<_ManualTab> createState() => _ManualTabState();
 }
@@ -351,7 +351,7 @@ class _ManualTabState extends State<_ManualTab> {
 
   @override
   Widget build(BuildContext ctx) => SingleChildScrollView(
-    padding: const EdgeInsets.symmetric(horizontal: 24),
+    padding: EdgeInsets.symmetric(horizontal: 24),
     child: Column(children: [
       // Email/nom
       _GlassField(
@@ -361,7 +361,7 @@ class _ManualTabState extends State<_ManualTab> {
         textInputAction: TextInputAction.next,
         keyboardType: TextInputType.emailAddress,
       ),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       // Mot de passe
       _GlassField(
         controller: _p,
@@ -377,20 +377,20 @@ class _ManualTabState extends State<_ManualTab> {
           onPressed: () => setState(() => _obs = !_obs)),
       ),
       if (_err != null) ...[
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.redAccent.withOpacity(0.1),
+            color: Colors.redAccent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
           ),
           child: Text(_err!,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+            style: TextStyle(color: Colors.redAccent, fontSize: 13)),
         ),
       ],
-      const SizedBox(height: 24),
+      SizedBox(height: 24),
       SizedBox(width: double.infinity,
         child: GBtn('Se connecter',
             onTap: _loading ? null : _login, loading: _loading)),
@@ -409,7 +409,7 @@ class _GlassField extends StatefulWidget {
   final TextInputType? keyboardType;
   final ValueChanged<String>? onSubmitted;
 
-  const _GlassField({
+  _GlassField({
     required this.controller,
     required this.hint,
     required this.icon,
@@ -439,21 +439,21 @@ class _GlassFieldState extends State<_GlassField> {
 
   @override
   Widget build(BuildContext context) => AnimatedContainer(
-    duration: const Duration(milliseconds: 200),
+    duration: Duration(milliseconds: 200),
     height: 54,
     decoration: BoxDecoration(
       color: Sp.card,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(
-        color: _focused ? Sp.g2.withOpacity(0.6) : Sp.white12,
+        color: _focused ? Sp.g2.withValues(alpha: 0.6) : Sp.white12,
         width: _focused ? 1.5 : 0.8,
       ),
     ),
     child: Row(children: [
-      const SizedBox(width: 4),
+      SizedBox(width: 4),
       Icon(widget.icon,
         color: _focused ? Sp.g2 : Sp.white70, size: 20),
-      const SizedBox(width: 4),
+      SizedBox(width: 4),
       Expanded(child: TextField(
         controller: widget.controller,
         focusNode: _focus,
@@ -461,12 +461,12 @@ class _GlassFieldState extends State<_GlassField> {
         textInputAction: widget.textInputAction,
         keyboardType: widget.keyboardType,
         onSubmitted: widget.onSubmitted,
-        style: const TextStyle(color: Sp.white, fontSize: 15),
+        style: TextStyle(color: Sp.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: widget.hint,
-          hintStyle: const TextStyle(color: Sp.white40),
+          hintStyle: TextStyle(color: Sp.white40),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16)),
+          contentPadding: EdgeInsets.symmetric(vertical: 16)),
       )),
       if (widget.suffix != null) widget.suffix!,
     ]),

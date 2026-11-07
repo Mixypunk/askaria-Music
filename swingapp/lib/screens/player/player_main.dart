@@ -1,7 +1,7 @@
 part of '../player_screen.dart';
 
 class PlayerScreen extends StatefulWidget {
-  const PlayerScreen({super.key});
+  PlayerScreen({super.key});
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
@@ -15,8 +15,8 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   // Animation couleur
   late AnimationController _colorAnim;
-  Color _prevAccent = const Color(0xFF4776E6);
-  Color _currAccent = const Color(0xFF4776E6);
+  Color _prevAccent = Color(0xFF4776E6);
+  Color _currAccent = Color(0xFF4776E6);
 
   // Fond flouté
   Uint8List? _bgImage;
@@ -30,7 +30,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     super.initState();
     _pageController = PageController();
     _colorAnim = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
+        vsync: this, duration: Duration(milliseconds: 700));
   }
 
   @override
@@ -71,7 +71,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       final r = await http.get(
         Uri.parse(url),
         headers: api.authHeaders,
-      ).timeout(const Duration(seconds: 6));
+      ).timeout(Duration(seconds: 6));
       if (r.statusCode == 200 && mounted) {
         artCache.put(url, r.bodyBytes);
         setState(() => _bgImage = r.bodyBytes);
@@ -99,7 +99,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         accent: player.dynamicColors.accent,
       ),
       transitionsBuilder: (_, a, __, child) => SlideTransition(
-        position: Tween(begin: const Offset(0, 1), end: Offset.zero)
+        position: Tween(begin: Offset(0, 1), end: Offset.zero)
             .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
         child: child,
       ),
@@ -118,7 +118,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       selector: (_, p) => (p.currentSong?.hash, p.dynamicColors.accent),
       builder: (ctx, data, _) {
         final hash = data.$1;
-        if (hash == null) return const Scaffold(
+        if (hash == null) return Scaffold(
           backgroundColor: Sp.bg,
           body: Center(child: Text('Aucune musique',
               style: TextStyle(color: Colors.white))));
@@ -159,18 +159,18 @@ class _PlayerScreenState extends State<PlayerScreen>
                   Positioned.fill(child: ImageFiltered(
                     imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
                     child: Image.memory(_bgImage!, fit: BoxFit.cover,
-                      color: Colors.black.withOpacity(0.58),
+                      color: Colors.black.withValues(alpha: 0.58),
                       colorBlendMode: BlendMode.darken)))
                 else
                   Positioned.fill(child: Container(
                     decoration: BoxDecoration(gradient: LinearGradient(
                       colors: [dark, Sp.bg], begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter, stops: const [0.0, 0.65])))),
+                      end: Alignment.bottomCenter, stops: [0.0, 0.65])))),
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(
-                    colors: [dark.withOpacity(0.5), Colors.transparent, Sp.bg.withOpacity(0.65)],
+                    colors: [dark.withValues(alpha: 0.5), Colors.transparent, Sp.bg.withValues(alpha: 0.65)],
                     begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.4, 1.0])))),
+                    stops: [0.0, 0.4, 1.0])))),
 
                 // ── Contenu principal ────────────────────────────────────
                 GestureDetector(
@@ -190,11 +190,11 @@ class _PlayerScreenState extends State<PlayerScreen>
 
                   // Top bar : flèche bas + titre album + indicateurs de page
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(children: [
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.keyboard_arrow_down_rounded,
+                        child: Icon(Icons.keyboard_arrow_down_rounded,
                             size: 32, color: Colors.white),
                       ),
                       Expanded(child: Column(children: [
@@ -210,10 +210,10 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 : (hasL || loadL) && _page == 1
                                     ? 'PAROLES'
                                     : 'FILE D\'ATTENTE',
-                                style: const TextStyle(color: Colors.white70, fontSize: 10,
+                                style: TextStyle(color: Colors.white70, fontSize: 10,
                                     letterSpacing: 1.5, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 2),
-                              Text(song.album, style: const TextStyle(
+                              SizedBox(height: 2),
+                              Text(song.album, style: TextStyle(
                                   color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                             ]);

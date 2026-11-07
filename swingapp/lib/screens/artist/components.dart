@@ -3,17 +3,17 @@ part of '../artist_screen.dart';
 class _AllTracksScreen extends StatelessWidget {
   final String title;
   final List<Song> songs;
-  const _AllTracksScreen({required this.title, required this.songs});
+  _AllTracksScreen({required this.title, required this.songs});
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Sp.bg,
     appBar: AppBar(
       backgroundColor: Sp.bg,
       title: Text(title,
-        style: const TextStyle(color: Sp.white,
+        style: TextStyle(color: Sp.white,
             fontSize: 18, fontWeight: FontWeight.bold)),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+        icon: Icon(Icons.arrow_back_ios_new_rounded,
             color: Sp.white, size: 20),
         onPressed: () => Navigator.pop(context))),
     body: ListView.builder(
@@ -29,11 +29,11 @@ class _AllTracksScreen extends StatelessWidget {
 // ── Widgets communs ────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
   final String title;
-  const _Header(this.title);
+  _Header(this.title);
   @override
   Widget build(BuildContext ctx) => SliverToBoxAdapter(child: Padding(
-    padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-    child: Text(title, style: const TextStyle(
+    padding: EdgeInsets.fromLTRB(16, 20, 16, 10),
+    child: Text(title, style: TextStyle(
         color: Sp.white, fontSize: 20, fontWeight: FontWeight.bold)),
   ));
 }
@@ -43,7 +43,7 @@ class _ActionBtn extends StatelessWidget {
   final String label;
   final bool filled;
   final VoidCallback onTap;
-  const _ActionBtn({required this.icon, required this.label,
+  _ActionBtn({required this.icon, required this.label,
       required this.filled, required this.onTap});
   @override
   Widget build(BuildContext ctx) => GestureDetector(
@@ -56,8 +56,8 @@ class _ActionBtn extends StatelessWidget {
         borderRadius: BorderRadius.circular(23)),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: Colors.white, size: 20),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(
+        SizedBox(width: 8),
+        Text(label, style: TextStyle(
             color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
       ]),
     ),
@@ -67,19 +67,19 @@ class _ActionBtn extends StatelessWidget {
 class _SeeAllBtn extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _SeeAllBtn({required this.label, required this.onTap});
+  _SeeAllBtn({required this.label, required this.onTap});
   @override
   Widget build(BuildContext ctx) => GestureDetector(
     onTap: onTap,
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Container(
         height: 44,
         decoration: BoxDecoration(
           border: Border.all(color: Colors.white24),
           borderRadius: BorderRadius.circular(4)),
         child: Center(child: Text(label,
-          style: const TextStyle(
+          style: TextStyle(
               color: Sp.white70, fontSize: 14, fontWeight: FontWeight.w500)))),
     ),
   );
@@ -92,7 +92,7 @@ class _TrackRow extends StatelessWidget {
   final int idx;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
-  const _TrackRow({required this.song, required this.index,
+  _TrackRow({required this.song, required this.index,
       required this.all, required this.idx, this.onTap, this.onLongPress});
 
   String _fmt(int seconds) {
@@ -115,22 +115,22 @@ class _TrackRow extends StatelessWidget {
       },
       onLongPress: onLongPress ?? () => _showSongMenu(ctx, song),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(children: [
           // Numéro ou égaliseur
           SizedBox(width: 32, child: Center(
             child: isCurrent
-                ? const GIcon(Icons.equalizer_rounded, size: 18)
+                ? GIcon(Icons.play_arrow_rounded, size: 18)
                 : Text('$index', style: TextStyle(
                     color: isCurrent ? Sp.g2 : Sp.white70, fontSize: 14)),
           )),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           // Artwork
           ArtworkWidget(
             key: ValueKey(song.hash),
             hash: song.image ?? song.hash,
             size: 46, borderRadius: BorderRadius.circular(4)),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           // Titre + artiste
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,17 +140,17 @@ class _TrackRow extends StatelessWidget {
                 fontSize: 15, fontWeight: FontWeight.w500),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(song.artist,
-                style: const TextStyle(color: Sp.white70, fontSize: 12),
+                style: TextStyle(color: Sp.white70, fontSize: 12),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
           // Durée
           Row(children: [
             if (isDownloaded) ...[
-              const Icon(Icons.download_done_rounded, size: 14, color: Colors.green),
-              const SizedBox(width: 4),
+              Icon(Icons.download_done_rounded, size: 14, color: Colors.green),
+              SizedBox(width: 4),
             ],
             Text(_fmt(song.duration),
-              style: const TextStyle(color: Sp.white40, fontSize: 12)),
+              style: TextStyle(color: Sp.white40, fontSize: 12)),
           ]),
         ]),
       ),
@@ -160,7 +160,7 @@ class _TrackRow extends StatelessWidget {
 
 class _AlbumCard extends StatelessWidget {
   final Album album;
-  const _AlbumCard({required this.album});
+  _AlbumCard({required this.album});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
@@ -175,7 +175,7 @@ class _AlbumCard extends StatelessWidget {
         }
       },
       child: Padding(
-        padding: const EdgeInsets.only(right: 16),
+        padding: EdgeInsets.only(right: 16),
         child: SizedBox(width: 130, child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -185,14 +185,14 @@ class _AlbumCard extends StatelessWidget {
               headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
               borderRadius: BorderRadius.circular(6),
               placeholder: Container(width: 130, height: 130, color: Sp.card,
-                child: const Icon(Icons.album, color: Sp.white40, size: 40)))),
-            const SizedBox(height: 8),
+                child: Icon(Icons.album, color: Sp.white40, size: 40)))),
+            SizedBox(height: 8),
             Text(album.title,
-              style: const TextStyle(color: Sp.white,
+              style: TextStyle(color: Sp.white,
                   fontSize: 13, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             Text(album.year?.toString() ?? '',
-              style: const TextStyle(color: Sp.white70, fontSize: 11)),
+              style: TextStyle(color: Sp.white70, fontSize: 11)),
           ],
         )),
       ),
@@ -204,7 +204,7 @@ class _AlbumCard extends StatelessWidget {
 class _AddTracksScreen extends StatefulWidget {
   final String playlistId;
   final Set<String> existingHashes;
-  const _AddTracksScreen({required this.playlistId,
+  _AddTracksScreen({required this.playlistId,
       required this.existingHashes});
   @override
   State<_AddTracksScreen> createState() => _AddTracksScreenState();
@@ -232,7 +232,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
       return;
     }
     setState(() => _loading = true);
-    _debounce = Timer(const Duration(milliseconds: 400), () => _search(v));
+    _debounce = Timer(Duration(milliseconds: 400), () => _search(v));
   }
 
   Future<void> _search(String q) async {
@@ -255,7 +255,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
       Navigator.pop(context, added);
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Erreur lors de l\'ajout'),
         behavior: SnackBarBehavior.floating));
     }
@@ -267,20 +267,20 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
       backgroundColor: Sp.bg,
       appBar: AppBar(
         backgroundColor: Sp.bg,
-        title: const Text('Ajouter des titres',
+        title: Text('Ajouter des titres',
           style: TextStyle(color: Colors.white,
               fontSize: 18, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          icon: Icon(Icons.close_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context)),
         actions: [
           if (_selected.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: EdgeInsets.only(right: 8),
               child: TextButton(
                 onPressed: _saving ? null : _save,
                 child: _saving
-                    ? const SizedBox(width: 20, height: 20,
+                    ? SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
                     : Text('Ajouter (${_selected.length})',
@@ -294,20 +294,20 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
       body: Column(children: [
         // ── Barre de recherche ────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Container(
             height: 46,
             decoration: BoxDecoration(
                 color: Colors.white, borderRadius: BorderRadius.circular(4)),
             child: Row(children: [
-              const SizedBox(width: 12),
-              const Icon(Icons.search, color: Colors.black, size: 22),
-              const SizedBox(width: 8),
+              SizedBox(width: 12),
+              Icon(Icons.search, color: Colors.black, size: 22),
+              SizedBox(width: 8),
               Expanded(child: TextField(
                 controller: _ctrl,
                 autofocus: true,
-                style: const TextStyle(color: Colors.black, fontSize: 15),
-                decoration: const InputDecoration(
+                style: TextStyle(color: Colors.black, fontSize: 15),
+                decoration: InputDecoration(
                   hintText: 'Rechercher un titre…',
                   hintStyle: TextStyle(color: Color(0xFF666666)),
                   border: InputBorder.none, isDense: true),
@@ -316,7 +316,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
               if (_ctrl.text.isNotEmpty)
                 GestureDetector(
                   onTap: () { _ctrl.clear(); _onChanged(''); },
-                  child: const Padding(padding: EdgeInsets.all(10),
+                  child: Padding(padding: EdgeInsets.all(10),
                     child: Icon(Icons.clear, color: Colors.black, size: 20))),
             ]),
           ),
@@ -325,35 +325,35 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
         // ── Chip "X sélectionné(s)" ───────────────────────────────
         if (_selected.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(children: [
               Container(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                     horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: kGrad,
                   borderRadius: BorderRadius.circular(16)),
                 child: Text(
                   '${_selected.length} titre${_selected.length > 1 ? "s" : ""} sélectionné${_selected.length > 1 ? "s" : ""}',
-                  style: const TextStyle(color: Colors.white,
+                  style: TextStyle(color: Colors.white,
                       fontSize: 12, fontWeight: FontWeight.w600))),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               GestureDetector(
                 onTap: () => setState(() => _selected.clear()),
-                child: const Text('Tout désélectionner',
+                child: Text('Tout désélectionner',
                   style: TextStyle(color: Colors.white54, fontSize: 12))),
             ]),
           ),
 
         // ── Résultats ─────────────────────────────────────────────
         Expanded(child: _loading
-          ? const Center(child: CircularProgressIndicator(
+          ? Center(child: CircularProgressIndicator(
               color: Sp.g2, strokeWidth: 2))
           : _results.isEmpty && _ctrl.text.isNotEmpty
-            ? const Center(child: Text('Aucun résultat',
+            ? Center(child: Text('Aucun résultat',
                 style: TextStyle(color: Colors.white54)))
             : _results.isEmpty
-              ? const Center(child: Column(
+              ? Center(child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.search_rounded,
@@ -370,7 +370,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                         widget.existingHashes.contains(song.hash);
                     final selected = _selected.contains(song.hash);
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
                       leading: Stack(children: [
                         ArtworkWidget(key: ValueKey(song.hash),
@@ -379,16 +379,16 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                         if (selected)
                           Positioned.fill(child: Container(
                             decoration: BoxDecoration(
-                              color: Sp.g2.withOpacity(0.7),
+                              color: Sp.g2.withValues(alpha: 0.7),
                               borderRadius: BorderRadius.circular(4)),
-                            child: const Icon(Icons.check_rounded,
+                            child: Icon(Icons.check_rounded,
                                 color: Colors.white, size: 22))),
                         if (alreadyIn && !selected)
                           Positioned.fill(child: Container(
                             decoration: BoxDecoration(
                               color: Colors.black54,
                               borderRadius: BorderRadius.circular(4)),
-                            child: const Icon(Icons.check_rounded,
+                            child: Icon(Icons.check_rounded,
                                 color: Colors.white38, size: 18))),
                       ]),
                       title: Text(song.title, style: TextStyle(
@@ -432,8 +432,8 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
 void _showSongMenu(BuildContext ctx, Song song) {
   showModalBottomSheet(
     context: ctx,
-    backgroundColor: const Color(0xFF282828),
-    shape: const RoundedRectangleBorder(
+    backgroundColor: Color(0xFF282828),
+    shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (_) => _SongQuickMenu(song: song),
   );
@@ -441,7 +441,7 @@ void _showSongMenu(BuildContext ctx, Song song) {
 
 class _SongQuickMenu extends StatefulWidget {
   final Song song;
-  const _SongQuickMenu({required this.song});
+  _SongQuickMenu({required this.song});
   @override
   State<_SongQuickMenu> createState() => _SongQuickMenuState();
 }
@@ -465,35 +465,35 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
   @override
   Widget build(BuildContext ctx) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 32),
+      padding: EdgeInsets.fromLTRB(0, 16, 0, 32),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 12),
+        Container(width: 36, height: 4, margin: EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(color: Colors.white24,
               borderRadius: BorderRadius.circular(2))),
         // Titre de la chanson
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(children: [
             ArtworkWidget(key: ValueKey(widget.song.hash),
               hash: widget.song.image ?? widget.song.hash, size: 44,
               borderRadius: BorderRadius.circular(4)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.song.title, style: const TextStyle(
+                Text(widget.song.title, style: TextStyle(
                   color: Colors.white, fontSize: 15,
                   fontWeight: FontWeight.w600),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(widget.song.artist, style: const TextStyle(
+                Text(widget.song.artist, style: TextStyle(
                   color: Colors.white54, fontSize: 13),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               ])),
           ])),
-        const Divider(color: Colors.white12, height: 1),
+        Divider(color: Colors.white12, height: 1),
         ListTile(
-          leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
-          title: const Text('Ajouter à la file d\'attente',
+          leading: Icon(Icons.queue_music_rounded, color: Colors.white70),
+          title: Text('Ajouter à la file d\'attente',
             style: TextStyle(color: Colors.white)),
           onTap: () {
             ctx.read<PlayerProvider>().addNextInQueue(widget.song);
@@ -501,17 +501,17 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
           }),
         // Ajouter à une playlist
         if (_loadingPl)
-          const Padding(padding: EdgeInsets.all(16),
+          Padding(padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator(
                 color: Sp.g2, strokeWidth: 2)))
         else if (_playlists.isNotEmpty) ...[
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text('AJOUTER À UNE PLAYLIST',
               style: TextStyle(color: Colors.white38, fontSize: 11,
                   letterSpacing: 1.2, fontWeight: FontWeight.w600))),
           ...(_playlists.take(5).map((pl) => ListTile(
-            contentPadding: const EdgeInsets.symmetric(
+            contentPadding: EdgeInsets.symmetric(
                 horizontal: 16, vertical: 2),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -520,7 +520,7 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
                 width: 36, height: 36,
                 headers: SwingApiService().authHeaders,
                 borderRadius: BorderRadius.circular(4))),
-            title: Text(pl.name, style: const TextStyle(
+            title: Text(pl.name, style: TextStyle(
                 color: Colors.white, fontSize: 14),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             onTap: () async {

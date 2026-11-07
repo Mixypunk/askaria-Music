@@ -1,0 +1,1 @@
+ D:\\Askaria_Music\\askaria-app-mobile\\swingapp\\.dart_tool\\flutter_build\\25f73dde2cae1082f999703b288b1cfd\\native_assets.json: 

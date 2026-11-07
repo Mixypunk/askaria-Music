@@ -14,7 +14,7 @@ class SongTile extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onRemove;
 
-  const SongTile({
+  SongTile({
     super.key, required this.song,
     this.queue, this.index, this.showNumber = false, this.onTap,
     this.onRemove,
@@ -34,17 +34,17 @@ class SongTile extends StatelessWidget {
         song, queue: queue ?? [song], index: index ?? 0),
       borderRadius: BorderRadius.circular(12),
       splashColor: Colors.white10,
-      highlightColor: const Color(0x0DFFFFFF),
+      highlightColor: Color(0x0DFFFFFF),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(children: [
           // Artwork ou numéro
           if (showNumber)
             SizedBox(width: 40, child: Center(
               child: isCurrent
-                  ? const GIcon(Icons.equalizer_rounded, size: 18)
+                  ? GIcon(Icons.play_arrow_rounded, size: 18)
                   : Text('${(index ?? 0) + 1}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Sp.white40, fontSize: 13)),
             ))
           else
@@ -57,7 +57,7 @@ class SongTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           // Texte
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,26 +69,26 @@ class SongTile extends StatelessWidget {
                   fontSize: 14,
                 ),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
               Row(children: [
                 if (isDownloaded) ...[
-                  const Icon(Icons.download_done_rounded,
+                  Icon(Icons.download_done_rounded,
                       size: 11, color: Color(0xFF148A08)),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                 ],
                 Expanded(child: Text(song.artist,
-                  style: const TextStyle(color: Sp.white70, fontSize: 12),
+                  style: TextStyle(color: Sp.white70, fontSize: 12),
                   maxLines: 1, overflow: TextOverflow.ellipsis)),
               ]),
             ],
           )),
           // Durée
           Text(song.formattedDuration,
-            style: const TextStyle(color: Sp.white40, fontSize: 12)),
-          const SizedBox(width: 4),
+            style: TextStyle(color: Sp.white40, fontSize: 12)),
+          SizedBox(width: 4),
           // Menu contextuel
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 18, color: Sp.white40),
+            icon: Icon(Icons.more_vert, size: 18, color: Sp.white40),
             color: Sp.card,
             elevation: 12,
             shape: RoundedRectangleBorder(
@@ -135,8 +135,8 @@ class SongTile extends StatelessWidget {
       value: val,
       child: Row(children: [
         Icon(icon, size: 18, color: Sp.white70),
-        const SizedBox(width: 10),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        SizedBox(width: 10),
+        Text(label, style: TextStyle(color: Colors.white, fontSize: 14)),
       ]),
     );
 
@@ -145,8 +145,8 @@ class SongTile extends StatelessWidget {
       value: val,
       child: Row(children: [
         Icon(icon, size: 18, color: Colors.redAccent),
-        const SizedBox(width: 10),
-        Text(label, style: const TextStyle(
+        SizedBox(width: 10),
+        Text(label, style: TextStyle(
             color: Colors.redAccent, fontSize: 14)),
       ]),
     );
@@ -155,10 +155,10 @@ class SongTile extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
       backgroundColor: Sp.card,
-      duration: const Duration(seconds: 2),
+      duration: Duration(seconds: 2),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
     ));
   }
 }

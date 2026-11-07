@@ -35,7 +35,7 @@ class _QueuePage extends StatelessWidget {
               style: const TextStyle(color: Colors.white54, fontSize: 12),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: cur
-                ? Icon(Icons.equalizer_rounded, size: 20, color: accent)
+                ? Icon(Icons.play_arrow_rounded, size: 20, color: accent)
                 : IconButton(
                     icon: const Icon(Icons.remove_circle_outline_rounded,
                         size: 18, color: Colors.white38),

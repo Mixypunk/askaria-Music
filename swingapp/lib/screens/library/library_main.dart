@@ -3,10 +3,10 @@ part of '../library_tab.dart';
 class LibraryTab extends StatefulWidget {
   const LibraryTab({super.key});
   @override
-  State<LibraryTab> createState() => _LibraryTabState();
+  State<LibraryTab> createState() => LibraryTabState();
 }
 
-class _LibraryTabState extends State<LibraryTab>
+class LibraryTabState extends State<LibraryTab>
     with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabCtrl;
 
@@ -16,6 +16,7 @@ class _LibraryTabState extends State<LibraryTab>
 
   bool _loading = true;
   String? _error;
+  String? _playlistsError;
   String _sort = 'recent';
 
   @override
@@ -90,22 +91,96 @@ class _LibraryTabState extends State<LibraryTab>
     }
   }
 
-  Future<void> _load({bool refresh = false}) async {
-    setState(() { _loading = true; _error = null; });
-    try {
-      final results = await Future.wait([
-        SwingApiService().getPlaylists(),
-        SwingApiService().getAlbums(limit: 200, forceRefresh: refresh),
-        SwingApiService().getArtists(limit: 200, forceRefresh: refresh),
-      ]);
-      _playlists = results[0] as List<Playlist>;
-      _albums    = results[1] as List<Album>;
-      _artists   = results[2] as List<Artist>;
-      _applySorting();
-    } catch (e) {
+  /// Rechargement public, utilisé par RootScreen quand l'utilisateur
+  /// revient sur l'onglet Bibliothèque.
+  Future<void> refresh() =>
+      _load(refresh: true, silent: _playlists.isNotEmpty);
+
+  /// Recharge uniquement si les playlists sont vides ou en erreur
+  /// (évite de spammer le serveur à chaque changement d'onglet).
+  void refreshIfNeeded() {
+    if (_loading) return;
+    if (_playlistsError != null || _playlists.isEmpty) {
+      _load(refresh: true, silent: _playlists.isNotEmpty);
+    }
+  }
+
+  Future<void> _load({bool refresh = false, bool silent = false}) async {
+    if (!silent) {
+      setState(() { _loading = true; _error = null; });
+    } else if (mounted) {
+      setState(() => _error = null);
+    }
+
+    // Chaque section est chargée indépendamment : un échec sur /playlists
+    // ne doit plus vider les albums/artistes (et inversement).
+    final results = await Future.wait([
+      _loadPlaylists(refresh: refresh),
+      _loadAlbums(refresh: refresh),
+      _loadArtists(refresh: refresh),
+    ]);
+
+    // Seulement si AUCUNE section n'a pu être chargée, on bascule en hors-ligne.
+    if (!results.contains(true)) {
       await _loadOfflineLibrary();
     }
+
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<bool> _loadPlaylists({bool refresh = false}) async {
+    try {
+      final playlists =
+          await SwingApiService().getPlaylists(forceRefresh: refresh);
+      if (!mounted) return true;
+      setState(() {
+        _playlists = playlists;
+        _playlistsError = null;
+      });
+      _applySorting();
+      return true;
+    } catch (e) {
+      LoggerService.warning('Chargement des playlists impossible', e);
+      if (!mounted) return false;
+      List<Playlist> offline = const [];
+      try {
+        offline = context.read<DownloadsProvider>().downloadedPlaylists;
+      } catch (_) {}
+      setState(() {
+        _playlistsError = e.toString();
+        // Garde les playlists déjà affichées, sinon tente le hors-ligne.
+        if (_playlists.isEmpty) _playlists = List<Playlist>.from(offline);
+      });
+      return false;
+    }
+  }
+
+  Future<bool> _loadAlbums({bool refresh = false}) async {
+    try {
+      final albums =
+          await SwingApiService().getAlbums(limit: 200, forceRefresh: refresh);
+      if (!mounted) return true;
+      setState(() => _albums = albums);
+      _applySorting();
+      return true;
+    } catch (e) {
+      LoggerService.warning('Chargement des albums impossible', e);
+      return false;
+    }
+  }
+
+  Future<bool> _loadArtists({bool refresh = false}) async {
+    try {
+      final artists =
+          await SwingApiService().getArtists(limit: 200, forceRefresh: refresh);
+      if (!mounted) return true;
+      setState(() => _artists = artists);
+      _applySorting();
+      return true;
+    } catch (e) {
+      LoggerService.warning('Chargement des artistes impossible', e);
+      return false;
+    }
   }
 
   Future<void> _loadOfflineLibrary() async {
@@ -167,7 +242,7 @@ class _LibraryTabState extends State<LibraryTab>
                 gradient: kGrad,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [BoxShadow(
-                  color: Sp.g2.withOpacity(0.4),
+                  color: Sp.g2.withValues(alpha: 0.4),
                   blurRadius: 16, offset: const Offset(0, 6))],
               ),
               child: Material(
@@ -242,12 +317,16 @@ class _LibraryTabState extends State<LibraryTab>
                 : TabBarView(
                     controller: _tabCtrl,
                     children: [
-                      _PlaylistsList(playlists: _playlists,
+                      _PlaylistsList(
+                          playlists: _playlists,
+                          error: _playlistsError,
+                          onRefresh: () =>
+                              _load(refresh: true, silent: true),
                           onDeleted: (id) => setState(
                               () => _playlists.removeWhere((p) => p.id == id))),
                       _AlbumsList(albums: _albums),
                       _ArtistsList(artists: _artists),
-                      const _FavouritesList(),
+                      _FavouritesList(),
                     ],
                   ),
       ),

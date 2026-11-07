@@ -22,10 +22,12 @@ class ThemeNotifier extends ChangeNotifier {
   }
 
   Future<void> setMode(ThemeMode mode) async {
+    if (_mode == mode) return;
     _mode = mode;
+    // Appliquer le thème dès le choix, sans attendre l'écriture des préférences.
+    notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('theme_mode', mode == ThemeMode.light ? 'light'
         : mode == ThemeMode.system ? 'system' : 'dark');
-    notifyListeners();
   }
 }

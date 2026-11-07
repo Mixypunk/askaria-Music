@@ -9,7 +9,7 @@ import '../providers/downloads_provider.dart';
 import '../widgets/song_tile.dart';
 
 class AlbumsScreen extends StatefulWidget {
-  const AlbumsScreen({super.key});
+  AlbumsScreen({super.key});
   @override
   State<AlbumsScreen> createState() => _AlbumsScreenState();
 }
@@ -63,32 +63,32 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
     return Scaffold(
       appBar: AppBar(
           backgroundColor: Sp.bg,
-          title: GText('Albums', s: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          title: GText('Albums', s: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(24),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const GIcon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 12),
-                    Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
-                    const SizedBox(height: 16),
+                    GIcon(Icons.error_outline, size: 48),
+                    SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.red)),
+                    SizedBox(height: 16),
                     GestureDetector(onTap: _load, child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     decoration: BoxDecoration(gradient: kGrad, borderRadius: BorderRadius.circular(20)),
-                    child: const Text('Réessayer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text('Réessayer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   )),
                   ]),
                 ))
               : _albums.isEmpty
-                  ? const Center(child: Text('Aucun album', style: TextStyle(color: Sp.white70)))
+                  ? Center(child: Text('Aucun album', style: TextStyle(color: Sp.white70)))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: GridView.builder(
-                        padding: const EdgeInsets.all(12),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        padding: EdgeInsets.all(12),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2, childAspectRatio: 0.75,
                           crossAxisSpacing: 12, mainAxisSpacing: 12,
                         ),
@@ -102,7 +102,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
 
 class _AlbumCard extends StatelessWidget {
   final Album album;
-  const _AlbumCard({required this.album});
+  _AlbumCard({required this.album});
 
   @override
   Widget build(BuildContext context) {
@@ -123,16 +123,16 @@ class _AlbumCard extends StatelessWidget {
               headers: thumb.startsWith(api.baseUrl) ? api.authHeaders : {},
               errorBuilder: (_, __, ___) => Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.album, size: 48),
+                child: Icon(Icons.album, size: 48),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
         Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
       ]),
     );
   }
@@ -140,7 +140,7 @@ class _AlbumCard extends StatelessWidget {
 
 class AlbumDetailScreen extends StatefulWidget {
   final Album album;
-  const AlbumDetailScreen({super.key, required this.album});
+  AlbumDetailScreen({super.key, required this.album});
   @override
   State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
 }
@@ -178,12 +178,12 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.album.title)),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
               : ListView(children: [
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     child: Row(children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
@@ -193,14 +193,14 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                           errorBuilder: (_, __, ___) => Container(
                             width: 100, height: 100,
                             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            child: const Icon(Icons.album, size: 48),
+                            child: Icon(Icons.album, size: 48),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(widget.album.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
+                        Text(widget.album.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(widget.album.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
                         if (widget.album.year != null) Text('${widget.album.year}'),
                       ])),
                     ]),

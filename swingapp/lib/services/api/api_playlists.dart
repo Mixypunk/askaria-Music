@@ -1,19 +1,70 @@
 part of '../api_service.dart';
 
+/// Parse tolérant : accepte {"data": [...]}, {"playlists": [...]},
+/// {"items": [...]} ou directement un tableau JSON.
+List<Playlist> _parsePlaylists(String body) {
+  final data = json.decode(body);
+  final dynamic items;
+  if (data is Map) {
+    items = data['data'] ?? data['playlists'] ?? data['items'] ?? const [];
+  } else if (data is List) {
+    items = data;
+  } else {
+    items = const [];
+  }
+  if (items is! List) return const [];
+  return items
+      .whereType<Map<String, dynamic>>()
+      .map((e) => Playlist.fromJson(e))
+      .toList();
+}
+
 extension ApiPlaylists on SwingApiService {
   // ── PLAYLISTS ──────────────────────────────────────────────────────────
-  Future<List<Playlist>> getPlaylists() async {
+  Future<List<Playlist>> getPlaylists({bool forceRefresh = false}) async {
     final uri = Uri.parse('$_baseUrl/playlists').replace(
       queryParameters: {'start': '0', 'limit': '200', 'no_tracks': 'true'},
     );
-    final response = await _authedGet(uri);
+
+    // Cache local : les playlists restent visibles en cas de coupure réseau
+    // ou d'échec temporaire du serveur (contrairement à avant).
+    var response = await _authedGet(
+      uri,
+      useCache: true,
+      forceRefresh: forceRefresh,
+      cacheMaxAge: const Duration(minutes: 10),
+    );
     if (response.statusCode != 200) {
-      throw Exception('getPlaylists HTTP ${response.statusCode}');
+      final body = response.body.trim();
+      throw Exception(
+        'getPlaylists HTTP ${response.statusCode}'
+        '${body.isNotEmpty ? ' — ${body.length > 200 ? body.substring(0, 200) : body}' : ''}',
+      );
     }
-    final data = json.decode(response.body);
-    // Server returns {"data": [...]}
-    final items = data['data'] ?? data['playlists'] ?? data['items'] ?? (data is List ? data : []);
-    return (items as List).map((e) => Playlist.fromJson(e)).toList();
+
+    var playlists = _parsePlaylists(response.body);
+
+    // Si le cache a renvoyé une liste vide (ancienne réponse vide ou compte
+    // nouvellement alimenté), on retente une requête réseau directe.
+    if (playlists.isEmpty && !forceRefresh) {
+      await ApiCacheService.instance.deleteCachedResponse(uri.toString());
+      try {
+        response = await _authedGet(uri, useCache: false);
+        if (response.statusCode == 200) {
+          final fresh = _parsePlaylists(response.body);
+          if (fresh.isNotEmpty) {
+            await ApiCacheService.instance.saveResponse(
+                uri.toString(), response.body);
+            playlists = fresh;
+          }
+        }
+      } catch (e) {
+        LoggerService.warning(
+            'Silent error caught in api_playlists.dart (refresh)', e);
+      }
+    }
+
+    return playlists;
   }
 
   Future<List<Song>> getPlaylistTracks(String playlistId) async {
@@ -35,9 +86,7 @@ extension ApiPlaylists on SwingApiService {
       final uri = Uri.parse('$_baseUrl/playlists/public');
       final response = await _authedGet(uri);
       if (response.statusCode != 200) return [];
-      final data = json.decode(response.body);
-      final items = data['data'] ?? data['playlists'] ?? data['items'] ?? (data is List ? data : []);
-      return (items as List).map((e) => Playlist.fromJson(e)).toList();
+      return _parsePlaylists(response.body);
     } catch (_) { return []; }
   }
 

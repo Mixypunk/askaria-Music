@@ -1,4 +1,4 @@
-﻿part of '../api_service.dart';
+part of '../api_service.dart';
 
 extension ApiMedia on SwingApiService {
   // ── LYRICS ─────────────────────────────────────────────────────────────
@@ -25,10 +25,11 @@ extension ApiMedia on SwingApiService {
   // Format officiel: {baseUrl}file/{trackhash}/legacy
   // Utilise le stream token (courte durée) plutôt que l'access token
   Future<String> buildStreamUrl(String trackHash,
-      {String? filepath, String quality = 'high'}) async {
-    final bitrate = quality == 'low' ? '96'
-                  : quality == 'medium' ? '192'
-                  : '0';
+      {String? filepath, String? quality}) async {
+    final effectiveQuality = quality ?? NetworkQualityService.instance.currentQuality;
+    final bitrate = effectiveQuality == 'low' ? '128'
+                  : effectiveQuality == 'medium' ? '192'
+                  : '320';
     final token = await _getStreamToken();
     if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);
@@ -39,10 +40,11 @@ extension ApiMedia on SwingApiService {
 
   // Compatibilité sync (utilisé dans les endroits qui ne peuvent pas await)
   String getStreamUrl(String trackHash,
-      {String? filepath, String quality = 'high'}) {
-    final bitrate = quality == 'low' ? '96'
-                  : quality == 'medium' ? '192'
-                  : '0';
+      {String? filepath, String? quality}) {
+    final effectiveQuality = quality ?? NetworkQualityService.instance.currentQuality;
+    final bitrate = effectiveQuality == 'low' ? '128'
+                  : effectiveQuality == 'medium' ? '192'
+                  : '320';
     final token = _streamToken ?? _accessToken ?? '';
     if (filepath != null && filepath.isNotEmpty) {
       final encoded = Uri.encodeComponent(filepath);

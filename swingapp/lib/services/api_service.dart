@@ -13,6 +13,7 @@ import 'logger_service.dart';
 import 'resilient_http_client.dart';
 import 'api_cache_service.dart';
 import 'widget_service.dart';
+import 'network_quality_service.dart';
 
 part 'api/api_music.dart';
 part 'api/api_playlists.dart';

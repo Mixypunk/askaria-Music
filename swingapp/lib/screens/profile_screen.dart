@@ -6,7 +6,7 @@ import '../services/api_service.dart';
 import 'package:askaria/services/logger_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  ProfileScreen({super.key});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -40,32 +40,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Sp.bg,
       appBar: AppBar(
         backgroundColor: Sp.bg,
-        title: const Text('Mon profil',
+        title: Text('Mon profil',
             style: TextStyle(color: Sp.white, fontSize: 18,
                 fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
               color: Sp.white, size: 20),
           onPressed: () => Navigator.pop(context)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Sp.g2))
+          ? Center(child: CircularProgressIndicator(color: Sp.g2))
           : _profile.isEmpty
-              ? const _OfflineEmptyState()
+              ? _OfflineEmptyState()
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
                   children: [
                     if (_isOffline) _OfflineBanner(),
-                    if (_isOffline) const SizedBox(height: 16),
+                    if (_isOffline) SizedBox(height: 16),
                     _AvatarSection(
                         profile: _profile, api: _api, onUpdated: _load,
                         isOffline: _isOffline),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     _InfoSection(
                         profile: _profile, api: _api, onUpdated: _load,
                         isOffline: _isOffline),
                     if (!_isOffline) ...[
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       _PasswordSection(api: _api),
                     ],
                   ],
@@ -78,13 +78,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class _OfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
-      color: Colors.orange.withOpacity(0.12),
+      color: Colors.orange.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.orange.withOpacity(0.35)),
+      border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
     ),
-    child: const Row(children: [
+    child: Row(children: [
       Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 18),
       SizedBox(width: 10),
       Expanded(child: Text(
@@ -96,9 +96,9 @@ class _OfflineBanner extends StatelessWidget {
 }
 
 class _OfflineEmptyState extends StatelessWidget {
-  const _OfflineEmptyState();
+  _OfflineEmptyState();
   @override
-  Widget build(BuildContext context) => const Center(child: Padding(
+  Widget build(BuildContext context) => Center(child: Padding(
     padding: EdgeInsets.all(32),
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 56),
@@ -119,7 +119,7 @@ class _AvatarSection extends StatefulWidget {
   final SwingApiService api;
   final VoidCallback onUpdated;
   final bool isOffline;
-  const _AvatarSection({required this.profile, required this.api,
+  _AvatarSection({required this.profile, required this.api,
       required this.onUpdated, this.isOffline = false});
   @override
   State<_AvatarSection> createState() => _AvatarSectionState();
@@ -154,7 +154,7 @@ class _AvatarSectionState extends State<_AvatarSection> {
       backgroundColor: error ? Colors.redAccent : Sp.card,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
     ));
   }
 
@@ -170,11 +170,11 @@ class _AvatarSectionState extends State<_AvatarSection> {
           onTap: (_uploading || widget.isOffline) ? null : _pickAndUpload,
           child: Container(
             width: 110, height: 110,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: kGrad,
             ),
-            padding: const EdgeInsets.all(3),
+            padding: EdgeInsets.all(3),
             child: ClipOval(child: avatarUrl != null
                 ? Image.network(
                     avatarUrl,
@@ -196,38 +196,38 @@ class _AvatarSectionState extends State<_AvatarSection> {
                 gradient: kGrad,
                 shape: BoxShape.circle,
                 boxShadow: [BoxShadow(
-                  color: Sp.g2.withOpacity(0.4),
-                  blurRadius: 8, offset: const Offset(0, 2))],
+                  color: Sp.g2.withValues(alpha: 0.4),
+                  blurRadius: 8, offset: Offset(0, 2))],
               ),
               child: _uploading
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(7),
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.camera_alt_rounded,
+                  : Icon(Icons.camera_alt_rounded,
                       size: 16, color: Colors.white),
             ),
           ),
         ),
       ]),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       Text(username,
-        style: const TextStyle(color: Sp.white,
+        style: TextStyle(color: Sp.white,
             fontSize: 20, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 4),
+      SizedBox(height: 4),
       if (widget.profile['role'] == 'admin')
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 3),
           decoration: BoxDecoration(
-            color: Sp.g2.withOpacity(0.15),
+            color: Sp.g2.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Sp.g2.withOpacity(0.4))),
-          child: const Text('Admin',
+            border: Border.all(color: Sp.g2.withValues(alpha: 0.4))),
+          child: Text('Admin',
               style: TextStyle(color: Sp.g2, fontSize: 12,
                   fontWeight: FontWeight.bold))),
-      const SizedBox(height: 4),
+      SizedBox(height: 4),
       if (!widget.isOffline)
-        const Text('Appuyer sur la photo pour modifier',
+        Text('Appuyer sur la photo pour modifier',
           style: TextStyle(color: Sp.white40, fontSize: 12)),
     ]));
   }
@@ -235,13 +235,13 @@ class _AvatarSectionState extends State<_AvatarSection> {
 
 class _DefaultAvatar extends StatelessWidget {
   final String username;
-  const _DefaultAvatar(this.username);
+  _DefaultAvatar(this.username);
   @override
   Widget build(BuildContext ctx) => Container(
     color: Sp.card,
     child: Center(child: Text(
       username.isNotEmpty ? username[0].toUpperCase() : '?',
-      style: const TextStyle(color: Sp.white,
+      style: TextStyle(color: Sp.white,
           fontSize: 40, fontWeight: FontWeight.bold))),
   );
 }
@@ -252,7 +252,7 @@ class _InfoSection extends StatefulWidget {
   final SwingApiService api;
   final VoidCallback onUpdated;
   final bool isOffline;
-  const _InfoSection({required this.profile, required this.api,
+  _InfoSection({required this.profile, required this.api,
       required this.onUpdated, this.isOffline = false});
   @override
   State<_InfoSection> createState() => _InfoSectionState();
@@ -303,7 +303,7 @@ class _InfoSectionState extends State<_InfoSection> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    DateTime initial = now.subtract(const Duration(days: 365 * 25));
+    DateTime initial = now.subtract(Duration(days: 365 * 25));
     if (_birthDate != null) {
       try { initial = DateTime.parse(_birthDate!); } catch (e) { LoggerService.warning('Silent error caught in profile_screen.dart', e); }
     }
@@ -313,9 +313,12 @@ class _InfoSectionState extends State<_InfoSection> {
       firstDate: DateTime(1920),
       lastDate: now,
       builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: ColorScheme.dark(primary: Sp.g2, surface: Sp.card),
-          dialogBackgroundColor: Sp.surface,
+        data: Theme.of(ctx).copyWith(
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
+            primary: Sp.g2,
+            surface: Sp.card,
+          ),
+          dialogTheme: DialogThemeData(backgroundColor: Sp.surface),
         ),
         child: child!,
       ),
@@ -332,7 +335,7 @@ class _InfoSectionState extends State<_InfoSection> {
       backgroundColor: error ? Colors.redAccent : Sp.card,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
     ));
   }
 
@@ -341,29 +344,29 @@ class _InfoSectionState extends State<_InfoSection> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _ProfileSectionLabel('Informations'),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       _ProfileField(
           label: "Nom d'utilisateur", ctrl: _usernameCtrl,
           icon: Icons.person_outline_rounded),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       _ProfileField(
           label: 'Adresse email', ctrl: _emailCtrl,
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       // Date de naissance
       GestureDetector(
         onTap: _pickDate,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 15),
           decoration: BoxDecoration(
             color: Sp.card,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Sp.white12),
           ),
           child: Row(children: [
-            const Icon(Icons.cake_outlined, color: Sp.white70, size: 20),
-            const SizedBox(width: 12),
+            Icon(Icons.cake_outlined, color: Sp.white70, size: 20),
+            SizedBox(width: 12),
             Expanded(child: Text(
               _birthDate != null ? _fmtDate(_birthDate!) : 'Date de naissance',
               style: TextStyle(
@@ -372,24 +375,24 @@ class _InfoSectionState extends State<_InfoSection> {
             if (_birthDate != null)
               GestureDetector(
                 onTap: () => setState(() => _birthDate = null),
-                child: const Icon(Icons.clear, color: Sp.white40, size: 18)),
+                child: Icon(Icons.clear, color: Sp.white40, size: 18)),
           ]),
         ),
       ),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       _ProfileField(
           label: 'Bio (courte)', ctrl: _bioCtrl,
           icon: Icons.edit_note_rounded, maxLines: 3, maxLength: 300),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       if (widget.isOffline)
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.08),
+            color: Colors.orange.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange.withOpacity(0.25)),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
           ),
-          child: const Row(children: [
+          child: Row(children: [
             Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 16),
             SizedBox(width: 10),
             Expanded(child: Text(
@@ -416,7 +419,7 @@ class _InfoSectionState extends State<_InfoSection> {
 // ── Section mot de passe ───────────────────────────────────────────────────────
 class _PasswordSection extends StatefulWidget {
   final SwingApiService api;
-  const _PasswordSection({required this.api});
+  _PasswordSection({required this.api});
   @override
   State<_PasswordSection> createState() => _PasswordSectionState();
 }
@@ -462,7 +465,7 @@ class _PasswordSectionState extends State<_PasswordSection> {
       backgroundColor: error ? Colors.redAccent : Sp.card,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
     ));
   }
 
@@ -471,25 +474,25 @@ class _PasswordSectionState extends State<_PasswordSection> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _ProfileSectionLabel('Mot de passe'),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       _ProfileField(
           label: 'Mot de passe actuel', ctrl: _currCtrl,
           icon: Icons.lock_outline_rounded,
           obscure: _obsC,
           suffixIcon: _eyeBtn(_obsC, () => setState(() => _obsC = !_obsC))),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       _ProfileField(
           label: 'Nouveau mot de passe', ctrl: _newCtrl,
           icon: Icons.lock_outline_rounded,
           obscure: _obsN,
           suffixIcon: _eyeBtn(_obsN, () => setState(() => _obsN = !_obsN))),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       _ProfileField(
           label: 'Confirmer le mot de passe', ctrl: _confCtrl,
           icon: Icons.lock_outline_rounded,
           obscure: _obsF,
           suffixIcon: _eyeBtn(_obsF, () => setState(() => _obsF = !_obsF))),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       SizedBox(width: double.infinity,
         child: GBtn('Changer le mot de passe',
             onTap: _saving ? null : _change, loading: _saving)),
@@ -505,10 +508,10 @@ class _PasswordSectionState extends State<_PasswordSection> {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 class _ProfileSectionLabel extends StatelessWidget {
   final String label;
-  const _ProfileSectionLabel(this.label);
+  _ProfileSectionLabel(this.label);
   @override
   Widget build(BuildContext context) => Text(label.toUpperCase(),
-    style: const TextStyle(
+    style: TextStyle(
       color: Sp.white40, fontSize: 11,
       letterSpacing: 1.5, fontWeight: FontWeight.w700));
 }
@@ -522,7 +525,7 @@ class _ProfileField extends StatefulWidget {
   final TextInputType? keyboardType;
   final int maxLines;
   final int? maxLength;
-  const _ProfileField({
+  _ProfileField({
     required this.label, required this.ctrl, required this.icon,
     this.obscure = false, this.suffixIcon, this.keyboardType,
     this.maxLines = 1, this.maxLength,
@@ -544,12 +547,12 @@ class _ProfileFieldState extends State<_ProfileField> {
 
   @override
   Widget build(BuildContext ctx) => AnimatedContainer(
-    duration: const Duration(milliseconds: 200),
+    duration: Duration(milliseconds: 200),
     decoration: BoxDecoration(
       color: Sp.card,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(
-        color: _focused ? Sp.g2.withOpacity(0.6) : Sp.white12,
+        color: _focused ? Sp.g2.withValues(alpha: 0.6) : Sp.white12,
         width: _focused ? 1.5 : 0.8)),
     child: TextField(
       controller: widget.ctrl,
@@ -558,16 +561,16 @@ class _ProfileFieldState extends State<_ProfileField> {
       keyboardType: widget.keyboardType,
       maxLines: widget.maxLines,
       maxLength: widget.maxLength,
-      style: const TextStyle(color: Sp.white, fontSize: 14),
+      style: TextStyle(color: Sp.white, fontSize: 14),
       decoration: InputDecoration(
         hintText: widget.label,
-        hintStyle: const TextStyle(color: Sp.white40),
+        hintStyle: TextStyle(color: Sp.white40),
         prefixIcon: Icon(widget.icon,
             color: _focused ? Sp.g2 : Sp.white70, size: 20),
         suffixIcon: widget.suffixIcon,
         border: InputBorder.none,
-        counterStyle: const TextStyle(color: Sp.white40, fontSize: 10),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14)),
+        counterStyle: TextStyle(color: Sp.white40, fontSize: 10),
+        contentPadding: EdgeInsets.symmetric(vertical: 14)),
     ),
   );
 }

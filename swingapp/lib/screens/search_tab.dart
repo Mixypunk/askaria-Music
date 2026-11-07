@@ -11,7 +11,7 @@ import '../widgets/artwork_widget.dart';
 import 'artist_screen.dart';
 
 class SearchTab extends StatefulWidget {
-  const SearchTab({super.key});
+  SearchTab({super.key});
   @override
   State<SearchTab> createState() => _SearchTabState();
 }
@@ -52,7 +52,7 @@ class _SearchTabState extends State<SearchTab>
       return;
     }
     setState(() { _loading = true; _query = v; });
-    _debounce = Timer(const Duration(milliseconds: 400), _search);
+    _debounce = Timer(Duration(milliseconds: 400), _search);
   }
 
   void _selectCategory(String keyword) {
@@ -63,7 +63,7 @@ class _SearchTabState extends State<SearchTab>
     }
     setState(() { _activeCategory = keyword; _loading = true; });
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 200), _search);
+    _debounce = Timer(Duration(milliseconds: 200), _search);
   }
 
   Future<void> _search() async {
@@ -90,7 +90,7 @@ class _SearchTabState extends State<SearchTab>
       final results = await Future.wait([
         SwingApiService().searchSongs(query),
         SwingApiService().searchTop(query),
-      ]).timeout(const Duration(seconds: 8));
+      ]).timeout(Duration(seconds: 8));
 
       final songs = results[0] as List<Song>;
       final topData = results[1] as Map<String, dynamic>;
@@ -182,13 +182,13 @@ class _SearchTabState extends State<SearchTab>
         pinned: true,
         backgroundColor: Sp.bg,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Rechercher',
+        title: Text('Rechercher',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
               color: Sp.white)),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: Size.fromHeight(60),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
             child: _SearchBar(ctrl: _ctrl, focus: _focus, onChanged: _onChanged),
           ),
         ),
@@ -197,13 +197,13 @@ class _SearchTabState extends State<SearchTab>
       // ── Filtre source ────────────────────────────────────────────
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Row(children: [
             _FilterChip(
               label: 'Askaria', selected: _filter == 'all',
               onTap: () { setState(() => _filter = 'all'); _onChanged(_ctrl.text); },
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             _FilterChip(
               label: 'Deezer', selected: _filter == 'deezer',
               onTap: () { setState(() => _filter = 'deezer'); _onChanged(_ctrl.text); },
@@ -218,7 +218,7 @@ class _SearchTabState extends State<SearchTab>
           height: 46,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
             itemCount: _categories.length,
             itemBuilder: (ctx, i) {
               final cat = _categories[i];
@@ -232,9 +232,9 @@ class _SearchTabState extends State<SearchTab>
                     ? _selectCategory('')
                     : _selectCategory(keyword),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
+                  duration: Duration(milliseconds: 200),
+                  margin: EdgeInsets.only(right: 8),
+                  padding: EdgeInsets.symmetric(
                       horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: isActive ? cat.$2 : Sp.card,
@@ -245,7 +245,7 @@ class _SearchTabState extends State<SearchTab>
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(cat.$3, size: 14,
                       color: isActive ? Colors.white : Sp.white70),
-                    const SizedBox(width: 5),
+                    SizedBox(width: 5),
                     Text(cat.$1, style: TextStyle(
                       color: isActive ? Colors.white : Sp.white70,
                       fontSize: 13, fontWeight: FontWeight.w600)),
@@ -256,11 +256,11 @@ class _SearchTabState extends State<SearchTab>
           ),
         )),
 
-      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      SliverToBoxAdapter(child: SizedBox(height: 16)),
 
       // ── États ─────────────────────────────────────────────────────
       if (_loading)
-        const SliverFillRemaining(child: Center(
+        SliverFillRemaining(child: Center(
           child: CircularProgressIndicator(color: Sp.g2, strokeWidth: 2)))
 
       else if (_hasResults) ...[
@@ -271,7 +271,7 @@ class _SearchTabState extends State<SearchTab>
             height: 130,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               itemCount: _artists.length,
               itemBuilder: (ctx, i) => _ArtistChip(artist: _artists[i]),
             ),
@@ -284,7 +284,7 @@ class _SearchTabState extends State<SearchTab>
             height: 190,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               itemCount: _albums.length,
               itemBuilder: (ctx, i) => _AlbumChip(album: _albums[i]),
             ),
@@ -310,15 +310,15 @@ class _SearchTabState extends State<SearchTab>
                 color: Sp.card,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(Icons.search_off_rounded,
+              child: Icon(Icons.search_off_rounded,
                   color: Sp.white40, size: 40),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               _activeCategory != null && _query.isEmpty
                   ? 'Aucun résultat pour "$_activeCategory"'
                   : 'Aucun résultat pour "$_query"',
-              style: const TextStyle(color: Sp.white70)),
+              style: TextStyle(color: Sp.white70)),
           ],
         )))
 
@@ -332,16 +332,16 @@ class _SearchTabState extends State<SearchTab>
                 color: Sp.card,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(Icons.search_rounded,
+              child: Icon(Icons.search_rounded,
                   color: Sp.white40, size: 40),
             ),
-            const SizedBox(height: 16),
-            const Text('Recherchez un titre, artiste ou album',
+            SizedBox(height: 16),
+            Text('Recherchez un titre, artiste ou album',
               style: TextStyle(color: Sp.white70)),
           ],
         ))),
 
-      const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      SliverToBoxAdapter(child: SizedBox(height: 100)),
     ]);
   }
 }
@@ -351,7 +351,7 @@ class _SearchBar extends StatefulWidget {
   final TextEditingController ctrl;
   final FocusNode focus;
   final ValueChanged<String> onChanged;
-  const _SearchBar({required this.ctrl, required this.focus,
+  _SearchBar({required this.ctrl, required this.focus,
       required this.onChanged});
   @override
   State<_SearchBar> createState() => _SearchBarState();
@@ -371,20 +371,20 @@ class _SearchBarState extends State<_SearchBar> {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: Duration(milliseconds: 200),
       height: 48,
       decoration: BoxDecoration(
-        color: _focused ? Colors.white : const Color(0xFF2A2A2A),
+        color: _focused ? Colors.white : Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(14),
         border: _focused
             ? null
             : Border.all(color: Sp.white12),
       ),
       child: Row(children: [
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Icon(Icons.search,
             color: _focused ? Colors.black54 : Sp.white70, size: 22),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Expanded(child: TextField(
           controller: widget.ctrl,
           focusNode: widget.focus,
@@ -405,7 +405,7 @@ class _SearchBarState extends State<_SearchBar> {
               widget.focus.unfocus();
             },
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(10),
               child: Icon(Icons.clear,
                   color: _focused ? Colors.black54 : Sp.white70,
                   size: 20))),
@@ -419,22 +419,22 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.selected,
+  _FilterChip({required this.label, required this.selected,
       required this.onTap});
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      duration: Duration(milliseconds: 180),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         gradient: selected ? kGrad : null,
         color: selected ? null : Sp.card,
         borderRadius: BorderRadius.circular(20),
         border: selected ? null : Border.all(color: Sp.white12),
         boxShadow: selected ? [BoxShadow(
-          color: Sp.g2.withOpacity(0.3), blurRadius: 8,
-          offset: const Offset(0, 3))] : null,
+          color: Sp.g2.withValues(alpha: 0.3), blurRadius: 8,
+          offset: Offset(0, 3))] : null,
       ),
       child: Text(label, style: TextStyle(
         color: selected ? Colors.white : Sp.white70,
@@ -446,11 +446,11 @@ class _FilterChip extends StatelessWidget {
 // ── Section title ──────────────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
-  const _SectionTitle(this.title);
+  _SectionTitle(this.title);
   @override
   Widget build(BuildContext ctx) => SliverToBoxAdapter(child: Padding(
-    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-    child: Text(title, style: const TextStyle(
+    padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+    child: Text(title, style: TextStyle(
         color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
   ));
 }
@@ -458,7 +458,7 @@ class _SectionTitle extends StatelessWidget {
 // ── Artist chip ────────────────────────────────────────────────────────────────
 class _ArtistChip extends StatelessWidget {
   final Artist artist;
-  const _ArtistChip({required this.artist});
+  _ArtistChip({required this.artist});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
@@ -466,25 +466,25 @@ class _ArtistChip extends StatelessWidget {
       onTap: () => Navigator.push(ctx, MaterialPageRoute(
         builder: (_) => ArtistScreen(artist: artist))),
       child: Padding(
-        padding: const EdgeInsets.only(right: 16),
+        padding: EdgeInsets.only(right: 16),
         child: SizedBox(width: 80, child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle, gradient: kGrad),
-              padding: const EdgeInsets.all(2),
+              padding: EdgeInsets.all(2),
               child: ClipOval(child: Image.network(
                 '${api.baseUrl}/img/artist/small/${artist.image}',
                 width: 76, height: 76, fit: BoxFit.cover,
                 headers: api.authHeaders,
                 errorBuilder: (_, __, ___) => Container(
                   width: 76, height: 76, color: Sp.card,
-                  child: const Icon(Icons.person, color: Sp.white40, size: 36)))),
+                  child: Icon(Icons.person, color: Sp.white40, size: 36)))),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(artist.name,
-              style: const TextStyle(color: Sp.white,
+              style: TextStyle(color: Sp.white,
                   fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 2, overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center),
@@ -498,7 +498,7 @@ class _ArtistChip extends StatelessWidget {
 // ── Album chip ─────────────────────────────────────────────────────────────────
 class _AlbumChip extends StatelessWidget {
   final Album album;
-  const _AlbumChip({required this.album});
+  _AlbumChip({required this.album});
   @override
   Widget build(BuildContext ctx) {
     final api = SwingApiService();
@@ -507,7 +507,7 @@ class _AlbumChip extends StatelessWidget {
       onTap: () => Navigator.push(ctx, MaterialPageRoute(
         builder: (_) => AlbumScreen(album: album))),
       child: Padding(
-        padding: const EdgeInsets.only(right: 14),
+        padding: EdgeInsets.only(right: 14),
         child: SizedBox(width: 130, child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -519,14 +519,14 @@ class _AlbumChip extends StatelessWidget {
                 headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
                 errorBuilder: (_, __, ___) => Container(
                   width: 130, height: 130, color: Sp.card,
-                  child: const Icon(Icons.album, color: Sp.white40, size: 40)))),
-            const SizedBox(height: 8),
+                  child: Icon(Icons.album, color: Sp.white40, size: 40)))),
+            SizedBox(height: 8),
             Text(album.title,
-              style: const TextStyle(color: Sp.white,
+              style: TextStyle(color: Sp.white,
                   fontSize: 13, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             Text(album.artist,
-              style: const TextStyle(color: Sp.white70, fontSize: 11),
+              style: TextStyle(color: Sp.white70, fontSize: 11),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         )),
@@ -538,7 +538,7 @@ class _AlbumChip extends StatelessWidget {
 // ── Track row ──────────────────────────────────────────────────────────────────
 class _TrackRow extends StatelessWidget {
   final Song song; final List<Song> all; final int idx;
-  const _TrackRow({required this.song, required this.all, required this.idx});
+  _TrackRow({required this.song, required this.all, required this.idx});
   @override
   Widget build(BuildContext ctx) {
     final isCurrent = ctx.watch<PlayerProvider>().currentSong == song;
@@ -546,14 +546,14 @@ class _TrackRow extends StatelessWidget {
       onTap: () => ctx.read<PlayerProvider>()
           .playSong(song, queue: all, index: idx),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: ArtworkWidget(
               key: ValueKey(song.hash), hash: song.image ?? song.hash,
               size: 52, borderRadius: BorderRadius.circular(10))),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -562,11 +562,11 @@ class _TrackRow extends StatelessWidget {
                 fontSize: 15, fontWeight: FontWeight.w500),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(song.artist,
-                style: const TextStyle(color: Sp.white70, fontSize: 13),
+                style: TextStyle(color: Sp.white70, fontSize: 13),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
           if (isCurrent)
-            const GIcon(Icons.equalizer_rounded, size: 20),
+            GIcon(Icons.play_arrow_rounded, size: 20),
         ]),
       ),
     );

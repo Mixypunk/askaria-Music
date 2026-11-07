@@ -34,7 +34,7 @@ class _MiniPlayerShell extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.push(context, PageRouteBuilder(
-        pageBuilder: (_, a, __) => const PlayerScreen(),
+        pageBuilder: (_, a, __) => PlayerScreen(),
         transitionsBuilder: (_, a, __, child) => SlideTransition(
           position: Tween(begin: const Offset(0, 1), end: Offset.zero)
               .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
@@ -55,15 +55,15 @@ class _MiniPlayerShell extends StatelessWidget {
           color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-              color: accent.withOpacity(0.2), width: 0.8),
+              color: accent.withValues(alpha: 0.2), width: 0.8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
             BoxShadow(
-              color: accent.withOpacity(0.08),
+              color: accent.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 2),
             ),
