@@ -13,6 +13,28 @@ if (keystorePropertiesFile.exists()) {
     }
 }
 
+// Lire la version depuis android/local.properties (écrit par `flutter build`).
+// Compatible avec toutes les versions du plugin Gradle Flutter : selon la
+// version, `flutter.versionCode` / `flutter.versionName` peut ne plus exister
+// (Flutter 3.22 : méthodes `versionCode()` / `versionName()` au lieu de getters).
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
 android {
     namespace "com.mixypunk.askasound"
     compileSdk 35
@@ -46,8 +68,8 @@ android {
         applicationId "com.mixypunk.askasound"
         minSdk 21
         targetSdk 35
-        versionCode flutter.versionCode
-        versionName flutter.versionName
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
     }
 
     buildTypes {
