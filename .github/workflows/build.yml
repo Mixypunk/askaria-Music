@@ -75,6 +75,12 @@ jobs:
           echo "Keystore prête : $(ls -lh app/askasound.jks)"
 
       # ── Dépendances Flutter ───────────────────────────────────────────
+      # Nettoyage des artefacts générés (désormais ignorés par git) : évite de
+      # réutiliser des sorties construites sur une autre machine.
+      - name: Flutter clean
+        working-directory: swingapp
+        run: flutter clean
+
       - name: Flutter pub get
         working-directory: swingapp
         run: flutter pub get

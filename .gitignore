@@ -1,0 +1,37 @@
+# ─────────────────────────────────────────────────────────────
+# Flutter / Dart — fichiers générés (JAMAIS commités)
+# ─────────────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.dill
+*.iml
+
+# ─────────────────────────────────────────────────────────────
+# Android / Gradle — cache et configuration locale
+# (local.properties contient des chemins absolus propres à la
+#  machine : il est régénéré par `flutter pub get` / `flutter build`)
+# ─────────────────────────────────────────────────────────────
+.gradle/
+**/android/.gradle/
+**/android/app/.cxx/
+local.properties
+key.properties
+*.jks
+*.keystore
+
+# ─────────────────────────────────────────────────────────────
+# IDE / OS
+# ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────────────────────
+*.log

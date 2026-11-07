@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <!-- Répertoire strictement réservé au téléchargement et à l'installation des mises à jour APK -->
-    <cache-path name="apk_cache" path="updates/" />
-    <external-cache-path name="external_apk_cache" path="updates/" />
-    <external-files-path name="external_apk_files" path="updates/" />
-</paths>

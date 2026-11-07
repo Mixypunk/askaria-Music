@@ -1,2 +1,0 @@
-D:/Askaria_Music/askaria-app-mobile/swingapp/android/app/.cxx/Debug/6a2h5p3d/x86_64/CMakeFiles/edit_cache.dir
-D:/Askaria_Music/askaria-app-mobile/swingapp/android/app/.cxx/Debug/6a2h5p3d/x86_64/CMakeFiles/rebuild_cache.dir
