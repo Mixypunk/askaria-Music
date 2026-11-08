@@ -1,12 +1,14 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../main.dart';
 import '../models/album.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../providers/downloads_provider.dart';
-import '../widgets/artwork_widget.dart';
+import '../widgets/offline/offline_components.dart';
+
+enum _OfflineFilter { all, playlists, songs }
 
 class DownloadsScreen extends StatefulWidget {
   DownloadsScreen({super.key});
@@ -15,34 +17,53 @@ class DownloadsScreen extends StatefulWidget {
 }
 
 class _DownloadsScreenState extends State<DownloadsScreen> {
+  final _searchCtrl = TextEditingController();
+  _OfflineFilter _filter = _OfflineFilter.all;
+  String _query = '';
+
   @override
   void initState() {
     super.initState();
     // Actualiser les données hors-ligne au chargement
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DownloadsProvider>().refresh();
+      if (mounted) context.read<DownloadsProvider>().refresh();
     });
   }
 
-  String _fmtSize(int bytes) {
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} Ko';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} Mo';
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} Go';
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
-  int _calcTotalSize(List<Song> songs) {
-    int total = 0;
-    for (final s in songs) {
-      if (s.filepath != null) {
-        final f = File(s.filepath!);
-        if (f.existsSync()) total += f.lengthSync();
-      }
-    }
-    return total;
-  }
-
+  // ── Actions ────────────────────────────────────────────────────────────────
   Future<void> _deleteSong(BuildContext ctx, Song song) async {
     await ctx.read<DownloadsProvider>().deleteSong(song.hash, song.filepath);
+  }
+
+  Future<void> _playPlaylist(DownloadsProvider dl, Playlist pl) async {
+    final tracks = await dl.getOfflinePlaylistTracks(pl.id);
+    if (!mounted) return;
+    if (tracks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Aucun titre disponible pour « ${pl.name} »'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    context.read<PlayerProvider>().playSong(tracks.first, queue: tracks);
+    Navigator.pop(context);
+  }
+
+  void _playSongs(List<Song> queue, {int index = 0, bool shuffle = false}) {
+    if (queue.isEmpty) return;
+    final songs = List<Song>.of(queue);
+    if (shuffle) songs.shuffle();
+    context.read<PlayerProvider>().playSong(
+          songs[shuffle ? 0 : index.clamp(0, songs.length - 1)],
+          queue: songs,
+        );
+    Navigator.pop(context);
   }
 
   Future<void> _deletePlaylist(BuildContext ctx, Playlist pl) async {
@@ -51,131 +72,25 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: Sp.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Retirer la playlist', style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
-        content: Text('Supprimer "${pl.name}" du mode hors-ligne ?',
+        title: Text('Retirer la playlist',
+            style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
+        content: Text('Supprimer « ${pl.name} » du mode hors-ligne ?',
             style: TextStyle(color: Sp.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
               child: Text('Annuler', style: TextStyle(color: Sp.white70))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Supprimer', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Supprimer',
+                  style: TextStyle(
+                      color: Colors.redAccent, fontWeight: FontWeight.bold))),
         ],
       ),
     );
     if (ok == true && ctx.mounted) {
       await ctx.read<DownloadsProvider>().unsyncPlaylist(pl.id);
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<DownloadsProvider>(
-      builder: (ctx, dl, _) {
-        final songs = dl.downloadedSongs;
-        final playlists = dl.downloadedPlaylists;
-        final isEmpty = songs.isEmpty && playlists.isEmpty;
-        final totalSize = _calcTotalSize(songs);
-
-        return Scaffold(
-          backgroundColor: Sp.bg,
-          appBar: AppBar(
-            backgroundColor: Sp.bg,
-            title: Text('Hors-ligne',
-                style: TextStyle(color: Sp.white, fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Sp.white, size: 20),
-              onPressed: () => Navigator.pop(context)),
-            actions: [
-              if (songs.isNotEmpty)
-                IconButton(
-                  icon: Icon(Icons.delete_sweep_rounded,
-                      color: Sp.white70, size: 22),
-                  tooltip: 'Tout supprimer',
-                  onPressed: () => _confirmDeleteAll(ctx, dl, songs),
-                ),
-            ],
-          ),
-          body: isEmpty
-              ? _EmptyState()
-              : ListView(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, 120),
-                  children: [
-                    // ── Résumé stockage ─────────────────────────────────
-                    _StorageSummary(
-                      songCount: songs.length,
-                      playlistCount: playlists.length,
-                      totalSize: _fmtSize(totalSize),
-                    ),
-                    SizedBox(height: 20),
-
-                    // ── Section Playlists ────────────────────────────────
-                    if (playlists.isNotEmpty) ...[
-                      _SectionHeader(
-                        icon: Icons.queue_music_rounded,
-                        label: 'Playlists',
-                        count: playlists.length,
-                      ),
-                      SizedBox(height: 10),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: playlists.length,
-                        itemBuilder: (ctx, i) => _PlaylistCard(
-                          playlist: playlists[i],
-                          onDelete: () => _deletePlaylist(ctx, playlists[i]),
-                          onPlay: (tracks) {
-                            if (tracks.isNotEmpty) {
-                              ctx.read<PlayerProvider>().playSong(
-                                tracks.first, queue: tracks);
-                              Navigator.pop(context);
-                            }
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                    ],
-
-                    // ── Section Titres ───────────────────────────────────
-                    if (songs.isNotEmpty) ...[
-                      _SectionHeader(
-                        icon: Icons.music_note_rounded,
-                        label: 'Titres',
-                        count: songs.length,
-                        trailing: songs.length > 1
-                            ? _PlayAllButton(onTap: () {
-                                ctx.read<PlayerProvider>().playSong(
-                                  songs.first, queue: songs);
-                                Navigator.pop(context);
-                              })
-                            : null,
-                      ),
-                      SizedBox(height: 10),
-                      ...songs.asMap().entries.map((e) => Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: _SongTileOffline(
-                          song: e.value,
-                          onPlay: () {
-                            ctx.read<PlayerProvider>().playSong(
-                              e.value, queue: songs, index: e.key);
-                            Navigator.pop(context);
-                          },
-                          onDelete: () => _deleteSong(ctx, e.value),
-                        ),
-                      )),
-                    ],
-                  ],
-                ),
-        );
-      },
-    );
   }
 
   Future<void> _confirmDeleteAll(
@@ -187,14 +102,18 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Tout supprimer',
             style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
-        content: Text('Supprimer ${songs.length} titre(s) hors-ligne ?',
+        content: Text(
+            'Supprimer ${songs.length} titre${songs.length > 1 ? 's' : ''} du mode hors-ligne ?',
             style: TextStyle(color: Sp.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
               child: Text('Annuler', style: TextStyle(color: Sp.white70))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
               child: Text('Supprimer',
-                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+                  style: TextStyle(
+                      color: Colors.redAccent, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -204,290 +123,432 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       }
     }
   }
-}
 
-// ── Résumé stockage ────────────────────────────────────────────────────────────
-class _StorageSummary extends StatelessWidget {
-  final int songCount;
-  final int playlistCount;
-  final String totalSize;
-  _StorageSummary({
-    required this.songCount,
-    required this.playlistCount,
-    required this.totalSize,
-  });
+  // ── Filtrage ───────────────────────────────────────────────────────────────
+  bool _matchesSong(Song s) {
+    if (_query.isEmpty) return true;
+    final q = _query.toLowerCase();
+    return s.title.toLowerCase().contains(q) ||
+        s.artist.toLowerCase().contains(q) ||
+        s.album.toLowerCase().contains(q);
+  }
 
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Sp.g1.withValues(alpha: 0.12), Sp.g2.withValues(alpha: 0.12)],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Sp.g2.withValues(alpha: 0.2)),
-    ),
-    child: Row(children: [
-      Container(
-        width: 38, height: 38,
-        decoration: BoxDecoration(
-          color: Sp.g2.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10)),
-        child: Icon(Icons.wifi_off_rounded, color: Sp.g2, size: 20),
-      ),
-      SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Disponible hors-ligne',
-            style: TextStyle(color: Sp.white, fontSize: 14,
-                fontWeight: FontWeight.w600)),
-        SizedBox(height: 2),
-        Text(
-          [
-            if (songCount > 0) '$songCount titre${songCount > 1 ? 's' : ''}',
-            if (playlistCount > 0) '$playlistCount playlist${playlistCount > 1 ? 's' : ''}',
-          ].join(' · '),
-          style: TextStyle(color: Sp.white70, fontSize: 12),
-        ),
-      ])),
-      Text(totalSize,
-          style: TextStyle(color: Sp.white40, fontSize: 12)),
-    ]),
-  );
-}
-
-// ── En-tête de section ────────────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int count;
-  final Widget? trailing;
-  _SectionHeader({
-    required this.icon,
-    required this.label,
-    required this.count,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    Icon(icon, color: Sp.white40, size: 14),
-    SizedBox(width: 6),
-    Text('$label ($count)'.toUpperCase(),
-        style: TextStyle(
-          color: Sp.white40, fontSize: 11,
-          letterSpacing: 1.4, fontWeight: FontWeight.w700)),
-    Spacer(),
-    if (trailing != null) trailing!,
-  ]);
-}
-
-// ── Bouton Tout lire ──────────────────────────────────────────────────────────
-class _PlayAllButton extends StatelessWidget {
-  final VoidCallback onTap;
-  _PlayAllButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        gradient: kGrad,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.play_arrow_rounded, color: Colors.white, size: 14),
-        SizedBox(width: 4),
-        Text('Tout lire', style: TextStyle(
-            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-      ]),
-    ),
-  );
-}
-
-// ── Card playlist offline ─────────────────────────────────────────────────────
-class _PlaylistCard extends StatefulWidget {
-  final Playlist playlist;
-  final VoidCallback onDelete;
-  final void Function(List<Song>) onPlay;
-  _PlaylistCard({
-    required this.playlist,
-    required this.onDelete,
-    required this.onPlay,
-  });
-  @override
-  State<_PlaylistCard> createState() => _PlaylistCardState();
-}
-
-class _PlaylistCardState extends State<_PlaylistCard> {
-  List<Song> _tracks = [];
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<DownloadsProvider>()
-        .getOfflinePlaylistTracks(widget.playlist.id)
-        .then((t) { if (mounted) setState(() => _tracks = t); });
+  bool _matchesPlaylist(Playlist p) {
+    if (_query.isEmpty) return true;
+    final q = _query.toLowerCase();
+    return p.name.toLowerCase().contains(q);
   }
 
   @override
   Widget build(BuildContext context) {
-    final pl = widget.playlist;
-    return GestureDetector(
-      onTap: () => widget.onPlay(_tracks),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Sp.card,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Artwork
-          Stack(children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: pl.imageHash != null
-                  ? ArtworkWidget(
-                      hash: pl.imageHash!, size: double.infinity,
-                      borderRadius: BorderRadius.zero)
-                  : Container(
-                      color: Sp.surface,
-                      child: Icon(Icons.queue_music_rounded,
-                          color: Sp.white40, size: 40)),
+    return Consumer<DownloadsProvider>(
+      builder: (ctx, dl, _) {
+        final allSongs = List<Song>.of(dl.downloadedSongs)
+          ..sort((a, b) =>
+              a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        final allPlaylists = List<Playlist>.of(dl.downloadedPlaylists)
+          ..sort((a, b) =>
+              a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+        final songs = allSongs.where(_matchesSong).toList();
+        final playlists = allPlaylists.where(_matchesPlaylist).toList();
+
+        final isEmpty = allSongs.isEmpty && allPlaylists.isEmpty;
+        final showPlaylists =
+            _filter != _OfflineFilter.songs && playlists.isNotEmpty;
+        final showSongs = _filter != _OfflineFilter.playlists && songs.isNotEmpty;
+        final noResult = !isEmpty && !showPlaylists && !showSongs;
+
+        return Scaffold(
+          backgroundColor: Sp.bg,
+          appBar: AppBar(
+            backgroundColor: Sp.bg,
+            title: Text('Hors-ligne',
+                style: TextStyle(
+                    color: Sp.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Sp.white, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-            // Bouton play overlay
-            Positioned.fill(child: Center(
-              child: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white30)),
-                child: Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 26),
-              ),
-            )),
-            // Bouton supprimer
-            Positioned(top: 6, right: 6,
-              child: GestureDetector(
-                onTap: widget.onDelete,
-                child: Container(
-                  width: 28, height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle),
-                  child: Icon(Icons.delete_outline_rounded,
-                      color: Colors.redAccent, size: 16),
+            actions: [
+              if (allSongs.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.delete_sweep_rounded,
+                      color: Sp.white70, size: 22),
+                  tooltip: 'Tout supprimer',
+                  onPressed: () => _confirmDeleteAll(ctx, dl, allSongs),
                 ),
-              ),
-            ),
-          ]),
-          // Infos
-          Padding(
-            padding: EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(pl.name,
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Sp.white,
-                      fontSize: 13, fontWeight: FontWeight.w600)),
-              SizedBox(height: 2),
-              Text('${_tracks.isNotEmpty ? _tracks.length : pl.trackCount} titres',
-                  style: TextStyle(color: Sp.white40, fontSize: 11)),
-            ]),
+            ],
           ),
-        ]),
-      ),
+          body: !dl.isReady
+              ? Center(
+                  child:
+                      CircularProgressIndicator(color: Sp.g2, strokeWidth: 2))
+              : isEmpty
+                  ? OfflineEmptyState(
+                      title: 'Aucun contenu hors-ligne',
+                      message:
+                          'Téléchargez des titres ou des playlists pour les '
+                          'écouter sans connexion.\n\n'
+                          'Depuis un titre ou une playlist, appuyez sur '
+                          'l\'icône de téléchargement.',
+                    )
+                  : CustomScrollView(
+                      slivers: [
+                        // ── Résumé stockage + actions ─────────────────
+                        SliverToBoxAdapter(
+                          child: _OfflineStorageHeader(
+                            songCount: allSongs.length,
+                            playlistCount: allPlaylists.length,
+                            totalBytes: dl.offlineBytes,
+                            onPlayAll: () => _playSongs(allSongs),
+                            onShuffle: () =>
+                                _playSongs(allSongs, shuffle: true),
+                          ),
+                        ),
+
+                        // ── Recherche + filtres ───────────────────────
+                        if (allSongs.length + allPlaylists.length > 2)
+                          SliverToBoxAdapter(child: _buildSearch(ctx)),
+                        SliverToBoxAdapter(child: _buildFilters(allSongs.length,
+                            allPlaylists.length)),
+
+                        if (noResult)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: OfflineEmptyState(
+                              icon: Icons.search_off_rounded,
+                              title: 'Aucun résultat',
+                              message:
+                                  'Rien ne correspond à « $_query » dans vos '
+                                  'téléchargements.',
+                              actions: [
+                                OfflineOutlineButton(
+                                  label: 'Effacer la recherche',
+                                  icon: Icons.close_rounded,
+                                  onTap: () {
+                                    _searchCtrl.clear();
+                                    setState(() => _query = '');
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // ── Playlists ─────────────────────────────────
+                        if (showPlaylists) ...[
+                          SliverToBoxAdapter(
+                            child: OfflineSectionTitle(
+                              title: 'Playlists',
+                              icon: Icons.queue_music_rounded,
+                              count: playlists.length,
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.78,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (c, i) {
+                                  final pl = playlists[i];
+                                  return LayoutBuilder(
+                                    builder: (c2, cons) => OfflinePlaylistCard(
+                                      playlist: pl,
+                                      width: cons.maxWidth,
+                                      onTap: () => _playPlaylist(dl, pl),
+                                      onDelete: () =>
+                                          _deletePlaylist(ctx, pl),
+                                    ),
+                                  );
+                                },
+                                childCount: playlists.length,
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        // ── Titres ────────────────────────────────────
+                        if (showSongs) ...[
+                          SliverToBoxAdapter(
+                            child: OfflineSectionTitle(
+                              title: 'Titres',
+                              icon: Icons.music_note_rounded,
+                              count: songs.length,
+                              trailing: songs.length > 1
+                                  ? GestureDetector(
+                                      onTap: () => _playSongs(songs),
+                                      child: Row(mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.play_arrow_rounded,
+                                                color: Sp.g2, size: 16),
+                                            SizedBox(width: 2),
+                                            Text('Tout lire',
+                                                style: TextStyle(
+                                                    color: Sp.g2,
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        FontWeight.w600)),
+                                          ]),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, 0),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (c, i) {
+                                  final song = songs[i];
+                                  final isCurrent =
+                                      c.select<PlayerProvider, bool>(
+                                    (p) => p.currentSong?.hash == song.hash,
+                                  );
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 7),
+                                    child: OfflineSongTile(
+                                      song: song,
+                                      isCurrent: isCurrent,
+                                      onTap: () =>
+                                          _playSongs(songs, index: i),
+                                      onDelete: () => _deleteSong(ctx, song),
+                                    ),
+                                  );
+                                },
+                                childCount: songs.length,
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        SliverToBoxAdapter(child: SizedBox(height: 40)),
+                      ],
+                    ),
+        );
+      },
     );
   }
+
+  // ── Barre de recherche ─────────────────────────────────────────────────────
+  Widget _buildSearch(BuildContext ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (v) => setState(() => _query = v.trim()),
+          style: TextStyle(color: Sp.white, fontSize: 14),
+          cursorColor: Sp.g2,
+          decoration: InputDecoration(
+            hintText: 'Rechercher dans le hors-ligne…',
+            hintStyle: TextStyle(color: Sp.white40, fontSize: 13),
+            prefixIcon: Icon(Icons.search_rounded, color: Sp.white40, size: 19),
+            suffixIcon: _query.isEmpty
+                ? null
+                : IconButton(
+                    icon: Icon(Icons.close_rounded,
+                        color: Sp.white40, size: 18),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
+            filled: true,
+            fillColor: Sp.card,
+            contentPadding: EdgeInsets.symmetric(vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Sp.white12),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Sp.white12, width: 0.8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                  color: Sp.g2.withValues(alpha: 0.6), width: 1.2),
+            ),
+          ),
+        ),
+      );
+
+  // ── Filtres ────────────────────────────────────────────────────────────────
+  Widget _buildFilters(int songCount, int playlistCount) => Padding(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Row(children: [
+          _FilterChip(
+            label: 'Tout',
+            count: songCount + playlistCount,
+            selected: _filter == _OfflineFilter.all,
+            onTap: () => setState(() => _filter = _OfflineFilter.all),
+          ),
+          SizedBox(width: 8),
+          _FilterChip(
+            label: 'Playlists',
+            count: playlistCount,
+            selected: _filter == _OfflineFilter.playlists,
+            onTap: () => setState(() => _filter = _OfflineFilter.playlists),
+          ),
+          SizedBox(width: 8),
+          _FilterChip(
+            label: 'Titres',
+            count: songCount,
+            selected: _filter == _OfflineFilter.songs,
+            onTap: () => setState(() => _filter = _OfflineFilter.songs),
+          ),
+        ]),
+      );
 }
 
-// ── Tile titre offline (avec swipe-to-delete) ────────────────────────────────
-class _SongTileOffline extends StatelessWidget {
-  final Song song;
-  final VoidCallback onPlay;
-  final VoidCallback onDelete;
-  _SongTileOffline({
-    required this.song,
-    required this.onPlay,
-    required this.onDelete,
+// ── En-tête stockage ─────────────────────────────────────────────────────────
+class _OfflineStorageHeader extends StatelessWidget {
+  final int songCount;
+  final int playlistCount;
+  final int totalBytes;
+  final VoidCallback onPlayAll;
+  final VoidCallback onShuffle;
+
+  const _OfflineStorageHeader({
+    required this.songCount,
+    required this.playlistCount,
+    required this.totalBytes,
+    required this.onPlayAll,
+    required this.onShuffle,
   });
 
   @override
-  Widget build(BuildContext context) => Dismissible(
-    key: ValueKey(song.hash),
-    direction: DismissDirection.endToStart,
-    background: Container(
-      alignment: Alignment.centerRight,
-      padding: EdgeInsets.only(right: 20),
-      decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(Icons.delete_outline_rounded,
-          color: Colors.redAccent, size: 24),
-    ),
-    onDismissed: (_) => onDelete(),
-    child: GestureDetector(
-      onTap: onPlay,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+  Widget build(BuildContext context) => Container(
+        margin: EdgeInsets.fromLTRB(16, 8, 16, 4),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Sp.card,
-          borderRadius: BorderRadius.circular(10)),
-        child: Row(children: [
-          ArtworkWidget(
-            key: ValueKey(song.image ?? song.hash),
-            hash: song.image ?? song.hash,
-            size: 46,
-            borderRadius: BorderRadius.circular(6)),
-          SizedBox(width: 12),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(song.title,
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Sp.white,
-                      fontSize: 13, fontWeight: FontWeight.w500)),
-              SizedBox(height: 2),
-              Text(
-                [
-                  if (song.artist.isNotEmpty) song.artist,
-                  if (song.duration > 0) _fmtDuration(song.duration),
-                ].join(' · '),
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Sp.white40, fontSize: 11)),
-            ])),
-          Icon(Icons.play_circle_outline_rounded,
-              color: Sp.g2, size: 28),
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Sp.g1.withValues(alpha: 0.18),
+              Sp.g2.withValues(alpha: 0.10),
+            ],
+          ),
+          border: Border.all(color: Sp.g2.withValues(alpha: 0.22)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const OfflinePill(
+                label: 'Disponible hors ligne',
+                icon: Icons.offline_pin_rounded),
+            const Spacer(),
+          ]),
+          SizedBox(height: 14),
+          Row(children: [
+            OfflineStat(
+              icon: Icons.music_note_rounded,
+              value: '$songCount',
+              label: songCount > 1 ? 'titres' : 'titre',
+            ),
+            OfflineStat(
+              icon: Icons.queue_music_rounded,
+              value: '$playlistCount',
+              label: playlistCount > 1 ? 'playlists' : 'playlist',
+            ),
+            OfflineStat(
+              icon: Icons.sd_storage_rounded,
+              value: formatOfflineSize(totalBytes),
+              label: 'occupés',
+            ),
+          ]),
+          if (songCount > 0) ...[
+            SizedBox(height: 16),
+            Row(children: [
+              OfflineGradientButton(
+                label: 'Lecture',
+                icon: Icons.play_arrow_rounded,
+                onTap: onPlayAll,
+              ),
+              SizedBox(width: 10),
+              GestureDetector(
+                onTap: onShuffle,
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Sp.glass,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Sp.white12),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.shuffle_rounded, size: 16, color: Sp.white70),
+                    SizedBox(width: 7),
+                    Text('Aléatoire',
+                        style: TextStyle(
+                            color: Sp.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
+            ]),
+          ],
         ]),
-      ),
-    ),
-  );
-
-  String _fmtDuration(int seconds) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
+      );
 }
 
-// ── État vide ─────────────────────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  _EmptyState();
+// ── Filtre (pill) ────────────────────────────────────────────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
   @override
-  Widget build(BuildContext ctx) => Center(child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.wifi_off_rounded, color: Sp.white12, size: 64),
-      SizedBox(height: 14),
-      Text('Aucun contenu hors-ligne',
-          style: TextStyle(color: Sp.white70, fontSize: 16,
-              fontWeight: FontWeight.w500)),
-      SizedBox(height: 6),
-      Text('Appuyez sur ⬇ sur un titre ou une playlist\npour le rendre disponible hors-ligne',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Sp.white40, fontSize: 12)),
-    ]));
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected ? Sp.g2.withValues(alpha: 0.16) : Sp.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected
+                  ? Sp.g2.withValues(alpha: 0.55)
+                  : Sp.white12,
+              width: selected ? 1.1 : 0.8,
+            ),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Sp.g2 : Sp.white70,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+            SizedBox(width: 6),
+            Text(
+              '$count',
+              style: TextStyle(
+                color: selected ? Sp.g2.withValues(alpha: 0.8) : Sp.white40,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ]),
+        ),
+      );
 }

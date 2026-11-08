@@ -91,11 +91,33 @@ class _ImageCache {
 final artCache = _ImageCache();
 final _inFlight = <String, Future<Uint8List?>>{};
 
+/// Pré-télécharge une image et l'écrit dans le cache disque partagé.
+///
+/// Utilisé lors d'un téléchargement hors ligne : la pochette est ainsi
+/// garantie disponible même si l'utilisateur ne l'a jamais affichée avant.
+Future<void> prefetchArtwork(String url, {Map<String, String>? headers}) async {
+  if (url.isEmpty) return;
+  if (await artCache.getAsync(url) != null) return;
+  try {
+    final response = await http
+        .get(Uri.parse(url), headers: headers)
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+      artCache.put(url, response.bodyBytes);
+    }
+  } catch (e) {
+    LoggerService.warning('prefetchArtwork ignoré', e);
+  }
+}
+
 class ArtworkWidget extends StatefulWidget {
   final String hash;
   final double size;
   final String type;
   final BorderRadius? borderRadius;
+
+  /// Mode hors ligne : ne lit que le cache (RAM/disque), sans requête réseau.
+  final bool cacheOnly;
 
   const ArtworkWidget({
     super.key,
@@ -103,6 +125,7 @@ class ArtworkWidget extends StatefulWidget {
     this.size = 48,
     this.type = 'track',
     this.borderRadius,
+    this.cacheOnly = false,
   });
 
   @override
@@ -140,6 +163,12 @@ class _ArtworkWidgetState extends State<ArtworkWidget> {
     final cached = await artCache.getAsync(url);
     if (cached != null) {
       if (mounted) setState(() { _bytes = cached; _loading = false; });
+      return;
+    }
+
+    // Hors ligne : on ne tente pas le réseau (évite 8 s d'attente par tuile).
+    if (widget.cacheOnly) {
+      if (mounted) setState(() => _loading = false);
       return;
     }
 
@@ -226,6 +255,8 @@ class NetImage extends StatefulWidget {
   final bool circular;
   final Map<String, String>? headers;
   final Widget? placeholder;
+  /// Mode hors ligne : ne lit que le cache partagé, aucune requête réseau.
+  final bool cacheOnly;
 
   const NetImage({
     super.key,
@@ -237,6 +268,7 @@ class NetImage extends StatefulWidget {
     this.circular = false,
     this.headers,
     this.placeholder,
+    this.cacheOnly = false,
   });
 
   @override
@@ -268,6 +300,10 @@ class _NetImageState extends State<NetImage> {
     final cached = await artCache.getAsync(widget.url);
     if (cached != null) {
       if (mounted) setState(() { _bytes = cached; _loading = false; });
+      return;
+    }
+    if (widget.cacheOnly) {
+      if (mounted) setState(() => _loading = false);
       return;
     }
     // Déduplication in-flight : partage le même Future si la même URL est déjà en cours

@@ -14,7 +14,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   bool _offline = false;
 
   String? _username;
-  String? _avatarUrl;
+  int? _avatarUserId;
 
   @override
   bool get wantKeepAlive => true;
@@ -22,25 +22,68 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
+    ServerStatus.instance.addListener(_onServerStatusChanged);
     _load();
     _loadProfile();
   }
 
+  @override
+  void dispose() {
+    ServerStatus.instance.removeListener(_onServerStatusChanged);
+    super.dispose();
+  }
+
+  /// Réagit aux changements d'état réseau détectés par les pings et les
+  /// requêtes API : bascule immédiate vers l'accueil hors ligne (ou retour).
+  void _onServerStatusChanged() {
+    if (!mounted) return;
+    final offline = ServerStatus.instance.isOffline;
+    if (offline == _offline) return;
+    if (offline) {
+      setState(() {
+        _offline = true;
+        _loading = false;
+      });
+    } else {
+      _load();
+    }
+  }
+
   Future<void> _loadProfile() async {
     final api  = SwingApiService();
-    final prof = await api.getMyProfile();
-    final uid  = prof['id'] as int?;
-    if (uid != null && mounted) {
+    // Cache d'abord (instantané hors ligne), puis rafraîchissement réseau.
+    final cached = await api.getCachedProfile();
+    if (cached.isNotEmpty && mounted) {
       setState(() {
-        _username  = prof['username'] as String?;
-        _avatarUrl = api.getAvatarUrl(uid);
+        _username = cached['username'] as String?;
+        _avatarUserId = cached['id'] as int?;
+      });
+    }
+    final prof = await api.getMyProfile();
+    if (prof.isNotEmpty && mounted) {
+      setState(() {
+        _username = prof['username'] as String?;
+        _avatarUserId = prof['id'] as int?;
       });
     }
   }
 
   Future<void> _load({bool refresh = false}) async {
-    setState(() { _loading = true; _offline = false; });
+    if (mounted) setState(() => _loading = true);
     final api = SwingApiService();
+
+    // Serveur injoignable : inutile d'attendre les timeouts (10 s) de chaque
+    // section, on affiche directement l'accueil hors ligne.
+    if (!await ServerStatus.instance.check()) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _offline = true;
+        });
+      }
+      return;
+    }
+    if (mounted) setState(() => _offline = false);
 
     try {
       // 1. Charger les albums
@@ -93,14 +136,9 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
       }
     } catch (_) {}
 
-    // On ne bascule en mode offline que si TOUTES les sections sont vides ET que le serveur est réellement injoignable
-    if (_songs.isEmpty && _albums.isEmpty && _artists.isEmpty) {
-      final reachable = await api.isServerReachable();
-      _offline = !reachable;
-    } else {
-      _offline = false;
-    }
-
+    // Le serveur répond : on n'est jamais en mode « hors ligne », même si la
+    // bibliothèque est vide.
+    _offline = false;
     if (mounted) setState(() => _loading = false);
   }
 
@@ -128,7 +166,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           backgroundColor: Sp.bg,
           expandedHeight: 0,
           title: Row(children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_greeting(),
                 style: TextStyle(
                   fontSize: 13, color: Sp.white70,
@@ -136,14 +174,24 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               SizedBox(height: 1),
               if (_username != null)
                 Text(_username!,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 20, fontWeight: FontWeight.bold,
                     color: Sp.white)),
-            ]),
+            ])),
           ]),
           actions: [
+            if (_offline) ...[
+              const Center(
+                child: OfflinePill(
+                  label: 'Lecteur Local',
+                  icon: Icons.offline_pin_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
             _AvatarButton(
-              avatarUrl: _avatarUrl,
+              userId: _avatarUserId ?? 0,
               username: _username ?? '',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => SettingsScreen())),
@@ -276,179 +324,8 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
       builder: (_) => _AllSongsScreen(songs: _songs)));
   }
 
-  Widget _buildOfflineView(BuildContext context) {
-    return Consumer<DownloadsProvider>(
-      builder: (context, dlProvider, _) {
-        final offlineSongs = dlProvider.downloadedSongs;
-        final offlinePlaylists = dlProvider.downloadedPlaylists;
-
-        if (offlineSongs.isEmpty && offlinePlaylists.isEmpty) {
-          return SliverFillRemaining(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 80, height: 80,
-                    decoration: BoxDecoration(
-                      color: Sp.card,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(Icons.wifi_off_rounded,
-                        color: Sp.white40, size: 40),
-                  ),
-                  SizedBox(height: 20),
-                  Text('Serveur inaccessible',
-                    style: TextStyle(color: Sp.white, fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 48),
-                    child: Text('Aucune musique téléchargée pour le mode hors connexion.',
-                      style: TextStyle(color: Sp.white70, fontSize: 14),
-                      textAlign: TextAlign.center),
-                  ),
-                  SizedBox(height: 28),
-                  GestureDetector(
-                    onTap: () => _load(refresh: true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: kGrad,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(
-                          color: Sp.g2.withValues(alpha: 0.3),
-                          blurRadius: 12, offset: Offset(0, 4))],
-                      ),
-                      child: Text('Réessayer',
-                        style: TextStyle(color: Colors.white,
-                            fontWeight: FontWeight.bold)))),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return SliverList(
-          delegate: SliverChildListDelegate([
-            // Banner hors connexion
-            Container(
-              margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Sp.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Sp.white12),
-              ),
-              child: Row(children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: Sp.g2.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.cloud_off_rounded, color: Sp.g2, size: 22),
-                ),
-                SizedBox(width: 14),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Mode hors connexion',
-                      style: TextStyle(color: Sp.white, fontSize: 14,
-                          fontWeight: FontWeight.bold)),
-                    SizedBox(height: 2),
-                    Text('Titres et playlists disponibles hors ligne.',
-                      style: TextStyle(color: Sp.white70, fontSize: 12)),
-                  ],
-                )),
-                IconButton(
-                  icon: Icon(Icons.refresh_rounded, color: Sp.white70, size: 20),
-                  onPressed: _load,
-                ),
-              ]),
-            ),
-
-            if (offlinePlaylists.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Row(children: [
-                  Icon(Icons.queue_music_rounded, color: Sp.white70, size: 16),
-                  SizedBox(width: 8),
-                  Text('Playlists hors connexion',
-                    style: TextStyle(color: Sp.white, fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                ]),
-              ),
-              SizedBox(
-                height: 168,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: offlinePlaylists.length,
-                  itemBuilder: (ctx, i) {
-                    final pl = offlinePlaylists[i];
-                    return GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => PlaylistDetailScreen(playlist: pl, readOnly: true))),
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 14),
-                        child: SizedBox(
-                          width: 120,
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 120, height: 120,
-                                decoration: BoxDecoration(
-                                  color: Sp.card,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(Icons.queue_music_rounded,
-                                    color: Sp.white40, size: 48),
-                              ),
-                              SizedBox(height: 8),
-                              Text(pl.name,
-                                style: TextStyle(color: Sp.white,
-                                    fontSize: 13, fontWeight: FontWeight.w500),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                              Text('${pl.trackCount} titres',
-                                style: TextStyle(color: Sp.white70, fontSize: 11)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-
-            if (offlineSongs.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
-                child: Row(children: [
-                  Icon(Icons.download_done_rounded, color: Sp.white70, size: 16),
-                  SizedBox(width: 8),
-                  Text('Titres téléchargés',
-                    style: TextStyle(color: Sp.white, fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                ]),
-              ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: offlineSongs.length,
-                itemBuilder: (ctx, i) =>
-                    _SongRow(song: offlineSongs[i], all: offlineSongs, idx: i, index: i),
-              ),
-            ],
-
-            SizedBox(height: 100),
-          ]),
-        );
-      },
-    );
-  }
+  Widget _buildOfflineView(BuildContext context) =>
+      _OfflineHomeView(onRefresh: () => _load(refresh: true));
 }
 
 // ── Avatar button ──────────────────────────────────────────────────────────────

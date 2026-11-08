@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../services/color_service.dart';
 import '../widgets/artwork_widget.dart';
+import '../widgets/avatar_image.dart';
 
 import '../providers/player_provider.dart';
 import 'package:provider/provider.dart';
@@ -557,6 +558,7 @@ class _ProfileHeader extends StatefulWidget {
 
 class _ProfileHeaderState extends State<_ProfileHeader> {
   Map<String, dynamic> _profile = {};
+  bool _offline = false;
 
   @override
   void initState() {
@@ -565,10 +567,20 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
   }
 
   Future<void> _load() async {
-    // Essayer le réseau d'abord ; si ça échoue, lire le cache
-    var p = await SwingApiService().getMyProfile();
-    if (p.isEmpty) p = await SwingApiService().getCachedProfile();
-    if (mounted) setState(() => _profile = p);
+    final api = SwingApiService();
+    // Cache d'abord : le header s'affiche instantanément, même hors ligne.
+    final cached = await api.getCachedProfile();
+    if (cached.isNotEmpty && mounted) {
+      setState(() { _profile = cached; _offline = false; });
+    }
+    final p = await api.getMyProfile();
+    if (mounted) {
+      if (p.isNotEmpty) {
+        setState(() { _profile = p; _offline = false; });
+      } else {
+        setState(() => _offline = cached.isNotEmpty);
+      }
+    }
   }
 
   @override
@@ -576,7 +588,6 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
     final username = _profile['username'] as String? ?? '';
     final role     = _profile['role']     as String? ?? '';
     final userId   = _profile['id']       as int?    ?? 0;
-    final avatarUrl = userId > 0 ? SwingApiService().getAvatarUrl(userId) : null;
 
     return GestureDetector(
       onTap: () async {
@@ -591,23 +602,12 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(children: [
-          // Avatar initiale ou image
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: kGrad,
-            ),
-            padding: EdgeInsets.all(2),
-            child: ClipOval(
-              child: avatarUrl != null && username.isNotEmpty
-                  ? Image.network(
-                      avatarUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _InitialAvatar(username),
-                    )
-                  : _InitialAvatar(username),
-            ),
+          // Avatar (cache disque : fonctionne hors ligne)
+          AvatarImage(
+            userId: userId,
+            username: username,
+            size: 48,
+            fetchFromNetwork: !_offline,
           ),
           SizedBox(width: 14),
           Expanded(child: Column(
@@ -631,6 +631,13 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                       style: TextStyle(color: Sp.g2,
                           fontSize: 10, fontWeight: FontWeight.bold)),
                 )
+              else if (_offline)
+                Row(children: [
+                  Icon(Icons.cloud_off_rounded, size: 11, color: Sp.white40),
+                  SizedBox(width: 4),
+                  Text('Profil en cache · hors connexion',
+                      style: TextStyle(color: Sp.white40, fontSize: 11)),
+                ])
               else
                 Text('Voir et modifier le profil',
                     style: TextStyle(color: Sp.white40, fontSize: 12)),
@@ -641,18 +648,4 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
       ),
     );
   }
-}
-
-class _InitialAvatar extends StatelessWidget {
-  final String username;
-  _InitialAvatar(this.username);
-  @override
-  Widget build(BuildContext context) => Container(
-    color: Sp.surface,
-    child: Center(child: Text(
-      username.isNotEmpty ? username[0].toUpperCase() : '?',
-      style: TextStyle(color: Sp.white,
-          fontSize: 20, fontWeight: FontWeight.bold),
-    )),
-  );
 }

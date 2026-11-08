@@ -12,6 +12,7 @@ import '../models/album.dart';
 import 'logger_service.dart';
 import 'resilient_http_client.dart';
 import 'api_cache_service.dart';
+import 'server_status.dart';
 import 'widget_service.dart';
 import 'network_quality_service.dart';
 
@@ -349,19 +350,8 @@ class SwingApiService {
   }
 
   /// Vérifie rapidement si le serveur Askaria répond sur le réseau.
-  Future<bool> isServerReachable() async {
-    try {
-      final r = await _client.get(Uri.parse('$_baseUrl/auth/ping')).timeout(const Duration(seconds: 4));
-      return r.statusCode < 500;
-    } catch (_) {
-      try {
-        final r2 = await _client.get(Uri.parse('$_baseUrl/')).timeout(const Duration(seconds: 4));
-        return r2.statusCode < 500;
-      } catch (_) {
-        return false;
-      }
-    }
-  }
+  /// Délégué à [ServerStatus] : l'état est partagé par toute l'application.
+  Future<bool> isServerReachable() => ServerStatus.instance.check();
 
   Future<void> _fetchAndCacheInBackground(Uri uri, String urlStr) async {
     try {
@@ -372,7 +362,16 @@ class SwingApiService {
   }
 
   Future<http.Response> _fetchWith401Retry(Uri uri, String urlStr, bool saveToCache) async {
-    var r = await _client.get(uri, headers: _headers).timeout(const Duration(seconds: 10));
+    http.Response r;
+    try {
+      r = await _client.get(uri, headers: _headers).timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // Panne réseau / serveur injoignable : l'UI passe en mode hors ligne.
+      ServerStatus.instance.markOffline();
+      rethrow;
+    }
+    // Le serveur a répondu : il est joignable (même en cas d'erreur HTTP).
+    ServerStatus.instance.markOnline();
     if (r.statusCode == 401) {
       final refreshed = await _refreshAccessToken();
       if (refreshed) {

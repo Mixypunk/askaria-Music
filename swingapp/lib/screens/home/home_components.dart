@@ -1,50 +1,21 @@
 part of '../home_tab.dart';
 
 class _AvatarButton extends StatelessWidget {
-  final String? avatarUrl;
+  final int userId;
   final String username;
   final VoidCallback onTap;
-  _AvatarButton({required this.avatarUrl, required this.username,
+  _AvatarButton({required this.userId, required this.username,
       required this.onTap});
   @override
-  Widget build(BuildContext context) {
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '';
-    return Center(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
-          padding: EdgeInsets.all(2),
-          child: ClipOval(
-            child: SizedBox(
-              width: 32, height: 32,
-              child: avatarUrl != null
-                  ? NetImage(
-                      url: avatarUrl!, width: 32, height: 32,
-                      circular: false,
-                      headers: SwingApiService().authHeaders,
-                      placeholder: _InitialFallback(initial))
-                  : _InitialFallback(initial),
-            ),
-          ),
-        ),
+  Widget build(BuildContext context) => Center(
+    child: GestureDetector(
+      onTap: onTap,
+      child: AvatarImage(
+        userId: userId,
+        username: username,
+        size: 36,
       ),
-    );
-  }
-}
-
-class _InitialFallback extends StatelessWidget {
-  final String initial;
-  _InitialFallback(this.initial);
-  @override
-  Widget build(BuildContext context) => Container(
-    color: Sp.card,
-    child: initial.isEmpty
-        ? Icon(Icons.person_rounded, size: 18, color: Sp.white)
-        : Center(child: Text(initial,
-            style: TextStyle(color: Sp.white,
-                fontSize: 14, fontWeight: FontWeight.bold))),
+    ),
   );
 }
 
@@ -72,7 +43,9 @@ class _SectionHeader extends StatelessWidget {
 // ── Recent tile ────────────────────────────────────────────────────────────────
 class _RecentTile extends StatelessWidget {
   final Song song; final List<Song> allSongs; final int idx;
-  _RecentTile({required this.song, required this.allSongs, required this.idx});
+  final bool cacheOnly;
+  _RecentTile({required this.song, required this.allSongs, required this.idx,
+      this.cacheOnly = false});
   @override
   Widget build(BuildContext ctx) => GestureDetector(
     onTap: () => ctx.read<PlayerProvider>()
@@ -89,6 +62,7 @@ class _RecentTile extends StatelessWidget {
             key: ValueKey(song.hash),
             hash: song.image ?? song.hash,
             size: 62,
+            cacheOnly: cacheOnly,
             borderRadius: BorderRadius.zero),
         ),
         SizedBox(width: 10),

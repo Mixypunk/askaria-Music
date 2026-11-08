@@ -78,6 +78,29 @@ class PlayerProvider extends ChangeNotifier {
           ? _queue[_currentIndex]
           : null;
   bool get isPlaying => _isPlaying;
+
+  /// `true` quand le titre en cours est lu depuis le stockage hors ligne.
+  ///
+  /// Le [Song] courant peut être un objet « réseau » alors que le lecteur a
+  /// résolu un fichier local dans le dossier `/offline/` : on vérifie donc
+  /// aussi la présence du fichier téléchargé.
+  bool get isPlayingLocal {
+    final song = currentSong;
+    if (song == null) return false;
+    final fp = song.filepath;
+    if (fp != null && fp.contains('/offline/')) return true;
+    final dir = _api.offlineDirPath;
+    if (dir == null) return false;
+    final extRaw = (fp ?? '').split('.').last.toLowerCase();
+    final ext = (extRaw.isNotEmpty && extRaw.length <= 4 && extRaw != fp)
+        ? extRaw
+        : 'mp3';
+    try {
+      return File('$dir/${song.hash}.$ext').existsSync();
+    } catch (_) {
+      return false;
+    }
+  }
   bool get isLoading => _isLoading;
   bool get mounted => !_disposed;
   Duration get position => _position;

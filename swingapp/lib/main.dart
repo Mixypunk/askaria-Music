@@ -8,6 +8,7 @@ import 'providers/connect_controller_provider.dart';
 import 'services/api_service.dart';
 import 'services/theme_notifier.dart';
 import 'services/network_quality_service.dart';
+import 'services/server_status.dart';
 import 'services/widget_service.dart';
 import 'services/update_service.dart';
 import 'screens/root_screen.dart';
@@ -206,7 +207,13 @@ class _SplashWrapperState extends State<_SplashWrapper> {
       await NetworkQualityService.instance.load();
       final api = SwingApiService();
       await api.loadSettings();
-      _logged = await api.checkAuth();
+      // État réseau global (bandeau, pastilles, accueil hors ligne).
+      ServerStatus.instance.configure(api.baseUrl);
+      ServerStatus.instance.startAutoCheck();
+      // Hors ligne : inutile d'attendre les timeouts de `checkAuth` (10 s ×
+      // tentatives), on se fie au dernier état d'authentification connu.
+      final online = await ServerStatus.instance.check();
+      _logged = online ? await api.checkAuth() : api.isLoggedIn;
     } catch (e) {
       debugPrint('Auth error: $e');
       _logged = SwingApiService().isLoggedIn;

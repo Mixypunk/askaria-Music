@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../main.dart';
 import '../services/api_service.dart';
+import '../services/avatar_store.dart';
+import '../widgets/avatar_image.dart';
+import '../widgets/offline/offline_components.dart';
 import 'package:askaria/services/logger_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -16,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic> _profile = {};
   bool _loading = true;
   bool _isOffline = false;
+  DateTime? _cachedAt;
 
   @override
   void initState() {
@@ -24,14 +28,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
-    var p = await _api.getMyProfile();
-    bool offline = false;
-    if (p.isEmpty) {
-      // Pas de réseau ou token invalide — tenter le cache
-      p = await _api.getCachedProfile();
-      offline = true;
+    // 1. Afficher immédiatement le cache (pas d'attente réseau hors ligne).
+    final cached = await _api.getCachedProfile();
+    if (cached.isNotEmpty && mounted) {
+      setState(() { _profile = cached; _loading = false; });
+    } else if (mounted) {
+      setState(() => _loading = true);
     }
-    if (mounted) setState(() { _profile = p; _loading = false; _isOffline = offline; });
+
+    // 2. Rafraîchir depuis le réseau (silencieux si injoignable).
+    final p = await _api.getMyProfile();
+    if (p.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _profile = p;
+          _loading = false;
+          _isOffline = false;
+          _cachedAt = null;
+        });
+      }
+      return;
+    }
+
+    final cachedAt = await _api.getCachedProfileDate();
+    if (mounted) {
+      setState(() {
+        _profile = cached;
+        _loading = false;
+        _isOffline = cached.isNotEmpty;
+        _cachedAt = cachedAt;
+      });
+    }
   }
 
   @override
@@ -55,16 +82,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : ListView(
                   padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
                   children: [
-                    if (_isOffline) _OfflineBanner(),
-                    if (_isOffline) SizedBox(height: 16),
+                    if (_isOffline)
+                      _CachedProfileCard(
+                        cachedAt: _cachedAt,
+                        onRetry: _load,
+                      ),
+                    if (_isOffline) SizedBox(height: 20),
                     _AvatarSection(
                         profile: _profile, api: _api, onUpdated: _load,
                         isOffline: _isOffline),
                     SizedBox(height: 32),
-                    _InfoSection(
-                        profile: _profile, api: _api, onUpdated: _load,
-                        isOffline: _isOffline),
-                    if (!_isOffline) ...[
+                    if (_isOffline)
+                      _OfflineInfoSection(profile: _profile)
+                    else ...[
+                      _InfoSection(
+                          profile: _profile, api: _api, onUpdated: _load),
                       SizedBox(height: 20),
                       _PasswordSection(api: _api),
                     ],
@@ -74,43 +106,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Bandeau hors-ligne ─────────────────────────────────────────────────────────
-class _OfflineBanner extends StatelessWidget {
+// ── Carte « profil en cache » ─────────────────────────────────────────────────
+class _CachedProfileCard extends StatelessWidget {
+  final DateTime? cachedAt;
+  final VoidCallback onRetry;
+  const _CachedProfileCard({required this.cachedAt, required this.onRetry});
+
+  String get _syncLabel {
+    final d = cachedAt;
+    if (d == null) return 'Synchronisation inconnue';
+    final diff = DateTime.now().difference(d);
+    if (diff.inMinutes < 1) return 'Synchronisé à l\'instant';
+    if (diff.inMinutes < 60) return 'Synchronisé il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Synchronisé il y a ${diff.inHours} h';
+    if (diff.inDays < 7) return 'Synchronisé il y a ${diff.inDays} j';
+    final day = d.day.toString().padLeft(2, '0');
+    final month = d.month.toString().padLeft(2, '0');
+    return 'Synchronisé le $day/$month/${d.year}';
+  }
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color: Colors.orange.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
-    ),
-    child: Row(children: [
-      Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 18),
-      SizedBox(width: 10),
-      Expanded(child: Text(
-        'Mode hors-ligne — données non actualisées',
-        style: TextStyle(color: Colors.orange, fontSize: 13),
-      )),
-    ]),
-  );
+        padding: EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Sp.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Sp.white12),
+        ),
+        child: Row(children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Sp.g2.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.cloud_off_rounded, color: Sp.g2, size: 20),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Profil en cache',
+                    style: TextStyle(
+                        color: Sp.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                SizedBox(height: 2),
+                Text(_syncLabel,
+                    style: TextStyle(color: Sp.white40, fontSize: 12)),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: Sp.white70, size: 20),
+            tooltip: 'Réessayer',
+            onPressed: onRetry,
+          ),
+        ]),
+      );
 }
 
 class _OfflineEmptyState extends StatelessWidget {
   _OfflineEmptyState();
   @override
-  Widget build(BuildContext context) => Center(child: Padding(
-    padding: EdgeInsets.all(32),
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.wifi_off_rounded, color: Sp.white40, size: 56),
-      SizedBox(height: 16),
-      Text('Profil indisponible',
-          style: TextStyle(color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),
-      SizedBox(height: 8),
-      Text('Connectez-vous au moins une fois en ligne\npour accéder à votre profil hors-ligne.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Sp.white40, fontSize: 13)),
-    ]),
-  ));
+  Widget build(BuildContext context) => const OfflineEmptyState(
+        title: 'Profil indisponible',
+        message:
+            'Connectez-vous au moins une fois en ligne pour retrouver votre '
+            'profil hors connexion.',
+      );
 }
 
 // ── Section avatar ─────────────────────────────────────────────────────────────
@@ -138,6 +204,9 @@ class _AvatarSectionState extends State<_AvatarSection> {
       final bytes = await File(picked.path).readAsBytes();
       final url   = await widget.api.uploadAvatar(bytes);
       if (url != null && mounted) {
+        // Mise en cache locale immédiate : l'avatar reste visible hors ligne.
+        await AvatarStore.instance.save(
+            widget.profile['id'] as int? ?? 0, bytes);
         widget.onUpdated();
         _showSnack('Photo de profil mise à jour !');
       }
@@ -161,28 +230,17 @@ class _AvatarSectionState extends State<_AvatarSection> {
   @override
   Widget build(BuildContext context) {
     final userId = widget.profile['id'] as int? ?? 0;
-    final avatarUrl = userId > 0 ? widget.api.getAvatarUrl(userId) : null;
     final username = widget.profile['username'] as String? ?? '';
 
     return Center(child: Column(children: [
       Stack(children: [
         GestureDetector(
           onTap: (_uploading || widget.isOffline) ? null : _pickAndUpload,
-          child: Container(
-            width: 110, height: 110,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: kGrad,
-            ),
-            padding: EdgeInsets.all(3),
-            child: ClipOval(child: avatarUrl != null
-                ? Image.network(
-                    avatarUrl,
-                    key: ValueKey(DateTime.now().millisecondsSinceEpoch),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _DefaultAvatar(username),
-                  )
-                : _DefaultAvatar(username)),
+          child: AvatarImage(
+            userId: userId,
+            username: username,
+            size: 116,
+            fetchFromNetwork: !widget.isOffline,
           ),
         ),
         // Bouton caméra — masqué en mode hors-ligne
@@ -233,17 +291,73 @@ class _AvatarSectionState extends State<_AvatarSection> {
   }
 }
 
-class _DefaultAvatar extends StatelessWidget {
-  final String username;
-  _DefaultAvatar(this.username);
+// ── Section infos (lecture seule, hors ligne) ────────────────────────────────
+class _OfflineInfoSection extends StatelessWidget {
+  final Map<String, dynamic> profile;
+  const _OfflineInfoSection({required this.profile});
+
+  String _v(String key) {
+    final value = profile[key]?.toString() ?? '';
+    return value.trim().isEmpty ? '—' : value;
+  }
+
   @override
-  Widget build(BuildContext ctx) => Container(
-    color: Sp.card,
-    child: Center(child: Text(
-      username.isNotEmpty ? username[0].toUpperCase() : '?',
-      style: TextStyle(color: Sp.white,
-          fontSize: 40, fontWeight: FontWeight.bold))),
-  );
+  Widget build(BuildContext context) {
+    final rows = <Widget>[
+      _row(Icons.person_outline_rounded, 'Nom d\'utilisateur', _v('username')),
+      _row(Icons.email_outlined, 'Adresse email', _v('email')),
+      if ((profile['birth_date']?.toString() ?? '').isNotEmpty)
+        _row(Icons.cake_outlined, 'Date de naissance',
+            _fmtIsoDate(profile['birth_date'].toString())),
+      if ((profile['bio']?.toString() ?? '').isNotEmpty)
+        _row(Icons.edit_note_rounded, 'Bio', _v('bio')),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ProfileSectionLabel('Informations'),
+        SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Sp.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Sp.white12, width: 0.8),
+          ),
+          child: Column(children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              rows[i],
+              if (i != rows.length - 1)
+                Padding(
+                  padding: EdgeInsets.only(left: 46),
+                  child: Divider(height: 1, color: Sp.white12, thickness: 0.6),
+                ),
+            ],
+          ]),
+        ),
+      ],
+    );
+  }
+
+  Widget _row(IconData icon, String label, String value) => Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(children: [
+          Icon(icon, color: Sp.white70, size: 19),
+          SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(color: Sp.white40, fontSize: 11)),
+                SizedBox(height: 2),
+                Text(value,
+                    style: TextStyle(color: Sp.white, fontSize: 14)),
+              ],
+            ),
+          ),
+        ]),
+      );
 }
 
 // ── Section infos ──────────────────────────────────────────────────────────────
@@ -251,9 +365,8 @@ class _InfoSection extends StatefulWidget {
   final Map<String, dynamic> profile;
   final SwingApiService api;
   final VoidCallback onUpdated;
-  final bool isOffline;
   _InfoSection({required this.profile, required this.api,
-      required this.onUpdated, this.isOffline = false});
+      required this.onUpdated});
   @override
   State<_InfoSection> createState() => _InfoSectionState();
 }
@@ -384,35 +497,23 @@ class _InfoSectionState extends State<_InfoSection> {
           label: 'Bio (courte)', ctrl: _bioCtrl,
           icon: Icons.edit_note_rounded, maxLines: 3, maxLength: 300),
       SizedBox(height: 16),
-      if (widget.isOffline)
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
-          ),
-          child: Row(children: [
-            Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 16),
-            SizedBox(width: 10),
-            Expanded(child: Text(
-              'Reconnectez-vous au réseau pour modifier votre profil.',
-              style: TextStyle(color: Colors.orange, fontSize: 12),
-            )),
-          ]),
-        )
-      else
-        SizedBox(width: double.infinity,
-          child: GBtn('Enregistrer',
-              onTap: _saving ? null : _save, loading: _saving)),
+      SizedBox(width: double.infinity,
+        child: GBtn('Enregistrer',
+            onTap: _saving ? null : _save, loading: _saving)),
     ],
   );
 
-  String _fmtDate(String iso) {
-    try {
-      final dt = DateTime.parse(iso);
-      return '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}';
-    } catch (_) { return iso; }
+  String _fmtDate(String iso) => _fmtIsoDate(iso);
+}
+
+/// Formate une date ISO (`2024-03-08`) en `08/03/2024`.
+String _fmtIsoDate(String iso) {
+  try {
+    final dt = DateTime.parse(iso);
+    return '${dt.day.toString().padLeft(2, '0')}/'
+        '${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  } catch (_) {
+    return iso;
   }
 }
 

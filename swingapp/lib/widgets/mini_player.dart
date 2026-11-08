@@ -29,6 +29,10 @@ class _MiniPlayerShell extends StatelessWidget {
     final song = context.select<PlayerProvider, dynamic>((p) => p.currentSong);
     if (song == null) return const SizedBox.shrink();
 
+    // Titre joué depuis le stockage hors ligne (dossier `/offline/`).
+    final isLocal = context.select<PlayerProvider, bool>(
+        (p) => p.isPlayingLocal);
+
     final accent = context.select<PlayerProvider, Color>(
         (p) => p.dynamicColors.accent);
 
@@ -107,10 +111,29 @@ class _MiniPlayerShell extends StatelessWidget {
                         fontSize: 14, fontWeight: FontWeight.w600),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text(song.artist,
-                    style: TextStyle(
-                        color: Sp.white70, fontSize: 12),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text.rich(
+                    TextSpan(children: [
+                      if ((song.artist as String).isNotEmpty)
+                        TextSpan(
+                          text: song.artist,
+                          style: TextStyle(color: Sp.white70),
+                        ),
+                      if (isLocal) ...[
+                        if ((song.artist as String).isNotEmpty)
+                          const TextSpan(text: ' · '),
+                        TextSpan(
+                          text: 'Lecture locale',
+                          style: TextStyle(
+                            color: Sp.g2,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ],
               )),
 

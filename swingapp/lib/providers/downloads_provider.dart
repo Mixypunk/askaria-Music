@@ -6,12 +6,15 @@ import 'package:path_provider/path_provider.dart';
 import '../models/song.dart';
 import '../models/album.dart'; // for Playlist
 import '../services/api_service.dart';
+import '../widgets/artwork_widget.dart';
 import 'package:askaria/services/logger_service.dart';
 
 class DownloadsProvider extends ChangeNotifier {
   final Set<String> _downloadedHashes = {};
   final Set<String> _offlinePlaylists = {};
   bool _isDownloadingPlaylist = false;
+  bool _ready = false;
+  int _offlineBytes = 0;
 
   List<Song> _downloadedSongs = [];
   List<Playlist> _downloadedPlaylists = [];
@@ -22,6 +25,13 @@ class DownloadsProvider extends ChangeNotifier {
 
   List<Song> get downloadedSongs => _downloadedSongs;
   List<Playlist> get downloadedPlaylists => _downloadedPlaylists;
+
+  /// `true` une fois la première lecture disque terminée (évite d'afficher
+  /// l'état vide pendant le chargement).
+  bool get isReady => _ready;
+
+  /// Espace total occupé par les fichiers audio hors ligne (octets).
+  int get offlineBytes => _offlineBytes;
 
   DownloadsProvider() {
     refresh();
@@ -45,11 +55,21 @@ class DownloadsProvider extends ChangeNotifier {
       if (!offlineDir.existsSync()) {
         _downloadedSongs = [];
         _downloadedPlaylists = [];
+        _offlineBytes = 0;
+        _ready = true;
         notifyListeners();
         return;
       }
 
       final files = offlineDir.listSync().whereType<File>().toList();
+
+      // 0. Taille réellement occupée (fichiers audio uniquement)
+      int total = 0;
+      for (final f in files) {
+        if (f.path.endsWith('.meta.json')) continue;
+        try { total += f.lengthSync(); } catch (_) {}
+      }
+      _offlineBytes = total;
       
       // 1. Charger les chansons téléchargées
       final songsList = <Song>[];
@@ -92,8 +112,13 @@ class DownloadsProvider extends ChangeNotifier {
       }
       _downloadedPlaylists = playlistsList;
 
+      _ready = true;
       notifyListeners();
-    } catch (e) { LoggerService.warning('Silent error caught in downloads_provider.dart', e); }
+    } catch (e) {
+      _ready = true;
+      notifyListeners();
+      LoggerService.warning('Silent error caught in downloads_provider.dart', e);
+    }
   }
 
   Future<void> refresh() async {
@@ -111,6 +136,8 @@ class DownloadsProvider extends ChangeNotifier {
       await loadOfflineData();
       notifyListeners();
     } catch (e) {
+      _ready = true;
+      notifyListeners();
       debugPrint('refresh downloads error: $e');
     }
   }
@@ -131,6 +158,8 @@ class DownloadsProvider extends ChangeNotifier {
     
     if (path != null) {
       _downloadedHashes.add(song.hash);
+      // Garantir la pochette hors ligne, même si elle n'a jamais été affichée.
+      await _cacheSongArtwork(song);
       await loadOfflineData();
       notifyListeners();
       if (showSnackBar && context != null && context.mounted) {
@@ -199,6 +228,14 @@ class DownloadsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Met en cache la pochette d'un titre (disque) pour le mode hors ligne.
+  Future<void> _cacheSongArtwork(Song song) async {
+    final image = song.image;
+    if (image == null || image.isEmpty) return;
+    final api = SwingApiService();
+    await prefetchArtwork(api.getArtworkUrl(image), headers: api.authHeaders);
+  }
+
   Future<void> saveOfflinePlaylistMeta(Playlist playlist, List<Song> tracks) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -224,6 +261,13 @@ class DownloadsProvider extends ChangeNotifier {
         }).toList(),
       };
       await file.writeAsString(json.encode(data));
+
+      // Pochette de playlist (servie par /img/playlist/{id}.webp)
+      final api = SwingApiService();
+      await prefetchArtwork(
+        '${api.baseUrl}/img/playlist/${playlist.id}.webp',
+        headers: api.authHeaders,
+      );
     } catch (e) {
       debugPrint('Error saving playlist offline meta: $e');
     }

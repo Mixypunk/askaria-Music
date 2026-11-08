@@ -11,6 +11,8 @@ extension ApiProfile on SwingApiService {
         // Persister le profil pour le mode hors-ligne
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('cached_profile', r.body);
+        await prefs.setInt('cached_profile_at',
+            DateTime.now().millisecondsSinceEpoch);
         return data;
       }
     } catch (e) { LoggerService.warning('Silent error caught in api_profile.dart', e); }
@@ -28,6 +30,19 @@ extension ApiProfile on SwingApiService {
       }
     } catch (e) { LoggerService.warning('getCachedProfile error', e); }
     return {};
+  }
+
+  /// Date de la dernière synchronisation du profil mise en cache.
+  Future<DateTime?> getCachedProfileDate() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ms = prefs.getInt('cached_profile_at');
+      if (ms == null) return null;
+      return DateTime.fromMillisecondsSinceEpoch(ms);
+    } catch (e) {
+      LoggerService.warning('getCachedProfileDate error', e);
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>?> updateProfile({
