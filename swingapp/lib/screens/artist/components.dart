@@ -52,13 +52,14 @@ class _ActionBtn extends StatelessWidget {
       height: 46,
       decoration: BoxDecoration(
         gradient: filled ? kGrad : null,
-        border: filled ? null : Border.all(color: Colors.white30),
+        border: filled ? null : Border.all(color: Sp.white12),
         borderRadius: BorderRadius.circular(23)),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, color: Colors.white, size: 20),
+        Icon(icon, color: filled ? Colors.white : Sp.white, size: 20),
         SizedBox(width: 8),
         Text(label, style: TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            color: filled ? Colors.white : Sp.white,
+            fontWeight: FontWeight.bold, fontSize: 14)),
       ]),
     ),
   );
@@ -76,7 +77,7 @@ class _SeeAllBtn extends StatelessWidget {
       child: Container(
         height: 44,
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white24),
+          border: Border.all(color: Sp.white12),
           borderRadius: BorderRadius.circular(4)),
         child: Center(child: Text(label,
           style: TextStyle(
@@ -268,10 +269,10 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
       appBar: AppBar(
         backgroundColor: Sp.bg,
         title: Text('Ajouter des titres',
-          style: TextStyle(color: Colors.white,
+          style: TextStyle(color: Sp.white,
               fontSize: 18, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: Colors.white),
+          icon: Icon(Icons.close_rounded, color: Sp.white),
           onPressed: () => Navigator.pop(context)),
         actions: [
           if (_selected.isNotEmpty)
@@ -282,7 +283,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                 child: _saving
                     ? SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
+                            color: Sp.white, strokeWidth: 2))
                     : Text('Ajouter (${_selected.length})',
                         style: TextStyle(
                           color: Sp.g2, fontWeight: FontWeight.bold,
@@ -341,7 +342,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
               GestureDetector(
                 onTap: () => setState(() => _selected.clear()),
                 child: Text('Tout désélectionner',
-                  style: TextStyle(color: Colors.white54, fontSize: 12))),
+                  style: TextStyle(color: Sp.white70, fontSize: 12))),
             ]),
           ),
 
@@ -351,16 +352,16 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
               color: Sp.g2, strokeWidth: 2))
           : _results.isEmpty && _ctrl.text.isNotEmpty
             ? Center(child: Text('Aucun résultat',
-                style: TextStyle(color: Colors.white54)))
+                style: TextStyle(color: Sp.white70)))
             : _results.isEmpty
               ? Center(child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.search_rounded,
-                        color: Colors.white24, size: 56),
+                        color: Sp.white40, size: 56),
                     SizedBox(height: 12),
                     Text('Tapez le nom d\'un titre',
-                      style: TextStyle(color: Colors.white54)),
+                      style: TextStyle(color: Sp.white70)),
                   ]))
               : ListView.builder(
                   itemCount: _results.length,
@@ -392,7 +393,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                                 color: Colors.white38, size: 18))),
                       ]),
                       title: Text(song.title, style: TextStyle(
-                        color: alreadyIn ? Colors.white38 : Colors.white,
+                        color: alreadyIn ? Sp.white40 : Sp.white,
                         fontSize: 14, fontWeight: FontWeight.w500),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                       subtitle: Text(
@@ -401,7 +402,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                             : song.artist,
                         style: TextStyle(
                           color: alreadyIn
-                              ? Colors.white24 : Colors.white54,
+                              ? Sp.white40 : Sp.white70,
                           fontSize: 12),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                       trailing: alreadyIn
@@ -410,7 +411,7 @@ class _AddTracksScreenState extends State<_AddTracksScreen> {
                               selected
                                   ? Icons.check_circle_rounded
                                   : Icons.add_circle_outline_rounded,
-                              color: selected ? Sp.g2 : Colors.white38,
+                              color: selected ? Sp.g2 : Sp.white40,
                               size: 24),
                       onTap: alreadyIn ? null : () {
                         setState(() {
@@ -468,7 +469,7 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
       padding: EdgeInsets.fromLTRB(0, 16, 0, 32),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 36, height: 4, margin: EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: Colors.white24,
+          decoration: BoxDecoration(color: Sp.white12,
               borderRadius: BorderRadius.circular(2))),
         // Titre de la chanson
         Padding(
@@ -482,19 +483,19 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.song.title, style: TextStyle(
-                  color: Colors.white, fontSize: 15,
+                  color: Sp.white, fontSize: 15,
                   fontWeight: FontWeight.w600),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
                 Text(widget.song.artist, style: TextStyle(
-                  color: Colors.white54, fontSize: 13),
+                  color: Sp.white70, fontSize: 13),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               ])),
           ])),
-        Divider(color: Colors.white12, height: 1),
+        Divider(color: Sp.white12, height: 1),
         ListTile(
-          leading: Icon(Icons.queue_music_rounded, color: Colors.white70),
+          leading: Icon(Icons.queue_music_rounded, color: Sp.white70),
           title: Text('Ajouter à la file d\'attente',
-            style: TextStyle(color: Colors.white)),
+            style: TextStyle(color: Sp.white)),
           onTap: () {
             ctx.read<PlayerProvider>().addNextInQueue(widget.song);
             Navigator.pop(context);
@@ -508,7 +509,7 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
           Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text('AJOUTER À UNE PLAYLIST',
-              style: TextStyle(color: Colors.white38, fontSize: 11,
+              style: TextStyle(color: Sp.white40, fontSize: 11,
                   letterSpacing: 1.2, fontWeight: FontWeight.w600))),
           ...(_playlists.take(5).map((pl) => ListTile(
             contentPadding: EdgeInsets.symmetric(
@@ -521,7 +522,7 @@ class _SongQuickMenuState extends State<_SongQuickMenu> {
                 headers: SwingApiService().authHeaders,
                 borderRadius: BorderRadius.circular(4))),
             title: Text(pl.name, style: TextStyle(
-                color: Colors.white, fontSize: 14),
+                color: Sp.white, fontSize: 14),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             onTap: () async {
               Navigator.pop(context);

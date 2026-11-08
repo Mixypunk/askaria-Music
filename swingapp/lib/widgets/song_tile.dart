@@ -33,8 +33,8 @@ class SongTile extends StatelessWidget {
       onTap: onTap ?? () => context.read<PlayerProvider>().playSong(
         song, queue: queue ?? [song], index: index ?? 0),
       borderRadius: BorderRadius.circular(12),
-      splashColor: Colors.white10,
-      highlightColor: Color(0x0DFFFFFF),
+      splashColor: Sp.white12,
+      highlightColor: Sp.white12,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(children: [
@@ -64,7 +64,7 @@ class SongTile extends StatelessWidget {
             children: [
               Text(song.title,
                 style: TextStyle(
-                  color: isCurrent ? Sp.g2 : Colors.white,
+                  color: isCurrent ? Sp.g2 : Sp.white,
                   fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
                   fontSize: 14,
                 ),
@@ -136,7 +136,7 @@ class SongTile extends StatelessWidget {
       child: Row(children: [
         Icon(icon, size: 18, color: Sp.white70),
         SizedBox(width: 10),
-        Text(label, style: TextStyle(color: Colors.white, fontSize: 14)),
+        Text(label, style: TextStyle(color: Sp.white, fontSize: 14)),
       ]),
     );
 

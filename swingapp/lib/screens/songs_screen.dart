@@ -69,7 +69,7 @@ class _SongsScreenState extends State<SongsScreen> {
     builder: (_) => AlertDialog(
       backgroundColor: Sp.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Déconnexion', style: TextStyle(color: Colors.white)),
+      title: Text('Déconnexion', style: TextStyle(color: Sp.white)),
       content: Text('Tu veux te déconnecter ?',
           style: TextStyle(color: Sp.white70)),
       actions: [
@@ -93,7 +93,7 @@ class _ErrorView extends StatelessWidget {
     children: [
       GIcon(Icons.wifi_off_rounded, size: 64),
       SizedBox(height: 16),
-      Text('Erreur de connexion', style: TextStyle(color: Colors.white, fontSize: 16)),
+      Text('Erreur de connexion', style: TextStyle(color: Sp.white, fontSize: 16)),
       SizedBox(height: 20),
       GestureDetector(
         onTap: onRetry,

@@ -480,14 +480,14 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext ctx) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(Icons.wifi_off_rounded, color: Colors.white12, size: 64),
+      Icon(Icons.wifi_off_rounded, color: Sp.white12, size: 64),
       SizedBox(height: 14),
       Text('Aucun contenu hors-ligne',
-          style: TextStyle(color: Colors.white54, fontSize: 16,
+          style: TextStyle(color: Sp.white70, fontSize: 16,
               fontWeight: FontWeight.w500)),
       SizedBox(height: 6),
       Text('Appuyez sur ⬇ sur un titre ou une playlist\npour le rendre disponible hors-ligne',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white30, fontSize: 12)),
+          style: TextStyle(color: Sp.white40, fontSize: 12)),
     ]));
 }

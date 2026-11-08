@@ -13,6 +13,7 @@ import 'services/update_service.dart';
 import 'screens/root_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
+import 'widgets/theme_rebuilder.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
 // ── Palette (theme-aware) ───────────────────────────────────────────────────────
@@ -333,6 +334,9 @@ class _App extends StatelessWidget {
     title: 'Askaria',
     debugShowCheckedModeBanner: false,
     themeMode: theme.mode,
+    // La palette `Sp` bascule instantanément : on désactive le fondu
+    // d'`AnimatedTheme` pour éviter un clignotement des couleurs Material.
+    themeAnimationDuration: Duration.zero,
     // ── Dark theme ──
     darkTheme: ThemeData(
       useMaterial3: false,
@@ -387,7 +391,9 @@ class _App extends StatelessWidget {
       '/root':    (_) => const RootScreen(),
       '/profile': (_) => ProfileScreen(),
     },
-    builder: (ctx, child) => _UpdateChecker(child: child!),
+    builder: (ctx, child) => ThemeRebuilder(
+      child: _UpdateChecker(child: child!),
+    ),
   ),
   );
 }

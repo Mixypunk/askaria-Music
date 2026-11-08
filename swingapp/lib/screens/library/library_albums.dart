@@ -39,13 +39,13 @@ class _AlbumTile extends StatelessWidget {
                 headers: url.startsWith(api.baseUrl) ? api.authHeaders : {},
                 borderRadius: BorderRadius.circular(10),
                 placeholder: Container(width: 56, height: 56, color: Sp.cardHi,
-                  child: Icon(Icons.album, color: Colors.white38, size: 28)))),
+                  child: Icon(Icons.album, color: Sp.white40, size: 28)))),
             SizedBox(width: 14),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(album.title, style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                    color: Sp.white, fontWeight: FontWeight.w600, fontSize: 15),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
                 SizedBox(height: 3),
                 Text(

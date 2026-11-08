@@ -40,13 +40,13 @@ class _ArtistTile extends StatelessWidget {
                 headers: api.authHeaders,
                 borderRadius: BorderRadius.circular(26),
                 placeholder: Container(width: 52, height: 52, color: Sp.cardHi,
-                  child: Icon(Icons.person, color: Colors.white38, size: 28))))),
+                  child: Icon(Icons.person, color: Sp.white40, size: 28))))),
             SizedBox(width: 14),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(artist.name, style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                    color: Sp.white, fontWeight: FontWeight.w600, fontSize: 15),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
                 SizedBox(height: 3),
                 Text(

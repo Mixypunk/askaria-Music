@@ -41,9 +41,9 @@ class _InitialFallback extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     color: Sp.card,
     child: initial.isEmpty
-        ? Icon(Icons.person_rounded, size: 18, color: Colors.white)
+        ? Icon(Icons.person_rounded, size: 18, color: Sp.white)
         : Center(child: Text(initial,
-            style: TextStyle(color: Colors.white,
+            style: TextStyle(color: Sp.white,
                 fontSize: 14, fontWeight: FontWeight.bold))),
   );
 }

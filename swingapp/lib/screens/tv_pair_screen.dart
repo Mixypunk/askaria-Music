@@ -290,9 +290,9 @@ class _TvPairScreenState extends State<TvPairScreen>
           Container(
             padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: Sp.cardHi,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: Sp.white12),
             ),
             child: Row(
               children: [
@@ -394,7 +394,7 @@ class _TvPairScreenState extends State<TvPairScreen>
                       child: Text(
                         'Pointez la caméra vers le code affiché sur la TV',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                        style: TextStyle(color: Sp.white70, fontSize: 13),
                       ),
                     ),
                     if (_loading)

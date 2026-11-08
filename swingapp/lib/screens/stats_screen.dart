@@ -370,7 +370,7 @@ class _Heatmap extends StatelessWidget {
               margin: EdgeInsets.all(1.5),
               decoration: BoxDecoration(
                 color: Color.lerp(
-                  Colors.white.withValues(alpha: 0.04),
+                  Sp.white12,
                   Sp.g2,
                   ratio,
                 ),
@@ -403,7 +403,7 @@ class _GenreBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(2),
         child: LinearProgressIndicator(
           value: maxPlays > 0 ? plays / maxPlays : 0,
-          backgroundColor: Colors.white12,
+          backgroundColor: Sp.white12,
           valueColor: AlwaysStoppedAnimation(Sp.g2),
           minHeight: 4)),
     ]),
@@ -427,7 +427,7 @@ class _PeriodChip extends StatelessWidget {
           color: sel ? null : Sp.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: sel ? Colors.transparent : Colors.white12)),
+            color: sel ? Colors.transparent : Sp.white12)),
         child: Text(label, style: TextStyle(
           color: sel ? Colors.white : Sp.white70,
           fontSize: 12, fontWeight: sel ? FontWeight.bold : FontWeight.normal)),
@@ -502,7 +502,7 @@ class _TopArtistRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: maxPlays > 0 ? plays / maxPlays : 0,
-              backgroundColor: Colors.white12,
+              backgroundColor: Sp.white12,
               valueColor: AlwaysStoppedAnimation(Sp.g2),
               minHeight: 3)),
         ])),

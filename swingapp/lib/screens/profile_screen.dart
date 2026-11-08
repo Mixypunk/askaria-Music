@@ -101,7 +101,7 @@ class _OfflineEmptyState extends StatelessWidget {
   Widget build(BuildContext context) => Center(child: Padding(
     padding: EdgeInsets.all(32),
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 56),
+      Icon(Icons.wifi_off_rounded, color: Sp.white40, size: 56),
       SizedBox(height: 16),
       Text('Profil indisponible',
           style: TextStyle(color: Sp.white, fontSize: 18, fontWeight: FontWeight.bold)),

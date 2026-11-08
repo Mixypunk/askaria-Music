@@ -87,7 +87,7 @@ class _FavouritesContentState extends State<_FavouritesContent> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(song.title, style: TextStyle(
-                      color: isCurrent ? Sp.g2 : Colors.white,
+                      color: isCurrent ? Sp.g2 : Sp.white,
                       fontWeight: FontWeight.w600, fontSize: 15),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                     SizedBox(height: 3),

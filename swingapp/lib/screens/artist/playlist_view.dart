@@ -45,7 +45,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: Sp.card,
         title: Text('Modifier la playlist',
-          style: TextStyle(color: Colors.white, fontSize: 18)),
+          style: TextStyle(color: Sp.white, fontSize: 18)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           _DialogField(ctrl: nameCtrl, hint: 'Nom de la playlist',
               icon: Icons.title_rounded),
@@ -55,7 +55,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-            child: Text('Annuler', style: TextStyle(color: Colors.white54))),
+            child: Text('Annuler', style: TextStyle(color: Sp.white40))),
           TextButton(onPressed: () => Navigator.pop(context, true),
             child: Text('Enregistrer',
               style: TextStyle(color: Sp.g2, fontWeight: FontWeight.bold))),
@@ -89,13 +89,13 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: Sp.card,
         title: Text('Supprimer la playlist ?',
-          style: TextStyle(color: Colors.white)),
+          style: TextStyle(color: Sp.white)),
         content: Text('« ${_playlist.name} » sera supprimée définitivement.',
-          style: TextStyle(color: Colors.white70)),
+          style: TextStyle(color: Sp.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
             child: Text('Annuler',
-              style: TextStyle(color: Colors.white54))),
+              style: TextStyle(color: Sp.white40))),
           TextButton(onPressed: () => Navigator.pop(context, true),
             child: Text('Supprimer',
               style: TextStyle(color: Colors.redAccent,
@@ -210,7 +210,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                     );
                   }
                   return IconButton(
-                    icon: Icon(Icons.download_rounded, color: Colors.white70, size: 22),
+                    icon: Icon(Icons.download_rounded, color: Sp.white70, size: 22),
                     tooltip: 'Télécharger',
                     onPressed: () => dl.downloadPlaylist(_tracks, context),
                   );
@@ -222,14 +222,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
               icon: Icon(_editing
                   ? Icons.check_rounded
                   : Icons.drag_handle_rounded,
-                color: _editing ? Sp.g2 : Colors.white70, size: 22),
+                color: _editing ? Sp.g2 : Sp.white70, size: 22),
               onPressed: () => setState(() => _editing = !_editing),
               tooltip: _editing ? 'Terminer' : 'Réorganiser',
             ),
             // Menu ⋯
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert_rounded,
-                  color: Colors.white70, size: 22),
+                  color: Sp.white70, size: 22),
               color: Sp.card,
               onSelected: (v) {
                 if (v == 'rename') _rename();
@@ -310,10 +310,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                 child: Container(
                   width: 46, height: 46,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white30),
+                    border: Border.all(color: Sp.white12),
                     borderRadius: BorderRadius.circular(23)),
                   child: Icon(Icons.add_rounded,
-                      color: Colors.white, size: 22))),
+                      color: Sp.white, size: 22))),
             ]),
           ]),
         )),
@@ -327,10 +327,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.music_off_rounded,
-                  color: Colors.white24, size: 64),
+                  color: Sp.white40, size: 64),
               SizedBox(height: 16),
               Text('Playlist vide',
-                style: TextStyle(color: Colors.white54, fontSize: 16)),
+                style: TextStyle(color: Sp.white70, fontSize: 16)),
               SizedBox(height: 16),
               GestureDetector(
                 onTap: _addTracks,
@@ -392,7 +392,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
         padding: EdgeInsets.fromLTRB(0, 16, 0, 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4, margin: EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: Colors.white24,
+            decoration: BoxDecoration(color: Sp.white12,
                 borderRadius: BorderRadius.circular(2))),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -405,19 +405,19 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(song.title, style: TextStyle(
-                    color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                    color: Sp.white, fontSize: 15, fontWeight: FontWeight.w600),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(song.artist, style: TextStyle(
-                    color: Colors.white54, fontSize: 13),
+                    color: Sp.white70, fontSize: 13),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 ])),
             ]),
           ),
-          Divider(color: Colors.white12, height: 1),
+          Divider(color: Sp.white12, height: 1),
           ListTile(
-            leading: Icon(Icons.play_arrow_rounded, color: Colors.white70),
+            leading: Icon(Icons.play_arrow_rounded, color: Sp.white70),
             title: Text('Lire à partir d\'ici',
-              style: TextStyle(color: Colors.white)),
+              style: TextStyle(color: Sp.white)),
             onTap: () {
               Navigator.pop(ctx);
               context.read<PlayerProvider>()
@@ -436,18 +436,18 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                 );
               } else {
                 return ListTile(
-                  leading: Icon(Icons.download_rounded, color: Colors.white70),
+                  leading: Icon(Icons.download_rounded, color: Sp.white70),
                   title: Text('Télécharger',
-                      style: TextStyle(color: Colors.white)),
+                      style: TextStyle(color: Sp.white)),
                   onTap: () { Navigator.pop(ctx); dl.downloadSong(song, ctx); }
                 );
               }
             },
           ),
           ListTile(
-            leading: Icon(Icons.queue_music_rounded, color: Colors.white70),
+            leading: Icon(Icons.queue_music_rounded, color: Sp.white70),
             title: Text('Ajouter à la file',
-              style: TextStyle(color: Colors.white)),
+              style: TextStyle(color: Sp.white)),
             onTap: () {
               context.read<PlayerProvider>().addNextInQueue(song);
               Navigator.pop(ctx);
@@ -471,10 +471,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     PopupMenuItem(
       value: value,
       child: Row(children: [
-        Icon(icon, color: color ?? Colors.white70, size: 20),
+        Icon(icon, color: color ?? Sp.white70, size: 20),
         SizedBox(width: 12),
         Text(label, style: TextStyle(
-            color: color ?? Colors.white, fontSize: 14)),
+            color: color ?? Sp.white, fontSize: 14)),
       ]));
 }
 
@@ -495,16 +495,16 @@ class _EditableTrackRow extends StatelessWidget {
         Padding(
           padding: EdgeInsets.only(right: 8),
           child: Icon(Icons.drag_handle_rounded,
-              color: Colors.white38, size: 22)),
+              color: Sp.white40, size: 22)),
         ArtworkWidget(key: ValueKey(song.hash),
           hash: song.image ?? song.hash, size: 44,
           borderRadius: BorderRadius.circular(4)),
       ]),
       title: Text(song.title, style: TextStyle(
-          color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+          color: Sp.white, fontSize: 14, fontWeight: FontWeight.w500),
         maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(song.artist, style: TextStyle(
-          color: Colors.white54, fontSize: 12),
+          color: Sp.white70, fontSize: 12),
         maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: IconButton(
         icon: Icon(Icons.remove_circle_rounded,
@@ -527,10 +527,10 @@ class _DialogField extends StatelessWidget {
         borderRadius: BorderRadius.circular(8)),
     child: TextField(
       controller: ctrl,
-      style: TextStyle(color: Colors.white, fontSize: 15),
+      style: TextStyle(color: Sp.white, fontSize: 15),
       decoration: InputDecoration(
-        hintText: hint, hintStyle: TextStyle(color: Colors.white38),
-        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+        hintText: hint, hintStyle: TextStyle(color: Sp.white40),
+        prefixIcon: Icon(icon, color: Sp.white40, size: 20),
         border: InputBorder.none,
         contentPadding: EdgeInsets.symmetric(vertical: 14)),
     ),

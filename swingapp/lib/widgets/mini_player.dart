@@ -52,7 +52,7 @@ class _MiniPlayerShell extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
         height: 66,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
+          color: Sp.card,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
               color: accent.withValues(alpha: 0.2), width: 0.8),
@@ -103,13 +103,13 @@ class _MiniPlayerShell extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(song.title,
-                    style: const TextStyle(color: Colors.white,
+                    style: TextStyle(color: Sp.white,
                         fontSize: 14, fontWeight: FontWeight.w600),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text(song.artist,
-                    style: const TextStyle(
-                        color: Colors.white54, fontSize: 12),
+                    style: TextStyle(
+                        color: Sp.white70, fontSize: 12),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               )),
@@ -123,10 +123,10 @@ class _MiniPlayerShell extends StatelessWidget {
               // Next
               GestureDetector(
                 onTap: () => context.read<PlayerProvider>().next(),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
                   child: Icon(Icons.skip_next_rounded,
-                      color: Colors.white, size: 26))),
+                      color: Sp.white, size: 26))),
             ]),
           ),
         ]),
@@ -183,7 +183,7 @@ class _MiniPlayBtn extends StatelessWidget {
                 isPlaying
                     ? Icons.pause_rounded
                     : Icons.play_arrow_rounded,
-                color: Colors.white, size: 32),
+                color: Sp.white, size: 32),
       ),
     );
   }
@@ -204,7 +204,7 @@ class _MiniLikeBtn extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         child: Icon(
           isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          color: isFav ? Colors.redAccent : Colors.white38,
+          color: isFav ? Colors.redAccent : Sp.white40,
           size: 20),
       ),
     );

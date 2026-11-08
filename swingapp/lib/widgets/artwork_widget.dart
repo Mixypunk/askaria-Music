@@ -298,17 +298,17 @@ class _NetImageState extends State<NetImage> {
     if (_loading) {
       child = Container(
         width: widget.width, height: widget.height,
-        color: const Color(0xFF282828),
+        color: Sp.cardHi,
         child: Center(child: SizedBox(
           width: widget.width * 0.25, height: widget.width * 0.25,
-          child: const CircularProgressIndicator(
-              strokeWidth: 1.5, color: Color(0xFF6A6A6A)))));
+          child: CircularProgressIndicator(
+              strokeWidth: 1.5, color: Sp.white40))));
     } else if (_bytes == null) {
       child = widget.placeholder ?? Container(
         width: widget.width, height: widget.height,
-        color: const Color(0xFF282828),
+        color: Sp.cardHi,
         child: Icon(Icons.music_note_rounded,
-          size: widget.width * 0.4, color: const Color(0xFF6A6A6A)));
+          size: widget.width * 0.4, color: Sp.white40));
     } else {
       child = Image.memory(_bytes!,
         width: widget.width, height: widget.height,

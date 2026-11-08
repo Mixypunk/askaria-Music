@@ -81,16 +81,16 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
           backgroundColor: Sp.card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Nouvelle playlist',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(
               controller: nameCtrl,
               autofocus: true,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Sp.white),
               decoration: InputDecoration(
                 hintText: 'Nom de la playlist',
-                hintStyle: TextStyle(color: Colors.white38),
-                filled: true, fillColor: Colors.white10,
+                hintStyle: TextStyle(color: Sp.white40),
+                filled: true, fillColor: Sp.cardHi,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none),
@@ -103,13 +103,13 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
                 activeColor: Sp.g1,
                 onChanged: (v) => setSt(() => isPublic = v ?? false),
               ),
-              Text('Rendre publique', style: TextStyle(color: Colors.white70)),
+              Text('Rendre publique', style: TextStyle(color: Sp.white70)),
             ]),
           ]),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Annuler', style: TextStyle(color: Colors.white54)),
+              child: Text('Annuler', style: TextStyle(color: Sp.white40)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Sp.g1),
@@ -147,8 +147,8 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
         bottom: TabBar(
           controller: _tab,
           indicatorColor: Sp.g1,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white38,
+          labelColor: Sp.white,
+          unselectedLabelColor: Sp.white40,
           tabs: [
             Tab(text: 'Mes playlists'),
             Tab(text: 'Partagées'),
@@ -175,12 +175,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
                     ))
                   : _mine.isEmpty
                       ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.queue_music_rounded, size: 64, color: Colors.white24),
+                          Icon(Icons.queue_music_rounded, size: 64, color: Sp.white40),
                           SizedBox(height: 16),
                           Text('Aucune playlist', style: TextStyle(color: Sp.white70)),
                           SizedBox(height: 8),
                           Text('Appuie sur + pour en créer une',
-                              style: TextStyle(color: Colors.white38, fontSize: 13)),
+                              style: TextStyle(color: Sp.white40, fontSize: 13)),
                         ]))
                       : RefreshIndicator(
                           onRefresh: _loadMine,
@@ -201,13 +201,13 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
               ? Center(child: CircularProgressIndicator())
               : _public.isEmpty
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.public_off_rounded, size: 64, color: Colors.white24),
+                      Icon(Icons.public_off_rounded, size: 64, color: Sp.white40),
                       SizedBox(height: 16),
                       Text('Aucune playlist partagée', style: TextStyle(color: Sp.white70)),
                       SizedBox(height: 8),
                       Text('Les playlists publiques des autres utilisateurs\napparaîtront ici',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white38, fontSize: 13)),
+                          style: TextStyle(color: Sp.white40, fontSize: 13)),
                       SizedBox(height: 20),
                       TextButton.icon(
                         onPressed: _loadPublic,
@@ -251,18 +251,18 @@ class _PlaylistTile extends StatelessWidget {
       leading: Container(
         width: 48, height: 48,
         decoration: BoxDecoration(
-          color: Colors.white10,
+          color: Sp.cardHi,
           borderRadius: BorderRadius.circular(6),
         ),
         child: playlist.imageHash != null && playlist.imageHash!.isNotEmpty
             ? ArtworkWidget(hash: playlist.imageHash!, size: 48,
                 borderRadius: BorderRadius.circular(6))
-            : Icon(Icons.queue_music_rounded, color: Colors.white38),
+            : Icon(Icons.queue_music_rounded, color: Sp.white40),
       ),
-      title: Text(playlist.name, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+      title: Text(playlist.name, style: TextStyle(color: Sp.white, fontWeight: FontWeight.w500)),
       subtitle: Row(mainAxisSize: MainAxisSize.min, children: [
         Text('${playlist.trackCount} titre${playlist.trackCount != 1 ? 's' : ''}',
-            style: TextStyle(color: Colors.white54, fontSize: 12)),
+            style: TextStyle(color: Sp.white70, fontSize: 12)),
         if (showPublicBadge && playlist.isPublic) ...[ 
           SizedBox(width: 8),
           Container(
@@ -278,7 +278,7 @@ class _PlaylistTile extends StatelessWidget {
         ],
       ]),
       onTap: onTap,
-      trailing: Icon(Icons.chevron_right_rounded, color: Colors.white24),
+      trailing: Icon(Icons.chevron_right_rounded, color: Sp.white40),
     );
   }
 }
@@ -388,7 +388,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 return IconButton(
                   icon: Icon(
                     isOffline ? Icons.download_done_rounded : Icons.download_rounded,
-                    color: isOffline ? Colors.green : Colors.white70,
+                    color: isOffline ? Colors.green : Sp.white70,
                   ),
                   tooltip: isOffline ? 'Désactiver la synchro' : 'Activer la synchro hors-ligne',
                   onPressed: () {
@@ -420,7 +420,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             IconButton(
               icon: Icon(
                 _playlist.isPublic ? Icons.public_rounded : Icons.public_off_rounded,
-                color: _playlist.isPublic ? Colors.blueAccent : Colors.white38,
+                color: _playlist.isPublic ? Colors.blueAccent : Sp.white40,
               ),
               tooltip: _playlist.isPublic ? 'Rendre privée' : 'Rendre publique',
               onPressed: _togglePublic,
@@ -432,7 +432,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           : _error != null
               ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
               : _tracks.isEmpty
-                  ? Center(child: Text('Playlist vide', style: TextStyle(color: Colors.white54)))
+                  ? Center(child: Text('Playlist vide', style: TextStyle(color: Sp.white70)))
                   : widget.readOnly
                       // Lecture seule → liste simple (playlist d'un autre user)
                       ? ListView.builder(

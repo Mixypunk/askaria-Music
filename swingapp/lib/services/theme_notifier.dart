@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ThemeNotifier extends ChangeNotifier {
+class ThemeNotifier extends ChangeNotifier with WidgetsBindingObserver {
   static ThemeNotifier? _instance;
   static ThemeNotifier get instance => _instance ??= ThemeNotifier._();
-  ThemeNotifier._();
+  ThemeNotifier._() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   ThemeMode _mode = ThemeMode.dark;
   ThemeMode get mode => _mode;
   bool get isDark => _mode == ThemeMode.dark ||
       (_mode == ThemeMode.system &&
        WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
+
+  /// Bascule le thème en direct quand le système passe de clair à sombre (ou
+  /// l'inverse) alors que le mode « système » est sélectionné.
+  @override
+  void didChangePlatformBrightness() {
+    if (_mode == ThemeMode.system) notifyListeners();
+  }
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();

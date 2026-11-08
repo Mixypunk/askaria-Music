@@ -46,7 +46,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             child: TextField(
               controller: _ctrl,
-              style: TextStyle(color: Colors.white, fontSize: 15),
+              style: TextStyle(color: Sp.white, fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Titres, artistes, albums...',
                 hintStyle: TextStyle(color: Sp.white70),

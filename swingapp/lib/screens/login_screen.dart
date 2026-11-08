@@ -29,11 +29,14 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext ctx) {
+    final dark = Theme.of(ctx).brightness == Brightness.dark;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0D0D0D), Color(0xFF0F0A1E), Color(0xFF0D0D0D)],
+            colors: dark
+                ? [Color(0xFF0D0D0D), Color(0xFF0F0A1E), Color(0xFF0D0D0D)]
+                : [Color(0xFFF5F5F5), Color(0xFFEDE7F6), Color(0xFFF5F5F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             stops: [0, 0.4, 1],
@@ -197,7 +200,7 @@ class _QrTabState extends State<_QrTab> {
       builder: (c) => AlertDialog(
         backgroundColor: Sp.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Connexion au serveur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Connexion au serveur', style: TextStyle(color: Sp.white, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +225,7 @@ class _QrTabState extends State<_QrTab> {
                   Expanded(
                     child: Text(
                       serverUrl,
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: Sp.white, fontSize: 13, fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

@@ -49,8 +49,8 @@ class LibraryTabState extends State<LibraryTab>
         backgroundColor: Sp.card,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
-        title: const Text('Nouvelle playlist',
-          style: TextStyle(color: Colors.white, fontSize: 18,
+        title: Text('Nouvelle playlist',
+          style: TextStyle(color: Sp.white, fontSize: 18,
               fontWeight: FontWeight.bold)),
         content: Container(
           decoration: BoxDecoration(
@@ -59,19 +59,19 @@ class LibraryTabState extends State<LibraryTab>
           child: TextField(
             controller: nameCtrl,
             autofocus: true,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
-            decoration: const InputDecoration(
+            style: TextStyle(color: Sp.white, fontSize: 15),
+            decoration: InputDecoration(
               hintText: 'Nom de la playlist',
-              hintStyle: TextStyle(color: Colors.white38),
+              hintStyle: TextStyle(color: Sp.white40),
               prefixIcon: Icon(Icons.queue_music_rounded,
-                  color: Colors.white38, size: 20),
+                  color: Sp.white40, size: 20),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(vertical: 14)),
           )),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler',
-              style: TextStyle(color: Colors.white54))),
+            child: Text('Annuler',
+              style: TextStyle(color: Sp.white40))),
           TextButton(onPressed: () => Navigator.pop(context, true),
             child: Text('Créer',
               style: TextStyle(color: Sp.g2,
@@ -271,13 +271,13 @@ class LibraryTabState extends State<LibraryTab>
                 decoration: const BoxDecoration(gradient: kGrad, shape: BoxShape.circle),
                 child: const Icon(Icons.person_rounded, size: 18, color: Colors.white)),
               const SizedBox(width: 10),
-              const Text('Ma bibliothèque',
+              Text('Ma bibliothèque',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                    color: Colors.white)),
+                    color: Sp.white)),
             ]),
             actions: [
               PopupMenuButton<String>(
-                icon: const Icon(Icons.sort_rounded, color: Colors.white),
+                icon: Icon(Icons.sort_rounded, color: Sp.white),
                 color: Sp.card,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -286,16 +286,16 @@ class LibraryTabState extends State<LibraryTab>
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'recent', child: Row(children: [
                     Icon(Icons.access_time_rounded,
-                      color: _sort == 'recent' ? Sp.g2 : Colors.white70, size: 18),
+                      color: _sort == 'recent' ? Sp.g2 : Sp.white70, size: 18),
                     const SizedBox(width: 10),
                     Text('Récents', style: TextStyle(
-                      color: _sort == 'recent' ? Sp.g2 : Colors.white))])),
+                      color: _sort == 'recent' ? Sp.g2 : Sp.white))])),
                   PopupMenuItem(value: 'alpha', child: Row(children: [
                     Icon(Icons.sort_by_alpha_rounded,
-                      color: _sort == 'alpha' ? Sp.g2 : Colors.white70, size: 18),
+                      color: _sort == 'alpha' ? Sp.g2 : Sp.white70, size: 18),
                     const SizedBox(width: 10),
                     Text('A → Z', style: TextStyle(
-                      color: _sort == 'alpha' ? Sp.g2 : Colors.white))])),
+                      color: _sort == 'alpha' ? Sp.g2 : Sp.white))])),
                 ],
               ),
               const SizedBox(width: 4),
@@ -348,11 +348,11 @@ class _TabLabel extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
           decoration: BoxDecoration(
-            color: Colors.white12,
+            color: Sp.white12,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text('$count',
-            style: const TextStyle(fontSize: 10, color: Colors.white70)),
+            style: TextStyle(fontSize: 10, color: Sp.white70)),
         ),
       ],
     ]),

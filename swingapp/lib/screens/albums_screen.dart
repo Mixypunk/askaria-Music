@@ -130,7 +130,7 @@ class _AlbumCard extends StatelessWidget {
         ),
         SizedBox(height: 6),
         Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Sp.white)),
         Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
       ]),

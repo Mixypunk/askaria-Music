@@ -374,26 +374,23 @@ class _SearchBarState extends State<_SearchBar> {
       duration: Duration(milliseconds: 200),
       height: 48,
       decoration: BoxDecoration(
-        color: _focused ? Colors.white : Color(0xFF2A2A2A),
+        color: _focused ? Sp.card : Sp.cardHi,
         borderRadius: BorderRadius.circular(14),
-        border: _focused
-            ? null
-            : Border.all(color: Sp.white12),
+        border: Border.all(
+            color: _focused ? Sp.g2 : Sp.white12,
+            width: _focused ? 1.2 : 0.8),
       ),
       child: Row(children: [
         SizedBox(width: 12),
-        Icon(Icons.search,
-            color: _focused ? Colors.black54 : Sp.white70, size: 22),
+        Icon(Icons.search, color: Sp.white70, size: 22),
         SizedBox(width: 8),
         Expanded(child: TextField(
           controller: widget.ctrl,
           focusNode: widget.focus,
-          style: TextStyle(
-              color: _focused ? Colors.black : Colors.white, fontSize: 15),
+          style: TextStyle(color: Sp.white, fontSize: 15),
           decoration: InputDecoration(
             hintText: 'Artistes, titres, albums',
-            hintStyle: TextStyle(
-                color: _focused ? Colors.black38 : Sp.white40),
+            hintStyle: TextStyle(color: Sp.white40),
             border: InputBorder.none, isDense: true),
           onChanged: widget.onChanged,
         )),
@@ -407,7 +404,7 @@ class _SearchBarState extends State<_SearchBar> {
             child: Padding(
               padding: EdgeInsets.all(10),
               child: Icon(Icons.clear,
-                  color: _focused ? Colors.black54 : Sp.white70,
+                  color: Sp.white70,
                   size: 20))),
       ]),
     );
