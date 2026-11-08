@@ -27,6 +27,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          # Cache ~/.gradle/caches + ~/.gradle/wrapper : la distribution
+          # Gradle n'est plus re-téléchargée à chaque run.
+          cache: 'gradle'
 
       - name: Setup Flutter 3.29.0
         uses: subosito/flutter-action@v2
@@ -84,6 +87,26 @@ jobs:
       - name: Flutter pub get
         working-directory: swingapp
         run: flutter pub get
+
+      # ── Gradle : pré-téléchargement avec retry ────────────────────────
+      # services.gradle.org redirige vers les releases GitHub, qui renvoient
+      # parfois des 504 transitoires (déjà vu en CI). On télécharge la
+      # distribution une seule fois, avec plusieurs tentatives ; le cache
+      # Gradle de setup-java la réutilise ensuite d'un run à l'autre.
+      - name: Prépare la distribution Gradle (retry)
+        working-directory: swingapp/android
+        run: |
+          chmod +x gradlew
+          for i in 1 2 3 4 5; do
+            if ./gradlew --version > /dev/null 2>&1; then
+              echo "Distribution Gradle prête."
+              exit 0
+            fi
+            echo "Téléchargement Gradle échoué (tentative $i/5), nouvel essai dans 15 s…"
+            sleep 15
+          done
+          echo "Erreur : impossible de télécharger Gradle après 5 tentatives."
+          exit 1
 
       # ── Build APK signé ───────────────────────────────────────────────
       - name: Build APK
