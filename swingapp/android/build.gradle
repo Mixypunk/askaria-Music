@@ -1,15 +1,31 @@
+// ── Dépôts Maven ─────────────────────────────────────────────────────────
+// Sur les runners CI, repo.maven.apache.org renvoie parfois une redirection
+// vers github.com/.../releases/download/... qui expire (HTTP 504 / read
+// timeout) sur les gros artefacts (ex: kotlin-compiler-embeddable-2.0.21.jar
+// demandé par le buildscript de nsd_android).
+// On place donc d'abord le miroir officiel Google de Maven Central, servi
+// directement en 200 : mavenCentral() ne sert plus que de secours.
+ext.mavenCentralMirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+
 allprojects {
     repositories {
         google()
+        maven { url rootProject.ext.mavenCentralMirror }
         mavenCentral()
     }
 }
 
-// Fix pour les plugins tiers (ex: nsd_android) qui utilisent
-// flutter.compileSdkVersion / flutter.minSdkVersion dans leur build.gradle.
-// Ces propriétés doivent être injectées AVANT l'évaluation du sous-projet.
+// Les plugins tiers (ex: nsd_android) déclarent leur PROPRE bloc buildscript
+// avec `mavenCentral()` : les dépôts ci-dessus ne s'appliquent pas à leur
+// classpath. On injecte le miroir avant l'évaluation de chaque sous-projet
+// pour qu'il soit essayé en premier.
 subprojects {
     beforeEvaluate { project ->
+        project.buildscript.repositories {
+            google()
+            maven { url rootProject.ext.mavenCentralMirror }
+        }
+
         if (project.name != 'app') {
             // Injecter un objet 'flutter' avec les valeurs SDK attendues par les vieux plugins
             project.extensions.extraProperties['flutter'] = new Expando()

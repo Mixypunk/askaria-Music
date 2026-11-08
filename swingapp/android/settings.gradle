@@ -11,6 +11,9 @@ pluginManagement {
 
     repositories {
         google()
+        // Miroir officiel Google de Maven Central : évite les redirections
+        // vers GitHub Releases qui expirent en CI (504 / read timeout).
+        maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
         mavenCentral()
         gradlePluginPortal()
     }

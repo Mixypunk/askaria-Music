@@ -109,13 +109,28 @@ jobs:
           exit 1
 
       # ── Build APK signé ───────────────────────────────────────────────
+      # 3 tentatives : les téléchargements Maven interrompus reprennent
+      # depuis le cache Gradle (~/.gradle/caches), donc chaque essai
+      # progresse. Un échec réseau transitoire ne casse plus la CI.
       - name: Build APK
         working-directory: swingapp
         run: |
-          flutter build apk --release \
-            --no-tree-shake-icons \
-            --build-name=${{ steps.version.outputs.version }} \
-            --build-number=${{ steps.version.outputs.build }}
+          for attempt in 1 2 3; do
+            echo "::group::Build APK - tentative $attempt/3"
+            if flutter build apk --release \
+                 --no-tree-shake-icons \
+                 --build-name=${{ steps.version.outputs.version }} \
+                 --build-number=${{ steps.version.outputs.build }}; then
+              echo "::endgroup::"
+              echo "Build APK réussi (tentative $attempt)."
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Build échoué (tentative $attempt/3), nouvel essai dans 20 s…"
+            sleep 20
+          done
+          echo "Erreur : le build APK a échoué après 3 tentatives."
+          exit 1
 
       # ── Renommer l'APK ────────────────────────────────────────────────
       - name: Rename APK
